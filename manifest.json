@@ -1,0 +1,27 @@
+{
+    "theme_color": "#010101",
+    "background_color": "#010101",
+    "display": "standalone",
+    "scope": "/",
+    "start_url": "/",
+    "name": "Adi's UX Portfolio",
+    "short_name": "Adi's UX",
+    "description": "Adi's UX Portfolio website.",
+    "categories": ["portfolio", "design", "entertainment"],
+    "orientation": "portrait",
+    "prefer_related_applications": false,
+    "launch_handler": {
+        "client_mode": ["navigate_new", "auto"]
+    },
+    "shortcuts" : [
+        {"name": "Start", "url": "/"},
+        {"name": "Settings", "url": "/settings"}
+    ],
+    "icons": [
+        {
+            "src": "assets/pwa/256.png",
+            "type": "image/png",
+            "sizes": "256x256"
+        }
+    ]
+}
