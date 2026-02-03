@@ -277,6 +277,40 @@ button {
     animation: fadeInandOut 1s infinite 0.5s;
 }
 
+@media (max-width: 768px) {
+    .splash .warning .text {
+        width: 90vw;
+    }
+
+    .splash .warning h2 {
+        white-space: normal;
+        font-size: 5vw;
+        margin-bottom: 2vh;
+    }
+
+    .splash .warning .desc {
+        font-size: 4vw;
+        margin-bottom: 2vh;
+    }
+
+    .splash .warning .bottom {
+        font-size: 3vw;
+    }
+
+    .splash .warning .bottom a {
+        font-size: 3.5vw;
+    }
+
+    .splash .warning .warn-icon {
+        font-size: 6vw;
+        height: 3vw;
+    }
+
+    .splash .warning span {
+        font-size: 5vw;
+    }
+}
+
 .splash div .tip {
     position: absolute;
     bottom: 5vh;
