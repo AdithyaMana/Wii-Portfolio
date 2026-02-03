@@ -303,11 +303,11 @@ button {
     left: 0;
     right: 0;
     width: 100vw;
-    height: 20vh;
+    height: 14vh;
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: 20vw auto 20vw;
+    grid-template-columns: min(16vh, 32vw) auto min(16vh, 32vw);
     align-items: center;
     text-align: center;
     cursor: none !important;
@@ -316,7 +316,7 @@ button {
 .bottom-bar .lateral {
     background-image: url('/assets/bottom-bg.png');
     background-repeat: repeat-x;
-    background-size: contain;
+    background-size: auto 100%;
     height: 100%;
 
     position: relative;
@@ -332,25 +332,45 @@ button {
 .bottom-bar .lateral .left-btn {
     position: absolute;
     left: 0;
-    width: 22vh;
+    width: 16vh;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    z-index: 20;
 }
 
 .bottom-bar .lateral .wii-btn {
     height: 65%;
     position: absolute;
     left: 7vh;
+    height: auto;
+    width: 16vh;
+    max-width: 65%;
+    position: absolute;
+    left: 20%;
+    z-index: 20;
 }
 
 .bottom-bar .lateral .right-btn {
     position: absolute;
     right: 0;
-    width: 22vh;
+    width: 16vh;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    z-index: 20;
 }
 
 .bottom-bar .lateral .diary-btn {
     height: 65%;
     position: absolute;
     right: 7vh;
+    height: auto;
+    width: 16vh;
+    max-width: 65%;
+    position: absolute;
+    right: 20%;
+    z-index: 20;
 }
 
 .bottom-bar .lateral .wii-btn:hover,
@@ -396,6 +416,7 @@ button {
     background-repeat: no-repeat;
     background-size: 100% 100%;
     height: 100%;
+    margin: 0 -2px;
     cursor: none !important;
     user-select: none;
     position: relative;
@@ -405,7 +426,7 @@ button {
 .bottom-bar .info .jg,
 .bottom-bar .info #hour,
 .bottom-bar .info #date {
-    font-size: 2.5em;
+    font-size: 1.8em;
     cursor: none !important;
 }
 
@@ -414,21 +435,21 @@ button {
     animation: fadeOut 250ms ease-in-out 6s forwards;
     position: absolute;
     left: 50%;
-    transform: translate(-50%, -2vh);
+    transform: translate(-50%, -2.5vh);
 }
 
 .bottom-bar .info #hour {
     font-family: 'Display';
-    font-size: 5em;
+    font-size: 3.5em;
     opacity: 0;
     position: relative;
-    top: -2vh;
+    top: -1.5vh;
     animation: fadeIn 250ms ease-in-out 6.5s forwards;
 }
 
 .bottom-bar .info #date {
     position: absolute;
-    bottom: 1vh;
+    bottom: 0.5vh;
     left: 50%;
     transform: translate(-50%, 0);
     font-size: 2.5em;
