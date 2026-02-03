@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Website</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a1a2a;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .channel-bg {
+            width: 100%;
+            height: 100%;
+            background-image: url('channel.jpg');
+            background-size: 102%;
+            background-position: center;
+            background-repeat: no-repeat;
+            animation: wii-float 12s ease-in-out infinite;
+        }
+
+        @keyframes wii-float {
+
+            0%,
+            100% {
+                background-size: 102%;
+                background-position: center;
+            }
+
+            50% {
+                background-size: 105%;
+                background-position: 49% 51%;
+            }
+        }
+
+        /* BRIGHT cloud/wisp particles */
+        .cloud {
+            position: absolute;
+            width: 80px;
+            height: 30px;
+            background: radial-gradient(ellipse, rgba(255, 255, 255, 0.8) 0%, rgba(200, 230, 255, 0.5) 50%, transparent 100%);
+            border-radius: 50px;
+            filter: blur(2px);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(135, 206, 235, 0.4);
+            animation: cloud-drift 10s linear infinite;
+        }
+
+        .cloud.small {
+            width: 50px;
+            height: 20px;
+        }
+
+        .cloud.medium {
+            width: 80px;
+            height: 30px;
+        }
+
+        .cloud.large {
+            width: 120px;
+            height: 40px;
+        }
+
+        .cloud:nth-child(2) {
+            top: 5%;
+            animation-delay: 1s;
+            animation-duration: 14s;
+        }
+
+        .cloud:nth-child(3) {
+            top: 8%;
+            animation-delay: 3s;
+            animation-duration: 11s;
+        }
+
+        .cloud:nth-child(4) {
+            top: 12%;
+            animation-delay: 0s;
+            animation-duration: 13s;
+        }
+
+        .cloud:nth-child(5) {
+            top: 85%;
+            animation-delay: 5s;
+            animation-duration: 10s;
+        }
+
+        .cloud:nth-child(6) {
+            top: 88%;
+            animation-delay: 2s;
+            animation-duration: 15s;
+        }
+
+        .cloud:nth-child(7) {
+            top: 92%;
+            animation-delay: 4s;
+            animation-duration: 12s;
+        }
+
+        .cloud:nth-child(8) {
+            top: 3%;
+            animation-delay: 6s;
+            animation-duration: 11s;
+        }
+
+        .cloud:nth-child(9) {
+            top: 90%;
+            animation-delay: 7s;
+            animation-duration: 13s;
+        }
+
+        .cloud:nth-child(10) {
+            top: 6%;
+            animation-delay: 8s;
+            animation-duration: 12s;
+        }
+
+        .cloud:nth-child(11) {
+            top: 95%;
+            animation-delay: 9s;
+            animation-duration: 14s;
+        }
+
+        @keyframes cloud-drift {
+            0% {
+                left: -15%;
+                opacity: 0;
+            }
+
+            15% {
+                opacity: 0.9;
+            }
+
+            85% {
+                opacity: 0.9;
+            }
+
+            100% {
+                left: 115%;
+                opacity: 0;
+            }
+        }
+
+        /* INTENSE sky glow overlay */
+        .glow-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 30%, rgba(135, 206, 235, 0.25) 0%, transparent 55%);
+            animation: glow-pulse 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="channel-bg"></div>
+        <div class="glow-overlay"></div>
+        <div class="cloud small"></div>
+        <div class="cloud large"></div>
+        <div class="cloud medium"></div>
+        <div class="cloud small"></div>
+        <div class="cloud large"></div>
+        <div class="cloud medium"></div>
+        <div class="cloud small"></div>
+        <div class="cloud large"></div>
+        <div class="cloud medium"></div>
+        <div class="cloud small"></div>
+    </div>
+</body>
+
+</html>

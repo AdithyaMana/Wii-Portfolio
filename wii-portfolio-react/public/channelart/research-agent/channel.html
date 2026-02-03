@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Agent - Beach Vibes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #87CEEB;
+            /* Fallback */
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: channel-fade-in 1.5s ease-out forwards;
+        }
+
+        /* The Main Background Image */
+        .channel-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('channel.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+            /* Subtle breathing animation to make the image feel alive */
+            animation: bg-breathe 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes bg-breathe {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* SUN GLARE / GLOW (Particle Effect 1) */
+        .sun-glow {
+            position: absolute;
+            top: -10%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+            animation: pulse-sun 5s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-sun {
+            from {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+
+            to {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+        }
+
+        /* FLOATING CLOUDS (Subtle) */
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.4);
+            filter: blur(8px);
+            border-radius: 50%;
+            animation: float-cloud linear infinite;
+        }
+
+        @keyframes float-cloud {
+            from {
+                transform: translateX(-200px);
+            }
+
+            to {
+                transform: translateX(120vw);
+            }
+        }
+
+        /* WIND / BREEZE LINES */
+        .breeze {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            border-radius: 2px;
+            animation: breeze-blow linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes breeze-blow {
+            0% {
+                width: 0;
+                transform: translateX(-50px) rotate(-5deg);
+                opacity: 0;
+            }
+
+            20% {
+                width: 100px;
+                opacity: 0.5;
+            }
+
+            100% {
+                width: 10;
+                transform: translateX(100vw) rotate(5deg);
+                opacity: 0;
+            }
+        }
+
+        /* SPARKLES (Random floating glimmers) */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px white;
+            opacity: 0;
+            animation: sparkle-anim infinite ease-in-out;
+        }
+
+        @keyframes sparkle-anim {
+            0% {
+                opacity: 0;
+                transform: scale(0);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.5);
+            }
+
+            100% {
+                opacity: 0;
+                transform: scale(0);
+            }
+        }
+
+        /* SAND GRAINS / DUST MOTES */
+        .mote {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 224, 0.8);
+            border-radius: 50%;
+            animation: mote-drift linear infinite;
+        }
+
+        @keyframes mote-drift {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.8;
+            }
+
+            90% {
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translateY(-100px) translateX(50px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <!-- The Background Image -->
+        <div class="channel-bg"></div>
+
+        <!-- Sun Effect -->
+        <div class="sun-glow"></div>
+
+        <!-- Clouds -->
+        <div class="cloud"
+            style="width: 150px; height: 60px; top: 10%; left: -20%; animation-duration: 25s; opacity: 0.6;"></div>
+        <div class="cloud"
+            style="width: 100px; height: 40px; top: 20%; left: -10%; animation-duration: 35s; animation-delay: 10s; opacity: 0.4;">
+        </div>
+        <div class="cloud"
+            style="width: 200px; height: 80px; top: 5%; left: -30%; animation-duration: 40s; animation-delay: 5s; opacity: 0.5;">
+        </div>
+
+        <!-- Breeze Lines -->
+        <div class="breeze" style="top: 30%; animation-duration: 7s;"></div>
+        <div class="breeze" style="top: 50%; animation-duration: 9s; animation-delay: 2s;"></div>
+        <div class="breeze" style="top: 70%; animation-duration: 6s; animation-delay: 4s;"></div>
+
+        <!-- Sparkles (Distributed roughly) -->
+        <div class="sparkle" style="top: 40%; left: 20%; animation-duration: 3s; animation-delay: 0s;"></div>
+        <div class="sparkle" style="top: 60%; left: 80%; animation-duration: 4s; animation-delay: 1s;"></div>
+        <div class="sparkle" style="top: 50%; left: 50%; animation-duration: 5s; animation-delay: 2s;"></div>
+        <div class="sparkle" style="top: 70%; left: 30%; animation-duration: 3.5s; animation-delay: 0.5s;"></div>
+        <div class="sparkle" style="top: 30%; left: 60%; animation-duration: 4.5s; animation-delay: 1.5s;"></div>
+
+        <!-- Floating Motes/Sand -->
+        <div class="mote" style="top: 80%; left: 10%; animation-duration: 10s;"></div>
+        <div class="mote" style="top: 85%; left: 40%; animation-duration: 15s; animation-delay: 2s;"></div>
+        <div class="mote" style="top: 75%; left: 70%; animation-duration: 12s; animation-delay: 5s;"></div>
+        <div class="mote" style="top: 90%; left: 25%; animation-duration: 18s; animation-delay: 1s;"></div>
+        <div class="mote" style="top: 82%; left: 55%; animation-duration: 14s; animation-delay: 3s;"></div>
+    </div>
+</body>
+
+</html>

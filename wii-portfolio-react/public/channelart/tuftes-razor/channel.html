@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tufte's Razor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1408;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .channel-bg {
+            width: 100%;
+            height: 100%;
+            background-image: url('channel.jpg');
+            background-size: 102%;
+            background-position: center 35%;
+            background-repeat: no-repeat;
+            animation: subtle-breathe 12s ease-in-out infinite;
+        }
+
+        @keyframes subtle-breathe {
+
+            0%,
+            100% {
+                background-size: 102%;
+                background-position: center 35%;
+            }
+
+            50% {
+                background-size: 104%;
+                background-position: 49% 36%;
+            }
+        }
+
+        /* Bright dust/ember particles */
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255, 230, 150, 1) 0%, rgba(255, 200, 100, 1) 40%, rgba(255, 160, 60, 0.6) 70%, transparent 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 220, 120, 1), 0 0 30px rgba(255, 180, 80, 0.9), 0 0 50px rgba(255, 140, 40, 0.6);
+            animation: dust-float 8s ease-in-out infinite;
+        }
+
+        .particle.small {
+            width: 5px;
+            height: 5px;
+        }
+
+        .particle.medium {
+            width: 8px;
+            height: 8px;
+        }
+
+        .particle.large {
+            width: 12px;
+            height: 12px;
+        }
+
+        .particle:nth-child(2) {
+            left: 5%;
+            animation-delay: 0.5s;
+            animation-duration: 10s;
+        }
+
+        .particle:nth-child(3) {
+            left: 12%;
+            animation-delay: 2s;
+            animation-duration: 7s;
+        }
+
+        .particle:nth-child(4) {
+            left: 18%;
+            animation-delay: 1s;
+            animation-duration: 9s;
+        }
+
+        .particle:nth-child(5) {
+            left: 25%;
+            animation-delay: 3s;
+            animation-duration: 8s;
+        }
+
+        .particle:nth-child(6) {
+            left: 32%;
+            animation-delay: 0.8s;
+            animation-duration: 11s;
+        }
+
+        .particle:nth-child(7) {
+            left: 40%;
+            animation-delay: 2.5s;
+            animation-duration: 7.5s;
+        }
+
+        .particle:nth-child(8) {
+            left: 48%;
+            animation-delay: 1.5s;
+            animation-duration: 9.5s;
+        }
+
+        .particle:nth-child(9) {
+            left: 55%;
+            animation-delay: 4s;
+            animation-duration: 8s;
+        }
+
+        .particle:nth-child(10) {
+            left: 62%;
+            animation-delay: 0.3s;
+            animation-duration: 10s;
+        }
+
+        .particle:nth-child(11) {
+            left: 70%;
+            animation-delay: 2.8s;
+            animation-duration: 7s;
+        }
+
+        .particle:nth-child(12) {
+            left: 78%;
+            animation-delay: 1.2s;
+            animation-duration: 9s;
+        }
+
+        .particle:nth-child(13) {
+            left: 85%;
+            animation-delay: 3.5s;
+            animation-duration: 8.5s;
+        }
+
+        .particle:nth-child(14) {
+            left: 92%;
+            animation-delay: 0.6s;
+            animation-duration: 11s;
+        }
+
+        .particle:nth-child(15) {
+            left: 8%;
+            animation-delay: 4.5s;
+            animation-duration: 8s;
+        }
+
+        .particle:nth-child(16) {
+            left: 22%;
+            animation-delay: 5s;
+            animation-duration: 9s;
+        }
+
+        .particle:nth-child(17) {
+            left: 38%;
+            animation-delay: 4.2s;
+            animation-duration: 7.5s;
+        }
+
+        .particle:nth-child(18) {
+            left: 52%;
+            animation-delay: 5.5s;
+            animation-duration: 10s;
+        }
+
+        .particle:nth-child(19) {
+            left: 68%;
+            animation-delay: 4.8s;
+            animation-duration: 8.5s;
+        }
+
+        .particle:nth-child(20) {
+            left: 82%;
+            animation-delay: 5.2s;
+            animation-duration: 9.5s;
+        }
+
+        @keyframes dust-float {
+            0% {
+                bottom: 5%;
+                opacity: 0;
+                transform: translateX(0) translateY(0) scale(0.6);
+            }
+
+            10% {
+                opacity: 0.8;
+            }
+
+            20% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 0.6;
+            }
+
+            100% {
+                bottom: 90%;
+                opacity: 0;
+                transform: translateX(30px) translateY(-20px) scale(0.7);
+            }
+        }
+
+        /* Warm golden glow */
+        .glow-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 40%, rgba(255, 180, 80, 0.18) 0%, transparent 55%);
+            animation: glow-pulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 0.9;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="channel-bg"></div>
+        <div class="glow-overlay"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle large"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle large"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle large"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle large"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle large"></div>
+    </div>
+</body>
+
+</html>
