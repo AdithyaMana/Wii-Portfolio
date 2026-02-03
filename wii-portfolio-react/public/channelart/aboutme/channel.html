@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Me</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0a1a;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .channel-bg {
+            width: 100%;
+            height: 100%;
+            background-image: url('channel.jpg');
+            background-size: 102%;
+            background-position: 70% 45%;
+            background-repeat: no-repeat;
+            animation: subtle-breathe 12s ease-in-out infinite;
+        }
+
+        @keyframes subtle-breathe {
+
+            0%,
+            100% {
+                background-size: 102%;
+                background-position: 70% 45%;
+            }
+
+            50% {
+                background-size: 104%;
+                background-position: 69% 46%;
+            }
+        }
+
+        /* Bright floating star particles */
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255, 255, 255, 1) 0%, rgba(200, 230, 255, 0.8) 40%, transparent 70%);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 20px rgba(100, 180, 255, 0.6);
+            animation: float-up 6s ease-in-out infinite;
+        }
+
+        .particle.small {
+            width: 4px;
+            height: 4px;
+        }
+
+        .particle.medium {
+            width: 6px;
+            height: 6px;
+        }
+
+        .particle.large {
+            width: 8px;
+            height: 8px;
+        }
+
+        .particle:nth-child(2) {
+            left: 5%;
+            animation-delay: 0.3s;
+            animation-duration: 5s;
+        }
+
+        .particle:nth-child(3) {
+            left: 10%;
+            animation-delay: 1.2s;
+            animation-duration: 7s;
+        }
+
+        .particle:nth-child(4) {
+            left: 15%;
+            animation-delay: 0.8s;
+            animation-duration: 6s;
+        }
+
+        .particle:nth-child(5) {
+            left: 22%;
+            animation-delay: 2s;
+            animation-duration: 5.5s;
+        }
+
+        .particle:nth-child(6) {
+            left: 28%;
+            animation-delay: 0.5s;
+            animation-duration: 8s;
+        }
+
+        .particle:nth-child(7) {
+            left: 35%;
+            animation-delay: 1.5s;
+            animation-duration: 6.5s;
+        }
+
+        .particle:nth-child(8) {
+            left: 42%;
+            animation-delay: 2.5s;
+            animation-duration: 5s;
+        }
+
+        .particle:nth-child(9) {
+            left: 50%;
+            animation-delay: 0.2s;
+            animation-duration: 7.5s;
+        }
+
+        .particle:nth-child(10) {
+            left: 58%;
+            animation-delay: 3s;
+            animation-duration: 6s;
+        }
+
+        .particle:nth-child(11) {
+            left: 65%;
+            animation-delay: 1s;
+            animation-duration: 5.5s;
+        }
+
+        .particle:nth-child(12) {
+            left: 72%;
+            animation-delay: 2.2s;
+            animation-duration: 7s;
+        }
+
+        .particle:nth-child(13) {
+            left: 78%;
+            animation-delay: 0.7s;
+            animation-duration: 6.5s;
+        }
+
+        .particle:nth-child(14) {
+            left: 85%;
+            animation-delay: 1.8s;
+            animation-duration: 5s;
+        }
+
+        .particle:nth-child(15) {
+            left: 92%;
+            animation-delay: 2.8s;
+            animation-duration: 8s;
+        }
+
+        .particle:nth-child(16) {
+            left: 8%;
+            animation-delay: 3.5s;
+            animation-duration: 6s;
+        }
+
+        .particle:nth-child(17) {
+            left: 18%;
+            animation-delay: 4s;
+            animation-duration: 7s;
+        }
+
+        .particle:nth-child(18) {
+            left: 32%;
+            animation-delay: 3.2s;
+            animation-duration: 5.5s;
+        }
+
+        .particle:nth-child(19) {
+            left: 48%;
+            animation-delay: 4.5s;
+            animation-duration: 6.5s;
+        }
+
+        .particle:nth-child(20) {
+            left: 62%;
+            animation-delay: 3.8s;
+            animation-duration: 7.5s;
+        }
+
+        .particle:nth-child(21) {
+            left: 75%;
+            animation-delay: 4.2s;
+            animation-duration: 5s;
+        }
+
+        .particle:nth-child(22) {
+            left: 88%;
+            animation-delay: 3.6s;
+            animation-duration: 6s;
+        }
+
+        @keyframes float-up {
+            0% {
+                bottom: -5%;
+                opacity: 0;
+                transform: translateX(0) scale(0.5);
+            }
+
+            15% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            85% {
+                opacity: 1;
+            }
+
+            100% {
+                bottom: 105%;
+                opacity: 0;
+                transform: translateX(15px) scale(0.7);
+            }
+        }
+
+        /* Bright glow pulse */
+        .glow-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(100, 180, 255, 0.15) 0%, transparent 60%);
+            animation: glow-pulse 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 0.9;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="channel-bg"></div>
+        <div class="glow-overlay"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle large"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle large"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle large"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle large"></div>
+        <div class="particle medium"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+        <div class="particle large"></div>
+        <div class="particle small"></div>
+        <div class="particle medium"></div>
+    </div>
+</body>
+
+</html>

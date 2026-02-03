@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Menu | Adi's UX Portfolio</title>
+  <link rel="shortcut icon" href="/assets/favicon.png" type="image/png" />
+  <link rel="icon" href="/assets/favicon.png" type="image/png" sizes="any" />
+  <link rel="icon" href="/assets/mii-avatar.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="/assets/mii-avatar.png" />
+
+  <meta property="og:site_name" content="Adi's UX Portfolio" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Adi's UX Portfolio" />
+  <meta property="og:description" content="A UX portfolio with a classic Wii-themed interface." />
+  <meta name="author" content="Adi" />
+  <meta name="description" content="A UX portfolio with a classic Wii-themed interface." />
+  <meta name="keywords" content="ux, portfolio, adi, user experience, design, wii, wii menu" />
+  <meta name="theme-color" content="#222222" />
+  <meta name="apple-mobile-web-app-status-bar" content="#222222" />
+  
+  <!-- Preload Critical Fonts -->
+  <link rel="preload" href="/fonts/FOT-RodinNTLG Pro DB.otf" as="font" type="font/otf" crossorigin>
+  <link rel="preload" href="/fonts/digital-7 (mono).ttf" as="font" type="font/ttf" crossorigin>
+  
+  <!-- Preload Critical Images (above the fold) -->
+  <link rel="preload" href="/assets/cursor.png" as="image" fetchpriority="high">
+  <link rel="preload" href="/assets/bg-pattern.png" as="image" fetchpriority="high">
+  <link rel="preload" href="/assets/channel-border.png" as="image">
+  <link rel="preload" href="/assets/channel-spritesheet.png" as="image">
+  <link rel="preload" href="/assets/bottom-title.png" as="image">
+  <link rel="preload" href="/assets/bottom-bg.png" as="image">
+  
+  <!-- Preload Critical Audio -->
+  <link rel="preload" href="/audio/startup.mp3" as="fetch" crossorigin>
+  <link rel="preload" href="/audio/button-hover.mp3" as="fetch" crossorigin>
+  
+  <!-- DNS Prefetch for external resources -->
+  <link rel="dns-prefetch" href="https://www.linkedin.com">
+  <link rel="dns-prefetch" href="https://github.com">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

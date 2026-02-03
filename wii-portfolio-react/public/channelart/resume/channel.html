@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Channel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .channel-bg {
+            width: 100%;
+            height: 100%;
+            background-image: url('channel.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: absolute;
+            z-index: 1;
+            /* Subtle float animation for the background */
+            animation: bg-drift 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes bg-drift {
+            from {
+                transform: scale(1.0);
+            }
+
+            to {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Snow Particles */
+        .snowflake {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            pointer-events: none;
+            z-index: 2;
+            animation: snowfall linear infinite;
+        }
+
+        /* Generate different sizes and speeds */
+        .snowflake:nth-child(2n) {
+            width: 4px;
+            height: 4px;
+            animation-duration: 4s;
+            animation-delay: 0s;
+        }
+
+        .snowflake:nth-child(3n) {
+            width: 6px;
+            height: 6px;
+            animation-duration: 6s;
+            animation-delay: 1s;
+            opacity: 0.6;
+        }
+
+        .snowflake:nth-child(5n) {
+            width: 8px;
+            height: 8px;
+            animation-duration: 8s;
+            animation-delay: 2s;
+            opacity: 0.4;
+        }
+
+        .snowflake:nth-child(7n) {
+            width: 3px;
+            height: 3px;
+            animation-duration: 5s;
+            animation-delay: 3s;
+        }
+
+        .snowflake:nth-child(1) {
+            left: 10%;
+        }
+
+        .snowflake:nth-child(2) {
+            left: 20%;
+        }
+
+        .snowflake:nth-child(3) {
+            left: 30%;
+        }
+
+        .snowflake:nth-child(4) {
+            left: 40%;
+        }
+
+        .snowflake:nth-child(5) {
+            left: 50%;
+        }
+
+        .snowflake:nth-child(6) {
+            left: 60%;
+        }
+
+        .snowflake:nth-child(7) {
+            left: 70%;
+        }
+
+        .snowflake:nth-child(8) {
+            left: 80%;
+        }
+
+        .snowflake:nth-child(9) {
+            left: 90%;
+        }
+
+        .snowflake:nth-child(10) {
+            left: 5%;
+            animation-duration: 7s;
+        }
+
+        .snowflake:nth-child(11) {
+            left: 15%;
+            animation-duration: 5s;
+        }
+
+        .snowflake:nth-child(12) {
+            left: 25%;
+            animation-duration: 6.5s;
+        }
+
+        .snowflake:nth-child(13) {
+            left: 35%;
+            animation-duration: 4.5s;
+        }
+
+        .snowflake:nth-child(14) {
+            left: 45%;
+            animation-duration: 5.5s;
+        }
+
+        .snowflake:nth-child(15) {
+            left: 55%;
+            animation-duration: 7.5s;
+        }
+
+        .snowflake:nth-child(16) {
+            left: 65%;
+            animation-duration: 6s;
+        }
+
+        .snowflake:nth-child(17) {
+            left: 75%;
+            animation-duration: 4s;
+        }
+
+        .snowflake:nth-child(18) {
+            left: 85%;
+            animation-duration: 5s;
+        }
+
+        .snowflake:nth-child(19) {
+            left: 95%;
+            animation-duration: 6s;
+        }
+
+        @keyframes snowfall {
+            0% {
+                top: -10%;
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(10px);
+            }
+
+            50% {
+                transform: translateX(-10px);
+            }
+
+            75% {
+                transform: translateX(10px);
+            }
+
+            100% {
+                top: 110%;
+                transform: translateX(0);
+            }
+        }
+
+        /* Subtle glow overlay */
+        .glow-overlay {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+            z-index: 3;
+            pointer-events: none;
+            animation: glow-pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="channel-bg"></div>
+        <div class="glow-overlay"></div>
+
+        <!-- Snow Particles -->
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+    </div>
+</body>
+
+</html>
