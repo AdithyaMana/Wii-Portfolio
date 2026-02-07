@@ -99,7 +99,8 @@ export function SplashScreen({ onComplete }) {
             // 2. Add all channel assets
             channels.forEach(channel => {
                 // Channel Audio
-                const audioSrc = `/${channel.assets}${channel.id}/audio.mp3`;
+                const audioFormat = channel.audioformat || 'mp3';
+                const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
                 assetPromises.push(loadAudio(audioSrc));
 
                 // Channel Video/GIF
