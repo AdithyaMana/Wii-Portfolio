@@ -494,8 +494,9 @@ button {
 .grid {
     position: relative;
     display: flex;
+    justify-content: center;
     gap: 15px;
-    padding-inline: calc((98vw - 18vw * 4) / 2);
+    padding-inline: 5vw;
     overflow-x: auto;
 }
 
