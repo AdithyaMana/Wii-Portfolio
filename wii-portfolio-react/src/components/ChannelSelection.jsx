@@ -234,6 +234,13 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                     )}
                     {/* Reflection removed for performance */}
                 </div>
+
+                {/* Case Study Under Progress notification */}
+                {(channel.id === 'tuftes-razor' || channel.id === 'credit-website') && (
+                    <div className="ch-progress-notification">
+                        <span>🚧 Case Study Under Progress</span>
+                    </div>
+                )}
             </div>
 
             {/* Bottom bar with buttons */}
