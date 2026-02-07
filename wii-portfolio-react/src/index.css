@@ -483,7 +483,7 @@ button {
 
 .bottom-bar .info #date {
     position: absolute;
-    bottom: 0.5vh;
+    bottom: -0.7vh;
     left: 50%;
     transform: translate(-50%, 0);
     font-size: 2.5em;
