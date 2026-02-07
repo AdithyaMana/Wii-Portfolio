@@ -483,7 +483,7 @@ button {
 
 .bottom-bar .info #date {
     position: absolute;
-    bottom: -0.7vh;
+    bottom: -0.75vh;
     left: 50%;
     transform: translate(-50%, 0);
     font-size: 2.5em;
@@ -937,6 +937,17 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     transform: scale(1.5) translateY(-5vh);
     object-fit: contain;
     image-rendering: pixelated;
+}
+
+.ch-selection .ch-logo-container[data-channel-id="disc"] .ch-logo {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    transform: scale(0.55) translateY(-10%);
+}
+
+.ch-selection[data-channel-id="disc"] {
+    background: black;
 }
 
 .ch-selection .ch-logo {

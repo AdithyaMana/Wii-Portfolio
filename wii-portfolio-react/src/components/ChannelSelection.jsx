@@ -35,7 +35,8 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
         bgMusicToggle(false);
 
         if (channel && audioRef.current) {
-            const audioSrc = `/${channel.assets}${channel.id}/audio.mp3`;
+            const audioFormat = channel.audioformat || 'mp3';
+            const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
             audioRef.current.src = audioSrc;
             audioRef.current.currentTime = 0;
             // Ensure each channel preview starts at configured volume
@@ -147,7 +148,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
     if (!channel) return null;
 
     return (
-        <div className={`ch-selection ${isReturning ? 'ch-selection-exit' : ''}`} style={{ display: 'flex', opacity: 1 }}>
+        <div className={`ch-selection ${isReturning ? 'ch-selection-exit' : ''}`} data-channel-id={channel.id} style={{ display: 'flex', opacity: 1 }}>
             {/* Navigation arrows */}
             <div
                 className="ch-nav-arrow ch-nav-left"

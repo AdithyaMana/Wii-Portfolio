@@ -9,14 +9,15 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: '',
-        disc: true
+        videoformat: "mp4",
+        audioformat: "mp4"
     },
     {
         id: 'mii',
         title: 'Mii Channel',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: ''
+        target: 'https://mii.nxw.pw/login'
     },
     {
         id: 'photo',
@@ -88,7 +89,7 @@ const DEFAULT_CHANNELS = [
 export function ChannelsProvider({ children }) {
     const [channels, setChannels] = useState(() => {
         try {
-            const stored = localStorage.getItem('adifolio-channels-v12');
+            const stored = localStorage.getItem('adifolio-channels-v14');
             if (stored) {
                 return JSON.parse(stored);
             }
@@ -101,7 +102,7 @@ export function ChannelsProvider({ children }) {
     // Save channels to localStorage when they change
     useEffect(() => {
         try {
-            localStorage.setItem('adifolio-channels-v12', JSON.stringify(channels));
+            localStorage.setItem('adifolio-channels-v14', JSON.stringify(channels));
         } catch (e) {
             console.error('Failed to save channels to localStorage:', e);
         }
