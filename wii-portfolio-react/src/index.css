@@ -153,11 +153,6 @@ textarea,
     position: relative;
     z-index: 1;
     transition: all .5s;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-bottom: 12vh;
-    /* Account for bottom bar */
 }
 
 center {
@@ -499,9 +494,8 @@ button {
 .grid {
     position: relative;
     display: flex;
-    justify-content: center;
     gap: 15px;
-    padding-inline: 5vw;
+    padding-inline: calc((98vw - 18vw * 4) / 2);
     overflow-x: auto;
 }
 
@@ -606,6 +600,7 @@ button {
     grid-template-columns: 18vw 18vw 18vw 18vw;
     grid-template-rows: 1fr 1fr 1fr;
     gap: 0px 15px;
+    margin-top: 8vh;
 }
 
 .ch-c .ch {
