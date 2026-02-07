@@ -56,69 +56,74 @@ export function SplashScreen({ onComplete }) {
             img.src = src;
         });
 
-        // Helper function to preload audio
+        // Helper function to preload audio (with shorter timeout)
         const loadAudio = (src) => new Promise((resolve) => {
             const audio = new Audio();
-            // trigger load
             audio.preload = 'auto';
             audio.oncanplaythrough = resolve;
             audio.onerror = resolve;
             audio.src = src;
             audio.load();
-
-            // Timeout fallback for audio
-            setTimeout(resolve, 3000);
+            // Shorter timeout for critical audio
+            setTimeout(resolve, 1500);
         });
 
-        // Helper function to preload video
-        const loadVideo = (src) => new Promise((resolve) => {
+        // Helper function to preload video (background, non-blocking)
+        const loadVideoBackground = (src) => {
             const vid = document.createElement('video');
             vid.preload = 'auto';
             vid.muted = true;
             vid.playsInline = true;
-
-            vid.oncanplaythrough = resolve;
-            vid.onerror = resolve;
-
             vid.src = src;
             vid.load();
+        };
 
-            // Timeout fallback to prevent infinite loading state
-            setTimeout(resolve, 5000);
-        });
+        // Helper function to preload audio (background, non-blocking)
+        const loadAudioBackground = (src) => {
+            const audio = new Audio();
+            audio.preload = 'auto';
+            audio.src = src;
+            audio.load();
+        };
 
-        // Load ALL assets (Critical + All Channels)
+        // Load critical assets first, then background load the rest
         const loadAllAssets = async () => {
-            // 1. Gather all asset promises
-            const assetPromises = [
+            // 1. Load ONLY critical assets (UI framework)
+            const criticalPromises = [
                 ...criticalAssets.map(loadImage),
-                ...secondaryAssets.map(loadImage), // Load these now too
                 ...criticalAudio.map(loadAudio)
             ];
 
-            // 2. Add all channel assets
+            // Wait for critical assets only
+            await Promise.all(criticalPromises);
+
+            // 2. Mark ready immediately - user can now interact!
+            setAssetsReady(true);
+
+            // 3. Background load secondary assets (non-blocking)
+            secondaryAssets.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+
+            // 4. Background load channel assets (non-blocking)
             channels.forEach(channel => {
-                // Channel Audio
+                // Channel Audio (background)
                 const audioFormat = channel.audioformat || 'mp3';
                 const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
-                assetPromises.push(loadAudio(audioSrc));
+                loadAudioBackground(audioSrc);
 
-                // Channel Video/GIF
+                // Channel Video/GIF (background)
                 const format = channel.videoformat || 'gif';
                 const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
 
                 if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
-                    assetPromises.push(loadVideo(videoSrc));
+                    loadVideoBackground(videoSrc);
                 } else {
-                    assetPromises.push(loadImage(videoSrc));
+                    const img = new Image();
+                    img.src = videoSrc;
                 }
             });
-
-            // 3. Wait for EVERYONE
-            await Promise.all(assetPromises);
-
-            // 4. Mark ready
-            setAssetsReady(true);
         };
 
         loadAllAssets();
