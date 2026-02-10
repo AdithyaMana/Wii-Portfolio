@@ -13,22 +13,22 @@ export function SplashScreen({ onComplete }) {
 
     const [assetsReady, setAssetsReady] = useState(false);
 
-    // Preload assets while waiting on splash screen
+    // Preload ALL assets before allowing entry
     useEffect(() => {
         if (!channels) return;
 
-        // Critical assets needed for initial render (prioritized)
-        const criticalAssets = [
+        // 1. Define ALL assets to preload
+        const images = [
+            // Critical UI
             '/assets/bg-pattern.png',
             '/assets/channel-border.png',
             '/assets/cursor.png',
             '/assets/channel-spritesheet.png',
             '/assets/bottom-bg.png',
-            '/assets/bottom-title.png'
-        ];
+            '/assets/bottom-title.png',
+            '/assets/return.gif',
 
-        // Secondary assets (loaded after critical)
-        const secondaryAssets = [
+            // Channel/Menu UI
             '/assets/channel-hover.png',
             '/assets/wii-logo.svg',
             '/assets/wii-circle-button.png',
@@ -36,97 +36,121 @@ export function SplashScreen({ onComplete }) {
             '/assets/nav-arrow-left.png',
             '/assets/nav-arrow-right.png',
             '/assets/prev-default.png',
+            '/assets/prev-hover.png',
             '/assets/next-default.png',
+            '/assets/next-hover.png',
             '/assets/wii-menu-button.png',
-            '/assets/start-button.png'
+            '/assets/start-button.png',
+            '/assets/channel-wiilogo.png',
+            '/channelart/disc/disc.png'
         ];
 
-        // Critical audio (needed immediately after splash)
-        const criticalAudio = [
+        const audioFiles = [
+            // Critical Audio
             '/audio/startup.mp3',
             '/audio/button-hover.mp3',
-            '/audio/button-select.mp3'
+            '/audio/button-select.mp3',
+            '/audio/button-select-big.mp3',
+            '/audio/nextprev.mp3',
+            '/audio/home-in.mp3',
+            '/audio/home-out.mp3'
         ];
 
-        // Helper function to load an image with Promise
-        const loadImage = (src) => new Promise((resolve) => {
+        const fonts = [
+            'Regular',
+            'Bold',
+            'TitleBold',
+            'TitleMed',
+            'Display'
+        ];
+
+        // 2. Helper loading functions
+        const loadImage = (src) => new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = resolve;
-            img.onerror = resolve; // Don't block on errors
+            img.onload = () => resolve(src);
+            img.onerror = () => {
+                console.warn(`Failed to partially load image: ${src}`);
+                resolve(src); // Don't block entirely on one missing asset
+            };
             img.src = src;
         });
 
-        // Helper function to preload audio (with shorter timeout)
         const loadAudio = (src) => new Promise((resolve) => {
             const audio = new Audio();
-            audio.preload = 'auto';
-            audio.oncanplaythrough = resolve;
-            audio.onerror = resolve;
+            audio.oncanplaythrough = () => resolve(src);
+            audio.onerror = () => {
+                console.warn(`Failed to load audio: ${src}`);
+                resolve(src);
+            };
             audio.src = src;
             audio.load();
-            // Shorter timeout for critical audio
-            setTimeout(resolve, 1500);
+            // Fallback if event doesn't fire quickly (e.g. cached/small files)
+            setTimeout(() => resolve(src), 2000);
         });
 
-        // Helper function to preload video (background, non-blocking)
-        const loadVideoBackground = (src) => {
+        const loadFont = (fontFamily) => document.fonts.load(`1em ${fontFamily}`).catch(e => {
+            console.warn(`Failed to load font: ${fontFamily}`, e);
+        });
+
+        const loadVideo = (src) => new Promise((resolve) => {
             const vid = document.createElement('video');
+            vid.onloadeddata = () => resolve(src);
+            vid.onerror = () => {
+                console.warn(`Failed to load video: ${src}`);
+                resolve(src);
+            };
             vid.preload = 'auto';
             vid.muted = true;
-            vid.playsInline = true;
             vid.src = src;
             vid.load();
-        };
+            setTimeout(() => resolve(src), 3000); // 3s timeout for video
+        });
 
-        // Helper function to preload audio (background, non-blocking)
-        const loadAudioBackground = (src) => {
-            const audio = new Audio();
-            audio.preload = 'auto';
-            audio.src = src;
-            audio.load();
-        };
+        // 3. Orchestrate Loading
+        const loadEverything = async () => {
+            const config = {
+                imagePromises: images.map(loadImage),
+                audioPromises: audioFiles.map(loadAudio),
+                fontPromises: fonts.map(loadFont)
+            };
 
-        // Load critical assets first, then background load the rest
-        const loadAllAssets = async () => {
-            // 1. Load ONLY critical assets (UI framework)
-            const criticalPromises = [
-                ...criticalAssets.map(loadImage),
-                ...criticalAudio.map(loadAudio)
-            ];
-
-            // Wait for critical assets only
-            await Promise.all(criticalPromises);
-
-            // 2. Mark ready immediately - user can now interact!
-            setAssetsReady(true);
-
-            // 3. Background load secondary assets (non-blocking)
-            secondaryAssets.forEach(src => {
-                const img = new Image();
-                img.src = src;
-            });
-
-            // 4. Background load channel assets (non-blocking)
+            // Add Channel Assets
+            const channelAssets = [];
             channels.forEach(channel => {
-                // Channel Audio (background)
+                // Channel Audio
                 const audioFormat = channel.audioformat || 'mp3';
                 const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
-                loadAudioBackground(audioSrc);
+                channelAssets.push(loadAudio(audioSrc));
 
-                // Channel Video/GIF (background)
+                // Channel Video/Image (Preview)
                 const format = channel.videoformat || 'gif';
                 const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
 
                 if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
-                    loadVideoBackground(videoSrc);
+                    channelAssets.push(loadVideo(videoSrc));
                 } else {
-                    const img = new Image();
-                    img.src = videoSrc;
+                    channelAssets.push(loadImage(videoSrc));
                 }
             });
+
+            try {
+                // Wait for all promises with a global timeout safety net
+                await Promise.all([
+                    ...config.imagePromises,
+                    ...config.audioPromises,
+                    ...config.fontPromises,
+                    ...channelAssets,
+                    // Minimum splash time to prevent flickering (500ms)
+                    new Promise(r => setTimeout(r, 500))
+                ]);
+            } catch (err) {
+                console.error("Asset loading error (non-fatal):", err);
+            } finally {
+                setAssetsReady(true);
+            }
         };
 
-        loadAllAssets();
+        loadEverything();
     }, [channels]);
 
     useEffect(() => {
