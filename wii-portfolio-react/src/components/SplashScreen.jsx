@@ -13,13 +13,12 @@ export function SplashScreen({ onComplete }) {
 
     const [assetsReady, setAssetsReady] = useState(false);
 
-    // Preload ALL assets before allowing entry
+    // Smart Asset Preloading
     useEffect(() => {
         if (!channels) return;
 
-        // 1. Define ALL assets to preload
-        const images = [
-            // Critical UI
+        // 1. Critical Assets (Must load before entering)
+        const criticalImages = [
             '/assets/bg-pattern.png',
             '/assets/channel-border.png',
             '/assets/cursor.png',
@@ -27,8 +26,6 @@ export function SplashScreen({ onComplete }) {
             '/assets/bottom-bg.png',
             '/assets/bottom-title.png',
             '/assets/return.gif',
-
-            // Channel/Menu UI
             '/assets/channel-hover.png',
             '/assets/wii-logo.svg',
             '/assets/wii-circle-button.png',
@@ -45,8 +42,7 @@ export function SplashScreen({ onComplete }) {
             '/channelart/disc/disc.png'
         ];
 
-        const audioFiles = [
-            // Critical Audio
+        const criticalAudio = [
             '/audio/startup.mp3',
             '/audio/button-hover.mp3',
             '/audio/button-select.mp3',
@@ -56,21 +52,15 @@ export function SplashScreen({ onComplete }) {
             '/audio/home-out.mp3'
         ];
 
-        const fonts = [
-            'Regular',
-            'Bold',
-            'TitleBold',
-            'TitleMed',
-            'Display'
-        ];
+        const fonts = ['Regular', 'Bold', 'TitleBold', 'TitleMed', 'Display'];
 
-        // 2. Helper loading functions
-        const loadImage = (src) => new Promise((resolve, reject) => {
+        // 2. Helper Functions
+        const loadImage = (src) => new Promise((resolve) => {
             const img = new Image();
             img.onload = () => resolve(src);
             img.onerror = () => {
-                console.warn(`Failed to partially load image: ${src}`);
-                resolve(src); // Don't block entirely on one missing asset
+                console.warn(`Failed to load image: ${src}`);
+                resolve(src);
             };
             img.src = src;
         });
@@ -84,73 +74,60 @@ export function SplashScreen({ onComplete }) {
             };
             audio.src = src;
             audio.load();
-            // Fallback if event doesn't fire quickly (e.g. cached/small files)
-            setTimeout(() => resolve(src), 2000);
+            setTimeout(() => resolve(src), 1500); // 1.5s timeout for critical audio
         });
 
-        const loadFont = (fontFamily) => document.fonts.load(`1em ${fontFamily}`).catch(e => {
-            console.warn(`Failed to load font: ${fontFamily}`, e);
-        });
+        const loadFont = (fontFamily) => document.fonts.load(`1em ${fontFamily}`).catch(() => { });
 
-        const loadVideo = (src) => new Promise((resolve) => {
-            const vid = document.createElement('video');
-            vid.onloadeddata = () => resolve(src);
-            vid.onerror = () => {
-                console.warn(`Failed to load video: ${src}`);
-                resolve(src);
-            };
-            vid.preload = 'auto';
-            vid.muted = true;
-            vid.src = src;
-            vid.load();
-            setTimeout(() => resolve(src), 3000); // 3s timeout for video
-        });
-
-        // 3. Orchestrate Loading
-        const loadEverything = async () => {
-            const config = {
-                imagePromises: images.map(loadImage),
-                audioPromises: audioFiles.map(loadAudio),
-                fontPromises: fonts.map(loadFont)
-            };
-
-            // Add Channel Assets
-            const channelAssets = [];
+        // 3. Background Load Heavy Assets (Channel Videos/Audio)
+        const loadHeavyAssets = () => {
             channels.forEach(channel => {
-                // Channel Audio
+                // Audio
                 const audioFormat = channel.audioformat || 'mp3';
                 const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
-                channelAssets.push(loadAudio(audioSrc));
+                const audio = new Audio();
+                audio.src = audioSrc;
+                audio.load(); // Just trigger load, don't wait
 
-                // Channel Video/Image (Preview)
+                // Video/Image (Preview)
                 const format = channel.videoformat || 'gif';
                 const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
 
                 if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
-                    channelAssets.push(loadVideo(videoSrc));
+                    const vid = document.createElement('video');
+                    vid.preload = 'auto';
+                    vid.muted = true;
+                    vid.src = videoSrc;
+                    vid.load();
                 } else {
-                    channelAssets.push(loadImage(videoSrc));
+                    new Image().src = videoSrc;
                 }
             });
+        };
+
+        // 4. Execution
+        const loadCritical = async () => {
+            const promises = [
+                ...criticalImages.map(loadImage),
+                ...criticalAudio.map(loadAudio),
+                ...fonts.map(loadFont),
+                // Min 500ms splash show
+                new Promise(r => setTimeout(r, 500))
+            ];
 
             try {
-                // Wait for all promises with a global timeout safety net
-                await Promise.all([
-                    ...config.imagePromises,
-                    ...config.audioPromises,
-                    ...config.fontPromises,
-                    ...channelAssets,
-                    // Minimum splash time to prevent flickering (500ms)
-                    new Promise(r => setTimeout(r, 500))
-                ]);
-            } catch (err) {
-                console.error("Asset loading error (non-fatal):", err);
+                await Promise.all(promises);
+            } catch (e) {
+                console.error("Critical asset loading error:", e);
             } finally {
+                // UI Ready -> Allow entry
                 setAssetsReady(true);
+                // Start heavy loading in background
+                loadHeavyAssets();
             }
         };
 
-        loadEverything();
+        loadCritical();
     }, [channels]);
 
     useEffect(() => {
