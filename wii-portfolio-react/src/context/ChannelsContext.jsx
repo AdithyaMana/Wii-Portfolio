@@ -45,7 +45,7 @@ const DEFAULT_CHANNELS = [
         title: 'Credit Survey',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://www.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&viewport=-159%2C-34%2C0.73&t=XHJPjZQl2nXOeLnm-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1'
+        target: 'https://www.figma.com/deck/1YhjKCFPhVmFpgNY8L46JX/Case-Study-2?node-id=1-12&viewport=-159%2C-82%2C0.73&t=cev8CrV3yhjWHoZh-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1'
     },
     {
         id: 'credit-website',
