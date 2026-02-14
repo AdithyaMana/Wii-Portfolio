@@ -89,7 +89,7 @@ const DEFAULT_CHANNELS = [
 export function ChannelsProvider({ children }) {
     const [channels, setChannels] = useState(() => {
         try {
-            const stored = localStorage.getItem('adifolio-channels-v14');
+            const stored = localStorage.getItem('adifolio-channels-v15');
             if (stored) {
                 return JSON.parse(stored);
             }
@@ -102,7 +102,7 @@ export function ChannelsProvider({ children }) {
     // Save channels to localStorage when they change
     useEffect(() => {
         try {
-            localStorage.setItem('adifolio-channels-v14', JSON.stringify(channels));
+            localStorage.setItem('adifolio-channels-v15', JSON.stringify(channels));
         } catch (e) {
             console.error('Failed to save channels to localStorage:', e);
         }
