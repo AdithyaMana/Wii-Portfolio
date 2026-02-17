@@ -76,7 +76,9 @@ export function MainMenu({
     const handlePrev = () => {
         playSFX('nextprev.mp3', config.sfxVol);
         if (gridRef.current) {
-            gridRef.current.scrollLeft -= gridRef.current.clientWidth;
+            const pageEl = gridRef.current.querySelector('.ch-c');
+            const pageWidth = pageEl ? pageEl.offsetWidth : gridRef.current.clientWidth;
+            gridRef.current.scrollLeft -= pageWidth;
         }
         setCurrentPage(prev => Math.max(1, prev - 1));
     };
@@ -84,7 +86,9 @@ export function MainMenu({
     const handleNext = () => {
         playSFX('nextprev.mp3', config.sfxVol);
         if (gridRef.current) {
-            gridRef.current.scrollLeft += gridRef.current.clientWidth;
+            const pageEl = gridRef.current.querySelector('.ch-c');
+            const pageWidth = pageEl ? pageEl.offsetWidth : gridRef.current.clientWidth;
+            gridRef.current.scrollLeft += pageWidth;
         }
         setCurrentPage(prev => Math.min(totalPages, prev + 1));
     };
