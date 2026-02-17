@@ -494,9 +494,14 @@ button {
 .grid {
     position: relative;
     display: flex;
-    gap: 15px;
-    padding-inline: calc((98vw - 18vw * 4) / 2);
-    overflow-x: auto;
+    height: calc(100vh - 14vh);
+    overflow-x: scroll;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    padding-left: 8vw;
+    gap: 1.5vw;
+    scroll-padding-left: 8vw;
 }
 
 .grid {
@@ -597,10 +602,13 @@ button {
 
 .ch-c {
     display: grid;
-    grid-template-columns: 18vw 18vw 18vw 18vw;
-    grid-template-rows: 1fr 1fr 1fr;
-    gap: 0px 15px;
-    margin-top: 8vh;
+    grid-template-columns: repeat(4, 20vw);
+    grid-template-rows: auto auto auto;
+    gap: 1vh 1.5vw;
+    flex-shrink: 0;
+    height: 100%;
+    align-content: center;
+    scroll-snap-align: start;
 }
 
 .ch-c .ch {
