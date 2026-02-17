@@ -17,7 +17,7 @@ export function SplashScreen({ onComplete }) {
     useEffect(() => {
         if (!channels) return;
 
-        // 1. Critical Assets (Must load before entering)
+        // 1. Critical UI Assets (Must load before entering)
         const criticalImages = [
             '/assets/bg-pattern.png',
             '/assets/channel-border.png',
@@ -40,6 +40,22 @@ export function SplashScreen({ onComplete }) {
             '/assets/start-button.png',
             '/assets/channel-wiilogo.png',
             '/channelart/disc/disc.png'
+        ];
+
+        // Channel art images (what each channel.html iframe displays)
+        const channelArtImages = [
+            '/channelart/aboutme/channel.jpg',
+            '/channelart/credit-survey/channel.jpg',
+            '/channelart/credit-website/channel.jpg',
+            '/channelart/research-agent/channel.jpg',
+            '/channelart/resume/channel.jpg',
+            '/channelart/tuftes-razor/channel.jpg',
+            '/channelart/mii/miis.png',
+            '/channelart/disc/disc.png',
+            '/channelart/photo/bg.png',
+            '/channelart/photo/fore.png',
+            '/channelart/photo/backleft.png',
+            '/channelart/photo/backright.png',
         ];
 
         const criticalAudio = [
@@ -65,6 +81,29 @@ export function SplashScreen({ onComplete }) {
             img.src = src;
         });
 
+        const loadVideo = (src) => new Promise((resolve) => {
+            if (['mp4', 'webm', 'ogg', 'mov'].some(ext => src.endsWith(ext))) {
+                const vid = document.createElement('video');
+                vid.preload = 'auto';
+                vid.muted = true;
+                vid.oncanplaythrough = () => resolve(src);
+                vid.onerror = () => {
+                    console.warn(`Failed to load video: ${src}`);
+                    resolve(src);
+                };
+                vid.src = src;
+                vid.load();
+                // Timeout: don't wait more than 5s per video
+                setTimeout(() => resolve(src), 5000);
+            } else {
+                // GIF or image format
+                const img = new Image();
+                img.onload = () => resolve(src);
+                img.onerror = () => resolve(src);
+                img.src = src;
+            }
+        });
+
         const loadAudio = (src) => new Promise((resolve) => {
             const audio = new Audio();
             audio.oncanplaythrough = () => resolve(src);
@@ -79,51 +118,60 @@ export function SplashScreen({ onComplete }) {
 
         const loadFont = (fontFamily) => document.fonts.load(`1em ${fontFamily}`).catch(() => { });
 
-        // 3. Background Load Heavy Assets (Channel Videos/Audio)
-        const loadHeavyAssets = () => {
-            channels.forEach(channel => {
-                // Audio
-                const audioFormat = channel.audioformat || 'mp3';
-                const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
-                const audio = new Audio();
-                audio.src = audioSrc;
-                audio.load(); // Just trigger load, don't wait
+        // 3. Build channel asset promises (videos, audio, channel HTML pages)
+        const channelAssetPromises = channels.flatMap(channel => {
+            const promises = [];
 
-                // Video/Image (Preview)
-                const format = channel.videoformat || 'gif';
-                const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
+            // Channel preview video/image
+            const format = channel.videoformat || 'gif';
+            const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
+            promises.push(loadVideo(videoSrc));
 
-                if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
-                    const vid = document.createElement('video');
-                    vid.preload = 'auto';
-                    vid.muted = true;
-                    vid.src = videoSrc;
-                    vid.load();
-                } else {
-                    new Image().src = videoSrc;
-                }
-            });
-        };
+            // Channel audio
+            const audioFormat = channel.audioformat || 'mp3';
+            const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
+            promises.push(loadAudio(audioSrc));
 
-        // 4. Execution
+            // Pre-fetch channel HTML so iframe renders faster
+            const htmlSrc = `/${channel.channelart}${channel.id}/channel.html`;
+            promises.push(fetch(htmlSrc).catch(() => { }));
+
+            return promises;
+        });
+
+        // Channel art webm videos (github, linkedin)
+        const channelArtVideos = [
+            '/channelart/github/github.webm',
+            '/channelart/linkedin/Linkedin Icon.webm',
+        ];
+
+        // 4. Execution — load everything during splash
         const loadCritical = async () => {
-            const promises = [
+            const allPromises = [
+                // Critical UI assets
                 ...criticalImages.map(loadImage),
                 ...criticalAudio.map(loadAudio),
                 ...fonts.map(loadFont),
+                // Channel art images
+                ...channelArtImages.map(loadImage),
+                // Channel art videos
+                ...channelArtVideos.map(loadVideo),
+                // Channel preview videos, audio, and HTML
+                ...channelAssetPromises,
                 // Min 500ms splash show
                 new Promise(r => setTimeout(r, 500))
             ];
 
+            // Race all assets against an 8s max timeout
             try {
-                await Promise.all(promises);
+                await Promise.race([
+                    Promise.allSettled(allPromises),
+                    new Promise(r => setTimeout(r, 8000))
+                ]);
             } catch (e) {
-                console.error("Critical asset loading error:", e);
+                console.error("Asset loading error:", e);
             } finally {
-                // UI Ready -> Allow entry
                 setAssetsReady(true);
-                // Start heavy loading in background
-                loadHeavyAssets();
             }
         };
 

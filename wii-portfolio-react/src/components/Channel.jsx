@@ -30,7 +30,6 @@ export const Channel = memo(function Channel({ channel, isBlank, onClick, onHove
                 src={`/${channel.channelart}${channel.id}/channel.html`}
                 title={channel.title}
                 style={{ border: 'none', pointerEvents: 'none' }}
-                loading="lazy"
                 allow="autoplay; encrypted-media"
             />
             <div
