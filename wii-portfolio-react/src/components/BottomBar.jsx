@@ -36,7 +36,7 @@ export function BottomBar({ onWiiClick, onMailClick, onHomeClick }) {
             </div>
 
             <div className="info">
-                <span className="jg">Adi's UX Portfolio</span>
+                <span className="jg">Adi's Portfolio</span>
                 <span id="hour">{time}</span>
                 <span id="date">{date}</span>
                 {/* Mobile home button - visible only on touch devices */}
