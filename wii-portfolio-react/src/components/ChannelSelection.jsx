@@ -236,7 +236,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                 </div>
 
                 {/* Case Study Under Progress notification */}
-                {(channel.id === 'tuftes-razor' || channel.id === 'credit-website') && (
+                {(channel.id === 'tuftes-razor') && (
                     <div className="ch-progress-notification">
                         <span>🚧 Case Study Under Progress</span>
                     </div>

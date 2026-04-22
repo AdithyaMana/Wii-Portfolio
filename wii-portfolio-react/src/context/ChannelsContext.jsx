@@ -52,7 +52,7 @@ const DEFAULT_CHANNELS = [
         title: 'Credit Website',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: ''
+        target: 'https://medium.com/@akirauxr/cat-videos-a-panicked-discord-message-and-14-icons-a4cc5a2c4e6c'
     },
     {
         id: 'tuftes-razor',
@@ -89,7 +89,7 @@ const DEFAULT_CHANNELS = [
 export function ChannelsProvider({ children }) {
     const [channels, setChannels] = useState(() => {
         try {
-            const stored = localStorage.getItem('adifolio-channels-v15');
+            const stored = localStorage.getItem('adifolio-channels-v16');
             if (stored) {
                 return JSON.parse(stored);
             }
@@ -102,7 +102,7 @@ export function ChannelsProvider({ children }) {
     // Save channels to localStorage when they change
     useEffect(() => {
         try {
-            localStorage.setItem('adifolio-channels-v15', JSON.stringify(channels));
+            localStorage.setItem('adifolio-channels-v16', JSON.stringify(channels));
         } catch (e) {
             console.error('Failed to save channels to localStorage:', e);
         }
