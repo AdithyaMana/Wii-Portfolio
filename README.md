@@ -1,8 +1,11 @@
-# Adi's Portfolio
-
-A personal portfolio built to look and feel like the Wii Menu. Channels are case studies, links, and an about-me — all navigated the same way you'd browse a Wii.
-
-Live at **[adifolio.vercel.app](https://adifolio.vercel.app)**
+<div align="center">
+  <img src="wii-portfolio-react/public/assets/wii-logo.svg" alt="Wii" width="120" />
+  <h1>Adi's Portfolio</h1>
+  <p>A personal portfolio built to look and feel like the Wii Menu.</p>
+  <a href="https://adifolio.vercel.app"><strong>adifolio.vercel.app →</strong></a>
+  <br /><br />
+  <img src="wii-portfolio-react/public/assets/channel-spritesheet.png" alt="Channel icons" width="480" />
+</div>
 
 ---
 
@@ -10,7 +13,7 @@ Live at **[adifolio.vercel.app](https://adifolio.vercel.app)**
 
 The Wii Menu UI is recreated in React. Each channel slot holds something: a case study, a link to GitHub or LinkedIn, a resume, or the Mii channel which opens an about-me card. Clicking a channel takes you to a preview screen with channel art, audio, and a Start button. Right-clicking opens the Wii home menu overlay.
 
-It's a portfolio that respects the bit — everything from the cursor to the startup sound to the warning screen is faithful to the original.
+Everything from the cursor to the startup sound to the warning screen is faithful to the original.
 
 ---
 
