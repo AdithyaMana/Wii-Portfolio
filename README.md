@@ -1,10 +1,10 @@
 <div align="center">
-  <img src="wii-portfolio-react/public/assets/wii-logo.svg" alt="Wii" width="120" />
+  <img src="wii-portfolio-react/public/assets/wii-logo.svg" alt="Wii" width="100" />
   <h1>Adi's Portfolio</h1>
   <p>A personal portfolio built to look and feel like the Wii Menu.</p>
-  <a href="https://adifolio.vercel.app"><strong>adifolio.vercel.app →</strong></a>
+  <a href="https://akiraux.vercel.app"><strong>akiraux.vercel.app →</strong></a>
   <br /><br />
-  <img src="wii-portfolio-react/public/assets/channel-spritesheet.png" alt="Channel icons" width="480" />
+  <img src="docs/preview.png" alt="Wii Menu Portfolio Preview" width="100%" />
 </div>
 
 ---

@@ -13,32 +13,42 @@
   <meta property="og:site_name" content="Adi's Portfolio" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Adi's Portfolio" />
-  <meta property="og:description" content="A UX portfolio with a classic Wii-themed interface." />
+  <meta property="og:description" content="A portfolio with a classic Wii-themed interface." />
   <meta name="author" content="Adi" />
-  <meta name="description" content="A UX portfolio with a classic Wii-themed interface." />
-  <meta name="keywords" content="ux, portfolio, adi, user experience, design, wii, wii menu" />
+  <meta name="description" content="A portfolio with a classic Wii-themed interface." />
+  <meta name="keywords" content="portfolio, adi, design, engineering, wii, wii menu" />
   <meta name="theme-color" content="#222222" />
   <meta name="apple-mobile-web-app-status-bar" content="#222222" />
-  
-  <!-- Preload Critical Fonts -->
+
+  <!-- Preconnect to self origin for faster asset fetches -->
+  <link rel="preconnect" href="/" crossorigin>
+
+  <!-- Preload Critical Fonts (all 5 used on first paint) -->
   <link rel="preload" href="/fonts/FOT-RodinNTLG Pro DB.otf" as="font" type="font/otf" crossorigin>
+  <link rel="preload" href="/fonts/FOT-Rodin Pro B.otf" as="font" type="font/otf" crossorigin>
+  <link rel="preload" href="/fonts/continuum-bold.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="/fonts/continuum-medium.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="/fonts/digital-7 (mono).ttf" as="font" type="font/ttf" crossorigin>
-  
-  <!-- Preload Critical Images (above the fold) -->
+
+  <!-- Preload Critical Images (needed immediately on first paint) -->
   <link rel="preload" href="/assets/cursor.png" as="image" fetchpriority="high">
   <link rel="preload" href="/assets/bg-pattern.png" as="image" fetchpriority="high">
-  <link rel="preload" href="/assets/channel-border.png" as="image">
+  <link rel="preload" href="/assets/channel-border.png" as="image" fetchpriority="high">
   <link rel="preload" href="/assets/channel-spritesheet.png" as="image">
   <link rel="preload" href="/assets/bottom-title.png" as="image">
   <link rel="preload" href="/assets/bottom-bg.png" as="image">
-  
-  <!-- Preload Critical Audio -->
-  <link rel="preload" href="/audio/startup.mp3" as="fetch" crossorigin>
-  <link rel="preload" href="/audio/button-hover.mp3" as="fetch" crossorigin>
-  
-  <!-- DNS Prefetch for external resources -->
+  <link rel="preload" href="/assets/wii-circle-button.png" as="image">
+  <link rel="preload" href="/assets/mail-circle-button.png" as="image">
+
+  <!-- Preload Critical Audio (correct type: audio, not fetch) -->
+  <link rel="preload" href="/audio/startup.mp3" as="audio" type="audio/mpeg" crossorigin>
+  <link rel="preload" href="/audio/button-hover.mp3" as="audio" type="audio/mpeg" crossorigin>
+  <link rel="preload" href="/audio/button-select.mp3" as="audio" type="audio/mpeg" crossorigin>
+
+  <!-- DNS Prefetch for external links -->
   <link rel="dns-prefetch" href="https://www.linkedin.com">
   <link rel="dns-prefetch" href="https://github.com">
+  <link rel="dns-prefetch" href="https://www.figma.com">
 </head>
 
 <body>
