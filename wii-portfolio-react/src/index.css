@@ -1073,6 +1073,193 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     display: none;
 }
 
+/* ─── Fullscreen channel viewer (Tufte's Razor etc.) ─── */
+.ch-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+}
+
+.ch-fullscreen-iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+}
+
+.ch-fullscreen-close {
+    position: absolute;
+    top: 1.5vh;
+    left: 1.5vh;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    padding: 0.6vh;
+    cursor: inherit;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+
+.ch-fullscreen-close:hover {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.ch-fullscreen-close img {
+    width: 4vh;
+    height: 4vh;
+}
+
+/* ─── Mii About-Me Paper ─── */
+.mii-paper-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.mii-paper {
+    background: #fafaf7;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.2);
+    width: min(660px, 92vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Regular', sans-serif;
+    color: #333;
+    animation: msgcard-appear 0.25s ease-out;
+    scrollbar-width: thin;
+    scrollbar-color: #37bef4 transparent;
+}
+
+.mii-paper-header {
+    display: flex;
+    align-items: center;
+    gap: 2vw;
+    padding: 2.5vh 4vw;
+    background: linear-gradient(145deg, #2db8f0 0%, #1a8ec8 100%);
+    border-radius: 12px 12px 0 0;
+}
+
+.mii-paper-mii {
+    width: clamp(80px, 12vw, 130px);
+    height: auto;
+    flex-shrink: 0;
+    display: block;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    padding: 0.5vh;
+}
+
+.mii-paper-greeting {
+    color: #fff;
+    flex: 1;
+}
+
+.mii-paper-name {
+    font-family: 'TitleBold', sans-serif;
+    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+    margin: 0 0 0.25em 0;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.mii-paper-tagline {
+    font-family: 'Regular', sans-serif;
+    font-size: clamp(0.8rem, 1.4vw, 1rem);
+    margin: 0;
+    opacity: 0.82;
+}
+
+.mii-paper-content {
+    padding: 3vh 4vw 1vh;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5vh;
+}
+
+.mii-paper-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8vh;
+}
+
+.mii-paper-section-title {
+    font-family: 'TitleMed', sans-serif;
+    font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+    color: #37bef4;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin: 0 0 0.7em 0;
+}
+
+.mii-paper-section p {
+    font-family: 'Regular', sans-serif;
+    font-size: clamp(0.85rem, 1.4vw, 1rem);
+    line-height: 1.75;
+    margin: 0;
+    color: #555;
+}
+
+.mii-paper-section p + p {
+    margin-top: 0.65em;
+}
+
+.mii-paper-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7vh;
+}
+
+.mii-paper-list li {
+    font-family: 'Regular', sans-serif;
+    font-size: clamp(0.85rem, 1.4vw, 1rem);
+    color: #555;
+    line-height: 1.55;
+    padding-left: 0;
+}
+
+.mii-paper-footer {
+    display: flex;
+    justify-content: center;
+    padding: 2vh 4vw 3vh;
+    border-top: 1px solid #eae9e3;
+    margin-top: 0.5vh;
+}
+
+.mii-paper-close-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: inherit;
+    transition: transform 0.15s, opacity 0.15s;
+    opacity: 0.85;
+}
+
+.mii-paper-close-btn:hover {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+.mii-paper-close-btn img {
+    width: clamp(160px, 22vw, 220px);
+    height: auto;
+    display: block;
+}
+
 
 #homeNotAv {
     display: none;

@@ -17,21 +17,8 @@ const DEFAULT_CHANNELS = [
         title: 'Mii Channel',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://mii.nxw.pw/login'
-    },
-    {
-        id: 'photo',
-        title: 'Photo Channel',
-        assets: 'assets/channels/',
-        channelart: 'channelart/',
-        target: ''
-    },
-    {
-        id: 'aboutme',
-        title: 'About Me',
-        assets: 'assets/channels/',
-        channelart: 'channelart/',
-        target: 'https://linktr.ee/akira_ux'
+        target: '',
+        action: 'open-paper'
     },
     {
         id: 'research-agent',
@@ -59,7 +46,8 @@ const DEFAULT_CHANNELS = [
         title: "Tufte's Razor",
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: ''
+        target: 'https://tuftesrazor.scienceux.org/',
+        action: 'open-fullscreen'
     },
     {
         id: 'github',
@@ -89,7 +77,7 @@ const DEFAULT_CHANNELS = [
 export function ChannelsProvider({ children }) {
     const [channels, setChannels] = useState(() => {
         try {
-            const stored = localStorage.getItem('adifolio-channels-v16');
+            const stored = localStorage.getItem('adifolio-channels-v17');
             if (stored) {
                 return JSON.parse(stored);
             }
@@ -102,7 +90,7 @@ export function ChannelsProvider({ children }) {
     // Save channels to localStorage when they change
     useEffect(() => {
         try {
-            localStorage.setItem('adifolio-channels-v16', JSON.stringify(channels));
+            localStorage.setItem('adifolio-channels-v17', JSON.stringify(channels));
         } catch (e) {
             console.error('Failed to save channels to localStorage:', e);
         }
@@ -152,6 +140,7 @@ export function ChannelsProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useChannels() {
     const context = useContext(ChannelsContext);
     if (!context) {

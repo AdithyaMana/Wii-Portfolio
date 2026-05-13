@@ -151,6 +151,7 @@ export function AudioProvider({ children, config }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAudio() {
   const context = useContext(AudioContext);
   if (!context) {

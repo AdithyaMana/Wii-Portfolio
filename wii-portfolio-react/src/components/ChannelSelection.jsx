@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
+
+const MiiPaper = lazy(() => import('./MiiPaper').then(m => ({ default: m.MiiPaper })));
 
 export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning }) {
     const { playSFX, playSFXMulti, bgMusicToggle } = useAudio();
@@ -8,12 +10,16 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
     const audioRef = useRef(null);
     const fadeIntervalRef = useRef(null);
     const staticErrorRef = useRef(false);
-    const [canStart, setCanStart] = useState(!!channel?.target);
+    const canStartChannel = (ch) => !!ch?.target || ch?.action === 'open-paper' || ch?.action === 'open-fullscreen';
+    const [canStart, setCanStart] = useState(() => canStartChannel(channel));
     const [showStatic, setShowStatic] = useState(false);
     const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+    const [showMiiPaper, setShowMiiPaper] = useState(false);
+    const [showFullscreen, setShowFullscreen] = useState(false);
 
     useEffect(() => {
         // Reset states when channel changes
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsVideoLoaded(false);
         setShowStatic(false);
         staticErrorRef.current = false;
@@ -45,14 +51,19 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
         }
 
         // Update canStart when channel changes
-        setCanStart(!!channel?.target);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setCanStart(canStartChannel(channel));
+        setShowMiiPaper(false);
+        setShowFullscreen(false);
 
+        const fadeInterval = fadeIntervalRef.current;
+        const audio = audioRef.current;
         return () => {
-            if (fadeIntervalRef.current) {
-                clearInterval(fadeIntervalRef.current);
+            if (fadeInterval) {
+                clearInterval(fadeInterval);
             }
-            if (audioRef.current) {
-                audioRef.current.pause();
+            if (audio) {
+                audio.pause();
             }
         };
     }, [channel, bgMusicToggle, config.musicVol]);
@@ -61,6 +72,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
 
     useEffect(() => {
         // Reset format when channel changes
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setVideoFormat(channel?.videoformat || 'gif');
     }, [channel]);
 
@@ -114,9 +126,19 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
     };
 
     const handleStart = () => {
-        if (!channel?.target) return;
+        if (!canStartChannel(channel)) return;
 
         playSFX('button-select-big.mp3', config.sfxVol);
+
+        if (channel.action === 'open-paper') {
+            setShowMiiPaper(true);
+            return;
+        }
+
+        if (channel.action === 'open-fullscreen') {
+            setShowFullscreen(true);
+            return;
+        }
 
         // Open in new tab immediately
         window.open(channel.target, '_blank');
@@ -238,7 +260,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                 {/* Case Study Under Progress notification */}
                 {(channel.id === 'tuftes-razor') && (
                     <div className="ch-progress-notification">
-                        <span>🚧 Case Study Under Progress</span>
+                        <span>🚧 Case study under progress — check out the website and go full screen!</span>
                     </div>
                 )}
             </div>
@@ -264,6 +286,32 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
             </div>
 
             <audio ref={audioRef} id="chSpec" />
+
+            {/* Mii About-Me Paper */}
+            <Suspense fallback={null}>
+                {showMiiPaper && (
+                    <MiiPaper onClose={() => setShowMiiPaper(false)} />
+                )}
+            </Suspense>
+
+            {/* Fullscreen iframe viewer (Tufte's Razor) */}
+            {showFullscreen && channel?.target && (
+                <div className="ch-fullscreen-overlay">
+                    <iframe
+                        src={channel.target}
+                        title={channel.title}
+                        className="ch-fullscreen-iframe"
+                        allow="fullscreen"
+                    />
+                    <button
+                        className="ch-fullscreen-close"
+                        onClick={() => setShowFullscreen(false)}
+                        onMouseOver={() => playSFX('button-hover.mp3', config.sfxVol)}
+                    >
+                        <img src="/assets/wii-menu-button.png" alt="Close" />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

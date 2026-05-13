@@ -48,8 +48,9 @@ function AppContent() {
   const timeoutsRef = useRef([]);
 
   useEffect(() => {
+    const timeouts = timeoutsRef.current;
     return () => {
-      timeoutsRef.current.forEach(clearTimeout);
+      timeouts.forEach(clearTimeout);
     };
   }, []);
 

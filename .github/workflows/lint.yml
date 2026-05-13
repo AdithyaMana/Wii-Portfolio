@@ -36,4 +36,4 @@ jobs:
         if: always()
         uses: vercel/repository-dispatch/actions/status@v1
         with:
-          name: Vercel - wii-portfolio: lint
+          check_name: "Vercel - wii-portfolio: lint"
