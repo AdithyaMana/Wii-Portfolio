@@ -46,8 +46,7 @@ const DEFAULT_CHANNELS = [
         title: "Tufte's Razor",
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://tuftesrazor.scienceux.org/',
-        action: 'open-fullscreen'
+        target: 'https://tuftesrazor.scienceux.org/'
     },
     {
         id: 'github',
