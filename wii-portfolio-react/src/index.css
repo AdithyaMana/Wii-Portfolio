@@ -472,6 +472,24 @@ button {
     transform: translate(-50%, -2.5vh);
 }
 
+.bottom-bar .info .built-by {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, 1.2vh);
+    font-size: 0.65em;
+    color: #6ec9e8;
+    opacity: 0.45;
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    animation: fadeOut 250ms ease-in-out 6s forwards;
+    white-space: nowrap;
+    pointer-events: auto;
+}
+
+.bottom-bar .info .built-by:hover {
+    opacity: 0.8;
+}
+
 .bottom-bar .info #hour {
     font-family: 'Display';
     font-size: 3.5em;
