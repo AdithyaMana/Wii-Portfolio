@@ -37,6 +37,14 @@ export function BottomBar({ onWiiClick, onMailClick, onHomeClick }) {
 
             <div className="info">
                 <span className="jg">Adi's Portfolio</span>
+                <a
+                    className="built-by"
+                    href="https://github.com/AdithyaMana"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    built by adi
+                </a>
                 <span id="hour">{time}</span>
                 <span id="date">{date}</span>
                 {/* Mobile home button - visible only on touch devices */}
