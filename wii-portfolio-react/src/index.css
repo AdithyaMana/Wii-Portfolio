@@ -277,56 +277,6 @@ button {
     animation: fadeInandOut 1s infinite 0.5s;
 }
 
-.splash-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1vh;
-    padding-top: 1.5vh;
-}
-
-.splash-progress-bar {
-    width: 40vw;
-    height: 4px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.splash-progress-fill {
-    height: 100%;
-    background: #37bef4;
-    border-radius: 2px;
-    transition: width 0.2s ease-out;
-}
-
-.splash-loading-text {
-    font-size: 2vw;
-    color: rgba(255,255,255,0.5);
-    opacity: 1 !important;
-    animation: none !important;
-    padding-top: 0;
-}
-
-.splash-credit {
-    position: absolute;
-    bottom: 3vh;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.4vw;
-    color: rgba(255,255,255,0.25);
-    white-space: nowrap;
-    margin: 0;
-}
-
-.splash-credit a {
-    color: rgba(255,255,255,0.35);
-    text-decoration: none;
-}
-
-.splash-credit a:hover {
-    color: rgba(255,255,255,0.6);
-}
 
 @media (max-width: 768px) {
     .splash .warning .text {
