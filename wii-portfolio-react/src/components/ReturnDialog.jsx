@@ -1,7 +1,7 @@
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 
-export function ReturnDialog({ onYes, onNo }) {
+export function ReturnDialog({ onNo }) {
     const { playSFX } = useAudio();
     const { config } = useConfig();
 

@@ -44,7 +44,6 @@ export function SplashScreen({ onComplete }) {
 
         // Channel art images (what each channel.html iframe displays)
         const channelArtImages = [
-            '/channelart/aboutme/channel.jpg',
             '/channelart/credit-survey/channel.jpg',
             '/channelart/credit-website/channel.jpg',
             '/channelart/research-agent/channel.jpg',
@@ -52,10 +51,6 @@ export function SplashScreen({ onComplete }) {
             '/channelart/tuftes-razor/channel.jpg',
             '/channelart/mii/miis.png',
             '/channelart/disc/disc.png',
-            '/channelart/photo/bg.png',
-            '/channelart/photo/fore.png',
-            '/channelart/photo/backleft.png',
-            '/channelart/photo/backright.png',
         ];
 
         const criticalAudio = [
@@ -234,10 +229,6 @@ export function SplashScreen({ onComplete }) {
                                 FOR THE BEST EXPERIENCE, PLEASE VIEW THIS WEBSITE
                                 ON A DESKTOP OR LAPTOP COMPUTER. MOBILE DEVICES
                                 MAY NOT DISPLAY CONTENT CORRECTLY.
-                            </p>
-                            <p className="bottom">
-                                Wii Health & Safety Info at<br />
-                                <a href="https://www.nintendo.com/health-and-safety/" target="_blank" rel="noopener noreferrer">www.nintendo.com/health-and-safety/</a>
                             </p>
                         </div>
                         {canClick ? (
