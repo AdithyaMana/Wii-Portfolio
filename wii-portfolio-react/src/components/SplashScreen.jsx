@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 import { useChannels } from '../context/ChannelsContext';
@@ -7,17 +7,19 @@ export function SplashScreen({ onComplete }) {
     const [showWarning, setShowWarning] = useState(true);
     const [showWelcome, setShowWelcome] = useState(false);
     const [canClick, setCanClick] = useState(false);
+    const [progress, setProgress] = useState(0);
     const { playSFX } = useAudio();
     const { config } = useConfig();
     const { channels } = useChannels();
-
     const [assetsReady, setAssetsReady] = useState(false);
+    const completedRef = useRef(0);
+    const totalRef = useRef(0);
 
-    // Smart Asset Preloading
     useEffect(() => {
         if (!channels) return;
 
-        // 1. Critical UI Assets (Must load before entering)
+        // ── CRITICAL (blocks the click) ──────────────────────────────
+        // Fonts + key UI images + the SFX needed before any interaction
         const criticalImages = [
             '/assets/bg-pattern.png',
             '/assets/channel-border.png',
@@ -25,7 +27,6 @@ export function SplashScreen({ onComplete }) {
             '/assets/channel-spritesheet.png',
             '/assets/bottom-bg.png',
             '/assets/bottom-title.png',
-            '/assets/return.gif',
             '/assets/channel-hover.png',
             '/assets/wii-logo.svg',
             '/assets/wii-circle-button.png',
@@ -39,17 +40,8 @@ export function SplashScreen({ onComplete }) {
             '/assets/wii-menu-button.png',
             '/assets/start-button.png',
             '/assets/channel-wiilogo.png',
-            '/channelart/disc/disc.png'
-        ];
-
-        // Channel art images (what each channel.html iframe displays)
-        const channelArtImages = [
-            '/channelart/credit-survey/channel.jpg',
-            '/channelart/credit-website/channel.jpg',
-            '/channelart/research-agent/channel.jpg',
-            '/channelart/resume/channel.jpg',
-            '/channelart/tuftes-razor/channel.jpg',
-            '/channelart/mii/miis.png',
+            '/assets/back.png',
+            '/assets/mii-avatar.png',
             '/channelart/disc/disc.png',
         ];
 
@@ -59,152 +51,129 @@ export function SplashScreen({ onComplete }) {
             '/audio/button-select.mp3',
             '/audio/button-select-big.mp3',
             '/audio/nextprev.mp3',
-            '/audio/home-in.mp3',
-            '/audio/home-out.mp3'
         ];
 
         const fonts = ['Regular', 'Bold', 'TitleBold', 'TitleMed', 'Display'];
 
-        // 2. Helper Functions
+        // ── BACKGROUND (non-blocking, starts immediately) ────────────
+        // Channel videos, audio, art — large files, fire and forget
+        const backgroundLoad = () => {
+            const channelArtImages = [
+                '/channelart/credit-survey/channel.jpg',
+                '/channelart/credit-website/channel.jpg',
+                '/channelart/research-agent/channel.jpg',
+                '/channelart/resume/channel.jpg',
+                '/channelart/tuftes-razor/channel.jpg',
+                '/channelart/mii/miis.png',
+            ];
+
+            const channelArtVideos = [
+                '/channelart/github/github.webm',
+                '/channelart/linkedin/Linkedin Icon.webm',
+            ];
+
+            channelArtImages.forEach(src => { const i = new Image(); i.src = src; });
+            channelArtVideos.forEach(src => {
+                const v = document.createElement('video');
+                v.preload = 'auto'; v.muted = true; v.src = src; v.load();
+            });
+
+            channels.forEach(channel => {
+                // Channel preview video
+                const format = channel.videoformat || 'gif';
+                const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
+                if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
+                    const v = document.createElement('video');
+                    v.preload = 'auto'; v.muted = true; v.src = videoSrc; v.load();
+                } else {
+                    const i = new Image(); i.src = videoSrc;
+                }
+
+                // Channel audio
+                const audioFormat = channel.audioformat || 'mp3';
+                const a = new Audio();
+                a.preload = 'auto';
+                a.src = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
+                a.load();
+
+                // Channel HTML prefetch
+                fetch(`/${channel.channelart}${channel.id}/channel.html`).catch(() => {});
+            });
+        };
+
+        // ── Helpers ──────────────────────────────────────────────────
+        const tick = () => {
+            completedRef.current += 1;
+            const pct = Math.round((completedRef.current / totalRef.current) * 100);
+            setProgress(Math.min(pct, 100));
+        };
+
         const loadImage = (src) => new Promise((resolve) => {
             const img = new Image();
-            img.onload = () => resolve(src);
-            img.onerror = () => {
-                console.warn(`Failed to load image: ${src}`);
-                resolve(src);
-            };
+            img.onload = () => { tick(); resolve(); };
+            img.onerror = () => { tick(); resolve(); };
             img.src = src;
-        });
-
-        const loadVideo = (src) => new Promise((resolve) => {
-            if (['mp4', 'webm', 'ogg', 'mov'].some(ext => src.endsWith(ext))) {
-                const vid = document.createElement('video');
-                vid.preload = 'auto';
-                vid.muted = true;
-                vid.oncanplaythrough = () => resolve(src);
-                vid.onerror = () => {
-                    console.warn(`Failed to load video: ${src}`);
-                    resolve(src);
-                };
-                vid.src = src;
-                vid.load();
-                // Timeout: don't wait more than 5s per video
-                setTimeout(() => resolve(src), 5000);
-            } else {
-                // GIF or image format
-                const img = new Image();
-                img.onload = () => resolve(src);
-                img.onerror = () => resolve(src);
-                img.src = src;
-            }
         });
 
         const loadAudio = (src) => new Promise((resolve) => {
             const audio = new Audio();
-            audio.oncanplaythrough = () => resolve(src);
-            audio.onerror = () => {
-                console.warn(`Failed to load audio: ${src}`);
-                resolve(src);
-            };
+            const done = () => { tick(); resolve(); };
+            audio.oncanplaythrough = done;
+            audio.onerror = done;
             audio.src = src;
             audio.load();
-            setTimeout(() => resolve(src), 1500); // 1.5s timeout for critical audio
+            setTimeout(done, 1500);
         });
 
-        const loadFont = (fontFamily) => document.fonts.load(`1em ${fontFamily}`).catch(() => { });
+        const loadFont = (family) =>
+            document.fonts.load(`1em ${family}`).then(tick).catch(tick);
 
-        // 3. Build channel asset promises (videos, audio, channel HTML pages)
-        const channelAssetPromises = channels.flatMap(channel => {
-            const promises = [];
+        // ── Execute ──────────────────────────────────────────────────
+        const criticalCount = criticalImages.length + criticalAudio.length + fonts.length;
+        totalRef.current = criticalCount;
+        completedRef.current = 0;
 
-            // Channel preview video/image
-            const format = channel.videoformat || 'gif';
-            const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
-            promises.push(loadVideo(videoSrc));
+        // Fire background loads immediately — don't await them
+        backgroundLoad();
 
-            // Channel audio
-            const audioFormat = channel.audioformat || 'mp3';
-            const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
-            promises.push(loadAudio(audioSrc));
-
-            // Pre-fetch channel HTML so iframe renders faster
-            const htmlSrc = `/${channel.channelart}${channel.id}/channel.html`;
-            promises.push(fetch(htmlSrc).catch(() => { }));
-
-            return promises;
-        });
-
-        // Channel art webm videos (github, linkedin)
-        const channelArtVideos = [
-            '/channelart/github/github.webm',
-            '/channelart/linkedin/Linkedin Icon.webm',
+        const criticalPromises = [
+            ...criticalImages.map(loadImage),
+            ...criticalAudio.map(loadAudio),
+            ...fonts.map(loadFont),
+            new Promise(r => setTimeout(r, 400)),
         ];
 
-        // 4. Execution — load everything during splash
-        const loadCritical = async () => {
-            const allPromises = [
-                // Critical UI assets
-                ...criticalImages.map(loadImage),
-                ...criticalAudio.map(loadAudio),
-                ...fonts.map(loadFont),
-                // Channel art images
-                ...channelArtImages.map(loadImage),
-                // Channel art videos
-                ...channelArtVideos.map(loadVideo),
-                // Channel preview videos, audio, and HTML
-                ...channelAssetPromises,
-                // Min 500ms splash show
-                new Promise(r => setTimeout(r, 500))
-            ];
-
-            // Race all assets against an 8s max timeout
-            try {
-                await Promise.race([
-                    Promise.allSettled(allPromises),
-                    new Promise(r => setTimeout(r, 8000))
-                ]);
-            } catch (e) {
-                console.error("Asset loading error:", e);
-            } finally {
-                setAssetsReady(true);
-            }
-        };
-
-        loadCritical();
+        // Only wait for critical assets (max 4s)
+        Promise.race([
+            Promise.allSettled(criticalPromises),
+            new Promise(r => setTimeout(r, 4000)),
+        ]).finally(() => {
+            setProgress(100);
+            setAssetsReady(true);
+        });
     }, [channels]);
 
     useEffect(() => {
         if (!assetsReady) return;
 
-        // Check for skipwarn
         const skipWarn = window.location.search.includes('skipwarn');
-
         if (skipWarn) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowWarning(false);
             setShowWelcome(true);
-            const timer = setTimeout(() => {
-                onComplete();
-            }, 200); // Reduced from 500ms
-            return () => clearTimeout(timer);
+            const t = setTimeout(() => onComplete(), 200);
+            return () => clearTimeout(t);
         } else {
-            // Allow interaction once assets are ready with minimal delay
-            const timer = setTimeout(() => {
-                setCanClick(true);
-            }, 300); // Reduced from 800ms
-            return () => clearTimeout(timer);
+            const t = setTimeout(() => setCanClick(true), 200);
+            return () => clearTimeout(t);
         }
     }, [onComplete, assetsReady]);
 
     const handleClick = () => {
         if (!canClick || !assetsReady) return;
-
         playSFX('button-select.mp3', config.sfxVol);
         setShowWarning(false);
-
-        // Wait 0.1 seconds then complete
-        setTimeout(() => {
-            onComplete();
-        }, 100);
+        setTimeout(() => onComplete(), 100);
     };
 
     if (!showWarning && !showWelcome) {
@@ -231,11 +200,22 @@ export function SplashScreen({ onComplete }) {
                                 MAY NOT DISPLAY CONTENT CORRECTLY.
                             </p>
                         </div>
+
                         {canClick ? (
                             <span style={{ opacity: 1 }}>Press left click to continue.</span>
                         ) : (
-                            <span style={{ animation: 'none', opacity: 0.5 }}>Loading assets...</span>
+                            <div className="splash-loading">
+                                <div className="splash-progress-bar">
+                                    <div
+                                        className="splash-progress-fill"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                                <span className="splash-loading-text">Loading assets... {progress}%</span>
+                            </div>
                         )}
+
+                        <p className="splash-credit">built by adi · <a href="https://akiraux.vercel.app" target="_blank" rel="noopener noreferrer">akiraux.vercel.app</a></p>
                     </div>
                 </div>
             )}

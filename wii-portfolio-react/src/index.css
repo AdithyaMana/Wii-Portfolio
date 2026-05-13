@@ -277,6 +277,57 @@ button {
     animation: fadeInandOut 1s infinite 0.5s;
 }
 
+.splash-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1vh;
+    padding-top: 1.5vh;
+}
+
+.splash-progress-bar {
+    width: 40vw;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.splash-progress-fill {
+    height: 100%;
+    background: #37bef4;
+    border-radius: 2px;
+    transition: width 0.2s ease-out;
+}
+
+.splash-loading-text {
+    font-size: 2vw;
+    color: rgba(255,255,255,0.5);
+    opacity: 1 !important;
+    animation: none !important;
+    padding-top: 0;
+}
+
+.splash-credit {
+    position: absolute;
+    bottom: 3vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4vw;
+    color: rgba(255,255,255,0.25);
+    white-space: nowrap;
+    margin: 0;
+}
+
+.splash-credit a {
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+}
+
+.splash-credit a:hover {
+    color: rgba(255,255,255,0.6);
+}
+
 @media (max-width: 768px) {
     .splash .warning .text {
         width: 90vw;
@@ -470,24 +521,6 @@ button {
     position: absolute;
     left: 50%;
     transform: translate(-50%, -2.5vh);
-}
-
-.bottom-bar .info .built-by {
-    position: absolute;
-    left: 50%;
-    transform: translate(-50%, 1.2vh);
-    font-size: 0.65em;
-    color: #6ec9e8;
-    opacity: 0.45;
-    text-decoration: none;
-    letter-spacing: 0.06em;
-    animation: fadeOut 250ms ease-in-out 6s forwards;
-    white-space: nowrap;
-    pointer-events: auto;
-}
-
-.bottom-bar .info .built-by:hover {
-    opacity: 0.8;
 }
 
 .bottom-bar .info #hour {
