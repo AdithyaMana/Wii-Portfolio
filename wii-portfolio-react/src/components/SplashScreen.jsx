@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 import { useChannels } from '../context/ChannelsContext';
@@ -7,13 +7,10 @@ export function SplashScreen({ onComplete }) {
     const [showWarning, setShowWarning] = useState(true);
     const [showWelcome, setShowWelcome] = useState(false);
     const [canClick, setCanClick] = useState(false);
-    const [progress, setProgress] = useState(0);
     const { playSFX } = useAudio();
     const { config } = useConfig();
     const { channels } = useChannels();
     const [assetsReady, setAssetsReady] = useState(false);
-    const completedRef = useRef(0);
-    const totalRef = useRef(0);
 
     useEffect(() => {
         if (!channels) return;
@@ -102,36 +99,24 @@ export function SplashScreen({ onComplete }) {
         };
 
         // ── Helpers ──────────────────────────────────────────────────
-        const tick = () => {
-            completedRef.current += 1;
-            const pct = Math.round((completedRef.current / totalRef.current) * 100);
-            setProgress(Math.min(pct, 100));
-        };
-
         const loadImage = (src) => new Promise((resolve) => {
             const img = new Image();
-            img.onload = () => { tick(); resolve(); };
-            img.onerror = () => { tick(); resolve(); };
+            img.onload = resolve;
+            img.onerror = resolve;
             img.src = src;
         });
 
         const loadAudio = (src) => new Promise((resolve) => {
             const audio = new Audio();
-            const done = () => { tick(); resolve(); };
-            audio.oncanplaythrough = done;
-            audio.onerror = done;
+            audio.oncanplaythrough = resolve;
+            audio.onerror = resolve;
             audio.src = src;
             audio.load();
-            setTimeout(done, 1500);
+            setTimeout(resolve, 1500);
         });
 
         const loadFont = (family) =>
-            document.fonts.load(`1em ${family}`).then(tick).catch(tick);
-
-        // ── Execute ──────────────────────────────────────────────────
-        const criticalCount = criticalImages.length + criticalAudio.length + fonts.length;
-        totalRef.current = criticalCount;
-        completedRef.current = 0;
+            document.fonts.load(`1em ${family}`).catch(() => {});
 
         // Fire background loads immediately — don't await them
         backgroundLoad();
@@ -148,7 +133,6 @@ export function SplashScreen({ onComplete }) {
             Promise.allSettled(criticalPromises),
             new Promise(r => setTimeout(r, 4000)),
         ]).finally(() => {
-            setProgress(100);
             setAssetsReady(true);
         });
     }, [channels]);
@@ -204,18 +188,8 @@ export function SplashScreen({ onComplete }) {
                         {canClick ? (
                             <span style={{ opacity: 1 }}>Press left click to continue.</span>
                         ) : (
-                            <div className="splash-loading">
-                                <div className="splash-progress-bar">
-                                    <div
-                                        className="splash-progress-fill"
-                                        style={{ width: `${progress}%` }}
-                                    />
-                                </div>
-                                <span className="splash-loading-text">Loading assets... {progress}%</span>
-                            </div>
+                            <span style={{ animation: 'none', opacity: 0.5 }}>Loading assets...</span>
                         )}
-
-                        <p className="splash-credit">built by adi · <a href="https://akiraux.vercel.app" target="_blank" rel="noopener noreferrer">akiraux.vercel.app</a></p>
                     </div>
                 </div>
             )}
