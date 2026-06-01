@@ -47,7 +47,7 @@ export function MessageBoard({ onClose }) {
                         <span><a href="https://www.linkedin.com/in/akiraux/" target="_blank" rel="noopener noreferrer">LinkedIn</a></span>
                         <span><a href="https://github.com/AdithyaMana" target="_blank" rel="noopener noreferrer">Github</a></span>
                         <span><a href="https://akira1ze.hashnode.dev/" target="_blank" rel="noopener noreferrer">Blog</a></span>
-                        <span><a href="https://drive.google.com/file/d/19epsA6rE_feftclfuVyKoPE8miB46e8n/view?usp=sharing" target="_blank" rel="noopener noreferrer">Resume</a></span>
+                        <span><a href="https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/view?usp=drivesdk" target="_blank" rel="noopener noreferrer">Resume</a></span>
                     </div>
                 </div>
                 <a className="alt-btn back" onMouseOver={handleHover} onClick={handleBack}>
