@@ -69,7 +69,7 @@ const DEFAULT_CHANNELS = [
         title: 'Resume',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/view?usp=drivesdk'
+        target: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/view?usp=sharing'
     },
 ];
 
