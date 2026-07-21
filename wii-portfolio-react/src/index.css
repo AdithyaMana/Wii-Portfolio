@@ -998,11 +998,12 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     object-position: center 80%;
 }
 
-/* Resume video is taller than the frame — even a full bottom-anchored
-   crop still clips the "My Resume" title, so show it uncropped instead */
+/* Resume art has its "My Resume" title near the top (opposite of the
+   other case studies) — anchor top so cover fills the frame edge to
+   edge and any crop eats snow at the bottom, not the title */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo {
-    object-fit: contain;
-    object-position: center;
+    object-fit: cover;
+    object-position: center top;
 }
 
 /* GitHub is pixel art: keep it crisp and uncropped */
