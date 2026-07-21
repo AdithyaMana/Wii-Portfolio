@@ -96,16 +96,7 @@ export function MainMenu({
     const handleChannelClick = (channel) => {
         if (!channel) return;
 
-        if (isMobile) {
-            if (channel.target) {
-                playSFX('button-select-big.mp3', config.sfxVol);
-                // Open in same tab
-                window.location.href = channel.target;
-            }
-            // On mobile, do nothing if no target (don't show preview)
-            return;
-        }
-
+        // Same flow on every device: open the channel preview screen
         onChannelSelect?.(channel);
     };
 
