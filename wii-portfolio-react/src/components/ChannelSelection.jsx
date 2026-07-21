@@ -113,8 +113,11 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
             return;
         }
 
-        // Channels with an embed URL open inside the site in a Wii tab
-        if (channel.embed) {
+        // Channels with an embed URL open inside the site in a Wii tab —
+        // but only on desktop. Mobile screens are too small for the
+        // in-site overlay, so send those straight to a real browser tab.
+        const isMobile = window.innerWidth <= 768;
+        if (channel.embed && !isMobile) {
             if (audioRef.current) {
                 audioRef.current.pause();
             }
@@ -122,7 +125,8 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
             return;
         }
 
-        // Sites that forbid framing open in a real browser tab
+        // Sites that forbid framing (or any embeddable site on mobile)
+        // open in a real browser tab
         window.open(channel.target, '_blank');
 
         // Reset audio volume if it was fading
