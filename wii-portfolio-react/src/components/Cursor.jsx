@@ -90,6 +90,7 @@ export function Cursor() {
             ref={cursorRef}
             src="/assets/cursor.png"
             alt="cursor"
+            className="wii-cursor"
             style={{
                 position: 'fixed',
                 left: 0,

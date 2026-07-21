@@ -3,36 +3,23 @@ import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 
 const MiiPaper = lazy(() => import('./MiiPaper').then(m => ({ default: m.MiiPaper })));
+const WiiTab = lazy(() => import('./WiiTab').then(m => ({ default: m.WiiTab })));
 
 export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning }) {
     const { playSFX, playSFXMulti, bgMusicToggle } = useAudio();
     const { config } = useConfig();
     const audioRef = useRef(null);
     const fadeIntervalRef = useRef(null);
-    const staticErrorRef = useRef(false);
     const canStartChannel = (ch) => !!ch?.target || ch?.action === 'open-paper';
     const [canStart, setCanStart] = useState(() => canStartChannel(channel));
-    const [showStatic, setShowStatic] = useState(false);
     const [isVideoLoaded, setIsVideoLoaded] = useState(false);
     const [showMiiPaper, setShowMiiPaper] = useState(false);
+    const [showWiiTab, setShowWiiTab] = useState(false);
 
     useEffect(() => {
         // Reset states when channel changes
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsVideoLoaded(false);
-        setShowStatic(false);
-        staticErrorRef.current = false;
-
-        // Only run timer for gifs
-        if (channel && (!channel.videoformat || channel.videoformat === 'gif')) {
-            // Disc channel is shorter, stop it sooner so it doesn't loop
-            const duration = channel.id === 'disc' ? 1000 : 2000;
-
-            const timer = setTimeout(() => {
-                setShowStatic(true);
-            }, duration);
-            return () => clearTimeout(timer);
-        }
     }, [channel]);
 
     useEffect(() => {
@@ -53,6 +40,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setCanStart(canStartChannel(channel));
         setShowMiiPaper(false);
+        setShowWiiTab(false);
 
         const fadeInterval = fadeIntervalRef.current;
         const audio = audioRef.current;
@@ -95,23 +83,15 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
             return `/${channel.assets}${channel.id}/video.${channel.videoformat}`;
         }
 
-        // If static logic applies
-        if (showStatic && videoFormat === 'gif') {
-            return `/${channel.assets}${channel.id}/static.png`;
-        }
-
         return `/${channel.assets}${channel.id}/video.${videoFormat}`;
     };
 
     const handleVideoError = () => {
+        // Fall back through image formats if the declared one is missing
         if (videoFormat === 'gif') {
             setVideoFormat('jpg');
         } else if (videoFormat === 'jpg') {
             setVideoFormat('png');
-        } else {
-            // Already tried png, or some other format failed
-            staticErrorRef.current = true;
-            setShowStatic(false);
         }
     };
 
@@ -133,12 +113,29 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
             return;
         }
 
-        // Open in new tab immediately
+        // Channels with an embed URL open inside the site in a Wii tab
+        if (channel.embed) {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            setShowWiiTab(true);
+            return;
+        }
+
+        // Sites that forbid framing open in a real browser tab
         window.open(channel.target, '_blank');
 
         // Reset audio volume if it was fading
         if (audioRef.current) {
             audioRef.current.volume = config.musicVol ?? 0.5;
+        }
+    };
+
+    const handleWiiTabClose = () => {
+        setShowWiiTab(false);
+        // Resume the channel's preview audio
+        if (audioRef.current) {
+            audioRef.current.play().catch(() => { });
         }
     };
 
@@ -238,13 +235,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                             src={getVideoSrc()}
                             alt=""
                             onLoad={() => setIsVideoLoaded(true)}
-                            onError={() => {
-                                handleVideoError();
-                                if (showStatic) {
-                                    staticErrorRef.current = true;
-                                    setShowStatic(false);
-                                }
-                            }}
+                            onError={handleVideoError}
                         />
                     )}
                     {/* Reflection removed for performance */}
@@ -284,6 +275,11 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
             <Suspense fallback={null}>
                 {showMiiPaper && (
                     <MiiPaper onClose={() => setShowMiiPaper(false)} />
+                )}
+
+                {/* In-site Wii tab viewer */}
+                {showWiiTab && (
+                    <WiiTab channel={channel} onClose={handleWiiTabClose} />
                 )}
             </Suspense>
 
