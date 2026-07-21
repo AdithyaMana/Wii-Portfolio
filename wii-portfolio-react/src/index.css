@@ -901,9 +901,9 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 /* Navigation arrows */
 .ch-selection .ch-nav-arrow {
     position: absolute;
-    top: 0;
-    height: 88vh;
-    /* Full height minus bottom bar */
+    top: 6vh;
+    height: 82vh;
+    /* Full height minus bottom bar, nudged down to match the art */
     width: 12vw;
     /* Wider hit area */
     display: flex;
@@ -976,24 +976,33 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     justify-content: center;
 }
 
-/* Channel art fills that whole area — no white margins */
+/* Channel art fills that whole area — no white margins. Anchored above
+   center so the visible framing sits lower in the frame; the crop eats
+   the bottom of the source rather than splitting the difference. */
 .ch-selection .ch-logo {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center;
+    object-position: center 30%;
     pointer-events: none;
     image-rendering: -webkit-optimize-contrast;
     filter: contrast(1.05) saturate(1.05);
 }
 
-/* Case-study art (1536x1024) has its title text near the bottom —
-   anchor bottom so the crop eats sky, not the title */
+/* Case-study art (1536x1024) has its title text near the bottom — stay
+   anchored low so the crop eats sky, not the title, but off the very
+   bottom edge so the art reads a little lower in frame */
 .ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo {
+    object-position: center 80%;
+}
+
+/* Resume video is taller than the frame — even a full bottom-anchored
+   crop still clips the "My Resume" title, so show it uncropped instead */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo {
-    object-position: center bottom;
+    object-fit: contain;
+    object-position: center;
 }
 
 /* GitHub is pixel art: keep it crisp and uncropped */
@@ -2636,6 +2645,7 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     /* Nav arrows: comfortable thumb targets at screen edges */
     .ch-selection .ch-nav-arrow {
+        top: 0;
         width: 15vw;
         height: 100vh;
         height: 100dvh;
