@@ -25,28 +25,35 @@ const DEFAULT_CHANNELS = [
         title: 'Research Agent',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://www.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&viewport=-159%2C-34%2C0.73&t=XHJPjZQl2nXOeLnm-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1'
+        target: 'https://www.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&viewport=-159%2C-34%2C0.73&t=XHJPjZQl2nXOeLnm-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1',
+        embed: 'https://embed.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&scaling=min-zoom&content-scaling=fixed&embed-host=wii-portfolio',
+        videoformat: 'png'
     },
     {
         id: 'credit-survey',
         title: 'Credit Survey',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://www.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&t=bAE08gPrxq7fiShM-1'
+        target: 'https://www.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&t=bAE08gPrxq7fiShM-1',
+        embed: 'https://embed.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&scaling=min-zoom&content-scaling=fixed&embed-host=wii-portfolio',
+        videoformat: 'png'
     },
     {
         id: 'credit-website',
         title: 'Credit Website',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://medium.com/@akirauxr/cat-videos-a-panicked-discord-message-and-14-icons-a4cc5a2c4e6c'
+        target: 'https://medium.com/@akirauxr/cat-videos-a-panicked-discord-message-and-14-icons-a4cc5a2c4e6c',
+        videoformat: 'png'
     },
     {
         id: 'tuftes-razor',
         title: "Tufte's Razor",
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://tuftesrazor.scienceux.org/'
+        target: 'https://tuftesrazor.scienceux.org/',
+        embed: 'https://tuftesrazor.scienceux.org/',
+        videoformat: 'jpg'
     },
     {
         id: 'github',
@@ -69,31 +76,24 @@ const DEFAULT_CHANNELS = [
         title: 'Resume',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/view?usp=sharing'
+        target: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/view?usp=sharing',
+        embed: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/preview',
+        videoformat: 'png'
     },
 ];
 
 export function ChannelsProvider({ children }) {
-    const [channels, setChannels] = useState(() => {
-        try {
-            const stored = localStorage.getItem('adifolio-channels-v17');
-            if (stored) {
-                return JSON.parse(stored);
-            }
-        } catch (e) {
-            console.error('Failed to load channels from localStorage:', e);
-        }
-        return DEFAULT_CHANNELS;
-    });
+    // Channels are intentionally NOT persisted to localStorage: cached copies
+    // would keep serving outdated links (e.g. an old resume URL) to returning
+    // visitors after the defaults change.
+    const [channels, setChannels] = useState(DEFAULT_CHANNELS);
 
-    // Save channels to localStorage when they change
+    // Clean up the stale cache left behind by older versions of the site
     useEffect(() => {
         try {
-            localStorage.setItem('adifolio-channels-v17', JSON.stringify(channels));
-        } catch (e) {
-            console.error('Failed to save channels to localStorage:', e);
-        }
-    }, [channels]);
+            localStorage.removeItem('adifolio-channels-v17');
+        } catch { /* private browsing / storage disabled */ }
+    }, []);
 
     const addChannel = (id, title, assets, channelart, target, videoformat) => {
         // Validation

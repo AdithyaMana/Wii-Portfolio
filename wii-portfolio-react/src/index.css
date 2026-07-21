@@ -8,9 +8,9 @@ body {
     width: 100%;
     overflow: hidden;
     position: fixed;
-    /* Lock scroll on mobile */
-    touch-action: none;
-    /* Disable default touch actions like scroll */
+    /* Lock page scroll on mobile but keep taps responsive and allow
+       panning inside inner scrollable areas (e.g. the About-Me paper) */
+    touch-action: manipulation;
     user-select: none;
     cursor: none;
     color: #84868a;
@@ -54,26 +54,31 @@ textarea,
 @font-face {
     font-family: 'Regular';
     src: url('/fonts/FOT-RodinNTLG\ Pro\ DB.otf');
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'Bold';
     src: url('/fonts/FOT-Rodin\ Pro\ B.otf');
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'TitleBold';
     src: url('/fonts/continuum-bold.ttf');
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'TitleMed';
     src: url('/fonts/continuum-medium.ttf');
+    font-display: swap;
 }
 
 @font-face {
     font-family: 'Display';
     src: url('/fonts/digital-7\ \(mono\).ttf');
+    font-display: swap;
 }
 
 
@@ -148,6 +153,8 @@ textarea,
 .main-menu {
     background-image: url('/assets/bg-pattern.png');
     height: 100vh;
+    /* Dynamic viewport height: accounts for mobile browser URL bar */
+    height: 100dvh;
     width: 100vw;
     overflow: hidden;
     position: relative;
@@ -496,6 +503,7 @@ button {
     position: relative;
     display: flex;
     height: calc(100vh - 14vh);
+    height: calc(100dvh - 14vh);
     overflow-x: scroll;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -620,10 +628,41 @@ button {
     /* previously 1161/639 */
 }
 
+/* Wii-style springy pop-in when the menu appears */
+@keyframes ch-pop-in {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.ch-c .ch {
+    animation: ch-pop-in 380ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* Stagger the tiles row by row, like the Wii boot */
+.ch-c .ch:nth-child(1) { animation-delay: 40ms; }
+.ch-c .ch:nth-child(2) { animation-delay: 80ms; }
+.ch-c .ch:nth-child(3) { animation-delay: 120ms; }
+.ch-c .ch:nth-child(4) { animation-delay: 160ms; }
+.ch-c .ch:nth-child(5) { animation-delay: 200ms; }
+.ch-c .ch:nth-child(6) { animation-delay: 240ms; }
+.ch-c .ch:nth-child(7) { animation-delay: 280ms; }
+.ch-c .ch:nth-child(8) { animation-delay: 320ms; }
+.ch-c .ch:nth-child(9) { animation-delay: 360ms; }
+.ch-c .ch:nth-child(10) { animation-delay: 400ms; }
+.ch-c .ch:nth-child(11) { animation-delay: 440ms; }
+.ch-c .ch:nth-child(12) { animation-delay: 480ms; }
+
 .ch-c .ch.blank {
     background-image: url('/assets/channel-spritesheet.png');
     background-size: calc(100% * 3) 100%;
-    animation: chblank 0.3s steps(3) infinite;
+    animation: chblank 0.3s steps(3) infinite, ch-pop-in 380ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
     position: relative;
 }
 
@@ -639,13 +678,14 @@ button {
 
 .ch-c .ch.occupied {
     position: relative;
-    transition: none !important;
+    transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .ch-c .ch.occupied:hover {
     z-index: 1000 !important;
     will-change: transform;
-    transform: translateZ(0);
+    /* Springy Wii-style pop on hover */
+    transform: translateZ(0) scale(1.06);
 }
 
 .ch-c .ch:nth-child(n+9).occupied span.tag {
@@ -921,54 +961,56 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     display: none;
 }
 
-/* Logo container with reflection */
+/* Logo container: anchored to the top, filling down to the bottom bar
+   (~15vh). Nothing important hides behind the bar, and there is no gap
+   at the top edge. */
 .ch-selection .ch-logo-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: calc(100% - 15vh);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
 }
 
-.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo {
-    width: 100%;
-    height: 120%;
-    object-fit: cover;
-    object-position: bottom;
-    transform: translateY(-19vh);
-}
-
-.ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
-    width: auto;
-    height: auto;
-    /* Native resolution */
-    transform: scale(1.5) translateY(-5vh);
-    object-fit: contain;
-    image-rendering: pixelated;
-}
-
-.ch-selection .ch-logo-container[data-channel-id="disc"] .ch-logo {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    transform: scale(0.55) translateY(-10%);
-}
-
-.ch-selection[data-channel-id="disc"] {
-    background: black;
-}
-
+/* Channel art fills that whole area — no white margins */
 .ch-selection .ch-logo {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    /* Fill the screen */
     object-position: center;
     pointer-events: none;
-    /* Attempt to improve perceived quality */
     image-rendering: -webkit-optimize-contrast;
     filter: contrast(1.05) saturate(1.05);
+}
+
+/* Case-study art (1536x1024) has its title text near the bottom —
+   anchor bottom so the crop eats sky, not the title */
+.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo {
+    object-position: center bottom;
+}
+
+/* GitHub is pixel art: keep it crisp and uncropped */
+.ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
+    object-fit: contain;
+    transform: scale(1.5);
+    image-rendering: pixelated;
+}
+
+/* Disc is a small graphic on black — contain it */
+.ch-selection[data-channel-id="disc"] {
+    background: black;
+}
+
+.ch-selection .ch-logo-container[data-channel-id="disc"] .ch-logo {
+    object-fit: contain;
+    transform: scale(0.55);
 }
 
 /* Hide reflection for better performance (less lag) and full-screen design */
@@ -1113,6 +1155,161 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 .ch-fullscreen-close img {
     width: 4vh;
     height: 4vh;
+}
+
+/* ─── Wii Tab: in-site channel viewer ─── */
+.wii-tab-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 200ms ease-out;
+}
+
+.wii-tab-window {
+    width: min(92vw, 1400px);
+    height: min(88vh, 88dvh);
+    background: linear-gradient(to bottom, #f8f8f8 0%, #e8e8e8 100%);
+    border: 0.35vh solid #c7c7c7;
+    border-radius: 1.5vh;
+    box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.55), inset 0 0 0 0.35vh #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: msgcard-appear 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wii-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5vh;
+    padding: 1vh 2vh;
+    min-height: 5.5vh;
+    background: linear-gradient(to bottom, #ffffff, #dfe3e6);
+    border-bottom: 0.2vh solid #c0c0c0;
+    flex-shrink: 0;
+}
+
+.wii-tab-logo {
+    height: 2.6vh;
+    /* The logo art is white — darken it so it reads on the light bar */
+    filter: brightness(0);
+    opacity: 0.45;
+}
+
+/* While a Wii tab is open, use the normal OS cursor everywhere and
+   hide the Wii cursor — it can't track inside the iframe, so keeping
+   it would show two cursors at once */
+body.custom-cursor-active.wii-tab-open,
+body.custom-cursor-active.wii-tab-open * {
+    cursor: auto !important;
+}
+
+body.wii-tab-open .wii-cursor {
+    display: none;
+}
+
+.wii-tab-title {
+    flex: 1;
+    font-size: 2.6vh;
+    color: #6b6e73;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wii-tab-actions {
+    display: flex;
+    gap: 1vh;
+}
+
+.wii-tab-btn {
+    width: 4.5vh;
+    height: 4.5vh;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, #ffffff, #e2e6e9);
+    border: 0.2vh solid #b8bcbf;
+    box-shadow: 0 0.3vh 0.6vh rgba(0, 0, 0, 0.15);
+    color: #6b6e73;
+    font-size: 2.2vh;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: inherit;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms;
+}
+
+.wii-tab-btn:hover {
+    transform: scale(1.12);
+    box-shadow: 0 0.4vh 0.9vh rgba(55, 190, 244, 0.45);
+    border-color: var(--blue);
+    color: var(--blue);
+}
+
+.wii-tab-btn:active {
+    transform: scale(0.95);
+}
+
+.wii-tab-body {
+    flex: 1;
+    position: relative;
+    background: #fff;
+}
+
+.wii-tab-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2vh;
+    color: #9aa0a6;
+    font-size: 2.2vh;
+    background: #f4f4f4;
+}
+
+.wii-tab-loading img {
+    width: 8vh;
+    height: 8vh;
+}
+
+.wii-tab-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    transition: opacity 300ms ease-out;
+}
+
+/* Mobile: the Wii tab covers the whole screen instead of floating */
+@media (max-width: 768px), (max-height: 500px) {
+    .wii-tab-overlay {
+        background: #000;
+    }
+
+    .wii-tab-window {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .wii-tab-bar {
+        min-height: 6.5vh;
+    }
+
+    .wii-tab-btn {
+        width: 5.5vh;
+        height: 5.5vh;
+        font-size: 2.6vh;
+    }
 }
 
 /* ─── Mii About-Me Paper ─── */
@@ -1498,7 +1695,7 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 }
 
 .returndialog .msgbox {
-    background-image: url("../assets/bg-pattern.png");
+    background-image: url('/assets/bg-pattern.png');
     width: 100vh;
     height: 70vh;
     border-radius: 1vw;
@@ -2070,9 +2267,12 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         aspect-ratio: 4/3;
     }
 
+    /* Portrait/narrow screens: fit the art instead of cropping it */
     .ch-selection .ch-logo {
-        width: 90vw;
+        width: auto;
         height: auto;
+        max-width: 92vw;
+        max-height: 68vh;
         object-fit: contain;
     }
 
@@ -2134,6 +2334,11 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         height: 25vh;
     }
 
+    .grid {
+        height: calc(100vh - 25vh);
+        height: calc(100dvh - 25vh);
+    }
+
     .bottom-bar .lateral .left-btn,
     .bottom-bar .lateral .right-btn {
         width: 24vh;
@@ -2155,6 +2360,8 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     .grid {
         padding-inline: calc((98vw - 20vw * 4) / 2);
+        height: calc(100vh - 13vh);
+        height: calc(100dvh - 13vh);
     }
 
     .prev {
@@ -2165,13 +2372,73 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         right: 2vw;
     }
 
-    .bottom-bar .info .jg,
-    .bottom-bar .info #hour {
-        font-size: 2em;
+    /* Bottom bar — same scaled Wii artwork treatment as phones,
+       sized up for tablet screens */
+    .bottom-bar {
+        height: 13vh;
+        grid-template-columns: min(14vh, 22vw) auto min(14vh, 22vw);
+    }
+
+    .bottom-bar .lateral .left-btn,
+    .bottom-bar .lateral .right-btn {
+        width: min(14vh, 22vw);
+    }
+
+    .bottom-bar .lateral .wii-btn {
+        width: 11vh;
+        max-width: none;
+        left: 15%;
+    }
+
+    .bottom-bar .lateral .diary-btn {
+        width: 11vh;
+        max-width: none;
+        right: 15%;
+    }
+
+    .bottom-bar .lateral span.tag {
+        display: none;
+    }
+
+    /* Clock + date stacked inside the bulge belly, below the arc */
+    .bottom-bar .info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        padding-bottom: 2.8vh;
+        box-sizing: border-box;
+    }
+
+    /* The label overlays the CLOCK (it fades out as the clock fades in),
+       so anchor it on the hour, well above the date */
+    .bottom-bar .info .jg {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.6em;
+        white-space: nowrap;
     }
 
     .bottom-bar .info #hour {
-        font-size: 4em;
+        position: static;
+        top: auto;
+        font-size: 2.6em;
+        line-height: 1;
+        opacity: 0;
+        animation: fadeIn 250ms ease-in-out 6.5s forwards;
+    }
+
+    .bottom-bar .info #date {
+        position: static;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        font-size: 1.3em;
+        line-height: 1;
+        margin-top: 0.7vh;
     }
 
     .home-menu .bar-top span {
@@ -2191,6 +2458,11 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         grid-template-columns: repeat(4, 22vw);
         grid-template-rows: 1fr 1fr;
         margin-top: 3vh;
+    }
+
+    .grid {
+        height: calc(100vh - 25vh);
+        height: calc(100dvh - 25vh);
     }
 
     .bottom-bar {
@@ -2234,6 +2506,9 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     .grid {
         padding-inline: 4vw;
         gap: 10px;
+        /* Mobile bottom bar is 12vh tall — keep channels above it */
+        height: calc(100vh - 12vh);
+        height: calc(100dvh - 12vh);
     }
 
     /* Navigation arrows */
@@ -2261,96 +2536,78 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         height: 8vh;
     }
 
-    /* Bottom bar - simplified for mobile */
+    /* Bottom bar — the real Wii artwork (side rails, center bulge,
+       round buttons, fading clock), scaled down for phones */
     .bottom-bar {
-        height: 18vh;
-        padding-bottom: 2vh;
-        box-sizing: border-box;
-        grid-template-columns: 20vw 1fr 20vw;
-        background: linear-gradient(to bottom, #dbe4e8, #c1c5c9);
-        border-top: 1px solid #aaa;
+        height: 12vh;
+        grid-template-columns: min(12vh, 24vw) auto min(12vh, 24vw);
     }
 
-    .bottom-bar .lateral {
-        background-image: none !important;
-        background: transparent;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    /* Hide the complex decorative elements on mobile */
     .bottom-bar .lateral .left-btn,
     .bottom-bar .lateral .right-btn {
-        display: none;
+        width: min(12vh, 24vw);
     }
 
-    .bottom-bar .lateral .wii-btn,
+    .bottom-bar .lateral .wii-btn {
+        width: 9.5vh;
+        max-width: none;
+        left: 12%;
+    }
+
     .bottom-bar .lateral .diary-btn {
-        position: relative;
-        left: auto;
-        right: auto;
-        height: 10vh;
-        width: 10vh;
-        max-height: 80%;
-        max-width: 80%;
-        object-fit: contain;
+        width: 9.5vh;
+        max-width: none;
+        right: 12%;
     }
 
     .mobile-home-btn {
         display: none !important;
     }
 
+    /* Hover tooltips make no sense on touch */
     .bottom-bar .lateral span.tag {
         display: none;
     }
 
+    /* Stack the clock + date centered in the bulge's raised peak, which
+       sits in the upper portion of the bar — so nudge the stack up.
+       The label is an absolute overlay that fades out on its own. */
     .bottom-bar .info {
-        background-image: none !important;
-        background: transparent;
         display: flex;
         flex-direction: column;
-        justify-content: center;
         align-items: center;
-        padding: 0;
-        width: 100%;
+        justify-content: center;
+        line-height: 1;
+        padding-bottom: 2.5vh;
+        box-sizing: border-box;
     }
 
+    /* The label overlays the CLOCK (it fades out as the clock fades in),
+       so anchor it on the hour, well above the date */
     .bottom-bar .info .jg {
-        position: relative;
-        left: auto;
-        transform: none;
-        font-size: 2.2vh;
-        font-family: 'Bold', sans-serif;
-        color: #37bef4;
-        /* Wii Blue */
-        animation: none;
-        opacity: 1;
-        margin-bottom: 0.5vh;
-        margin-top: 1vh;
-        text-shadow: 0 1px 1px white;
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.1em;
+        white-space: nowrap;
     }
 
     .bottom-bar .info #hour {
-        position: relative;
+        position: static;
         top: auto;
-        font-family: 'Display', monospace;
-        font-size: 5.5vh;
-        line-height: 5vh;
-        opacity: 1;
-        animation: none;
-        color: #888;
-        letter-spacing: 0.2vh;
+        font-size: 2.2em;
+        line-height: 1;
     }
 
     .bottom-bar .info #date {
-        position: relative;
+        position: static;
         bottom: auto;
         left: auto;
         transform: none;
-        font-size: 1.8vh;
-        color: #999;
-        margin-top: 0.5vh;
+        font-size: 1.1em;
+        line-height: 1;
+        margin-top: 0.6vh;
     }
 
     /* Channel tags - hide on mobile unless tapped (active state handled by JS/hover) */
@@ -2358,12 +2615,34 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         display: none;
     }
 
-    /* Channel selection */
+    /* Channel selection — fit the art on tall phone screens */
     .ch-selection .ch-logo {
+        width: auto;
+        height: auto;
+        max-width: 95vw;
+        max-height: 62vh;
+        object-fit: contain;
+    }
+
+    .ch-selection video.ch-logo {
         width: 95vw;
         height: auto;
-        max-height: 70vh;
-        object-fit: contain;
+    }
+
+    /* The desktop pixel-art zoom overflows small screens */
+    .ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
+        transform: none;
+    }
+
+    /* Nav arrows: comfortable thumb targets at screen edges */
+    .ch-selection .ch-nav-arrow {
+        width: 15vw;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    .ch-selection .ch-nav-arrow img {
+        height: 5.5vh;
     }
 
     .ch-selection .ch-bottom-bar .buttons {
@@ -2681,36 +2960,18 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     .grid {
         padding-inline: 4vw;
+        height: calc(100vh - 12vh);
+        height: calc(100dvh - 12vh);
     }
 
-    /* Bottom bar - smaller on very small screens but consistent with design */
-    .bottom-bar {
-        height: 16vh;
-        padding-bottom: 2vh;
-        box-sizing: border-box;
-        grid-template-columns: 22vw 1fr 22vw;
-    }
-
-    .bottom-bar .lateral .wii-btn,
-    .bottom-bar .lateral .diary-btn {
-        height: 8vh;
-        width: 8vh;
-        max-height: 90%;
-        max-width: 90%;
-    }
-
-    .bottom-bar .info .jg {
-        font-size: 1.8vh;
-        margin-top: 0.5vh;
-    }
-
+    /* Bottom bar inherits the Wii artwork styling from the 768px block;
+       only the clock needs a slight shrink on very narrow screens */
     .bottom-bar .info #hour {
-        font-size: 5vh;
-        line-height: 4vh;
+        font-size: 2em;
     }
 
     .bottom-bar .info #date {
-        font-size: 1.5vh;
+        font-size: 1em;
     }
 
     /* Home menu */
@@ -2827,6 +3088,11 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         opacity: 1;
         transform: scale(1);
     }
+
+    /* Springy press feedback on channel tiles */
+    .ch-c .ch.occupied:active {
+        transform: translateZ(0) scale(1.05);
+    }
 }
 
 /* ============================================
@@ -2842,6 +3108,8 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     .grid {
         padding-inline: calc((98vw - 20vw * 4) / 2);
+        height: calc(100vh - 22vh);
+        height: calc(100dvh - 22vh);
     }
 
     .bottom-bar {
