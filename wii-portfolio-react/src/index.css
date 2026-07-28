@@ -635,6 +635,10 @@ button {
     /* Breakpoints nudge the page down with padding, not margin — a margin on
        top of height:100% would push the bottom row behind the bottom bar. */
     box-sizing: border-box;
+    /* Let each tile keep its 16:9 aspect instead of stretching to fill the
+       row. Mobile's 1fr rows are taller than 16:9, and a stretched tile makes
+       the channel art (background-size: cover) crop to a square. */
+    align-items: center;
     align-content: center;
     scroll-snap-align: start;
 }
@@ -644,6 +648,10 @@ button {
     background-size: contain;
     background-position: center;
     aspect-ratio: 16/9;
+    /* A grid item's automatic minimum size is its content — here the iframe's
+       intrinsic height — which on small screens is taller than 16:9 and would
+       stretch the tile out of ratio. */
+    min-height: 0;
     /* previously 1161/639 */
 }
 
@@ -714,8 +722,10 @@ button {
 
 .ch-c .ch.occupied img,
 .ch-c .ch.occupied iframe {
-    width: 101%;
-    height: 100%;
+    /* Match the ::after border overlay exactly. When the art was taller than
+       the frame, its clipped wavy bottom edge hung out below the border. */
+    width: 102%;
+    height: 94%;
     object-fit: cover;
     position: relative;
     clip-path: polygon(2% 7%, 6% 2%, 52% 1%, 95% 3%,
@@ -2292,9 +2302,10 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 }
 
 @media (max-aspect-ratio: 4/3) {
-    .ch-c .ch {
-        aspect-ratio: 4/3;
-    }
+
+    /* Tiles stay 16:9 on portrait screens too. Forcing them to 4:3 here made
+       channel.html's background-size: cover crop a quarter of the width off
+       every piece of channel art, which read as a square thumbnail. */
 
     /* Portrait/narrow screens: fit the art instead of cropping it */
     .ch-selection .ch-logo {
@@ -2648,17 +2659,21 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         display: none;
     }
 
-    /* Channel selection — fit the art on tall phone screens */
+    /* Channel selection — the art spans the full width on phones. The
+       container is roughly 0.54:1, so cropping a 16:9 source to fill it
+       would show only the middle third; an edge-to-edge band shows the
+       whole frame. Height stays capped so a tall source can't crowd out
+       the buttons underneath. */
     .ch-selection .ch-logo {
-        width: auto;
+        width: 100vw;
         height: auto;
-        max-width: 95vw;
-        max-height: 62vh;
+        max-width: none;
+        max-height: 72vh;
         object-fit: contain;
     }
 
     .ch-selection video.ch-logo {
-        width: 95vw;
+        width: 100vw;
         height: auto;
     }
 
