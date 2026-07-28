@@ -500,17 +500,33 @@ button {
 }
 
 .grid {
+    /* A page of channels is described by these four values; the page width
+       and the side padding are derived from them, so the tiles stay centred
+       and every page snaps to the same spot no matter the screen size.
+       The 47vh cap keeps three rows inside the grid on ultrawide or short
+       windows, where 20vw would be taller than the space above the bar
+       (three 16:9 rows plus the gaps need a tile no wider than ~47vh). */
+    --cols: 4;
+    --tile-w: min(20vw, 47vh);
+    --col-gap: 1.5vw;
+    --row-gap: 1vh;
+    --page-w: calc(var(--tile-w) * var(--cols) + var(--col-gap) * (var(--cols) - 1));
+    --page-pad: max(0px, (100vw - var(--page-w)) / 2);
     position: relative;
     display: flex;
     height: calc(100vh - 14vh);
     height: calc(100dvh - 14vh);
     overflow-x: scroll;
+    /* The pages only ever move sideways. Without this, overflow-x makes the
+       y axis scrollable too, so anything a pixel too tall turns into a
+       vertical swipe that drags the channels under the bottom bar. */
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     scroll-behavior: smooth;
-    padding-left: 8vw;
+    padding-inline: var(--page-pad);
     gap: 1.5vw;
-    scroll-padding-left: 8vw;
+    scroll-padding-left: var(--page-pad);
 }
 
 .grid {
@@ -611,11 +627,14 @@ button {
 
 .ch-c {
     display: grid;
-    grid-template-columns: repeat(4, 20vw);
+    grid-template-columns: repeat(var(--cols), var(--tile-w));
     grid-template-rows: auto auto auto;
-    gap: 1vh 1.5vw;
+    gap: var(--row-gap) var(--col-gap);
     flex-shrink: 0;
     height: 100%;
+    /* Breakpoints nudge the page down with padding, not margin — a margin on
+       top of height:100% would push the bottom row behind the bottom bar. */
+    box-sizing: border-box;
     align-content: center;
     scroll-snap-align: start;
 }
@@ -2363,13 +2382,10 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
    TABLET STYLES (768px - 1024px)
    ============================================ */
 @media (max-width: 1024px) {
-    .ch-c {
-        grid-template-columns: repeat(4, 20vw);
-        gap: 0px 10px;
-    }
-
     .grid {
-        padding-inline: calc((98vw - 20vw * 4) / 2);
+        --tile-w: 20vw;
+        --col-gap: 10px;
+        --row-gap: 0px;
         height: calc(100vh - 13vh);
         height: calc(100dvh - 13vh);
     }
@@ -2465,12 +2481,16 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
    ============================================ */
 @media (max-height: 500px) and (orientation: landscape) {
     .ch-c {
-        grid-template-columns: repeat(4, 22vw);
-        grid-template-rows: 1fr 1fr;
-        margin-top: 3vh;
+        /* Rows follow the channel count (8 or 12 depending on the JS
+           breakpoint) and split the grid height between them, so a third
+           row can never spill past the bottom bar. */
+        grid-template-rows: none;
+        grid-auto-rows: 1fr;
+        padding-block: 3vh 2vh;
     }
 
     .grid {
+        --tile-w: 22vw;
         height: calc(100vh - 25vh);
         height: calc(100dvh - 25vh);
     }
@@ -2507,14 +2527,17 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     /* Channel Grid - 2 columns x 4 rows on mobile (8 items per page) */
     .ch-c {
-        grid-template-columns: repeat(2, 44vw);
         grid-template-rows: repeat(4, 1fr);
-        gap: 10px 10px;
-        margin-top: 3vh;
+        /* Bottom padding keeps the last row's touch area off the bar on
+           short phones, where four stretched rows fill the whole grid. */
+        padding-block: 3vh 2vh;
     }
 
     .grid {
-        padding-inline: 4vw;
+        --cols: 2;
+        --tile-w: 44vw;
+        --col-gap: 10px;
+        --row-gap: 10px;
         gap: 10px;
         /* Mobile bottom bar is 12vh tall — keep channels above it */
         height: calc(100vh - 12vh);
@@ -2964,13 +2987,12 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     /* Channel Grid - 2 columns, tighter */
     .ch-c {
-        grid-template-columns: repeat(2, 44vw);
-        gap: 8px;
-        margin-top: 5vh;
+        padding-block: 5vh 2vh;
     }
 
     .grid {
-        padding-inline: 4vw;
+        --col-gap: 8px;
+        --row-gap: 8px;
         height: calc(100vh - 12vh);
         height: calc(100dvh - 12vh);
     }
@@ -3111,14 +3133,16 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
    ============================================ */
 @media (max-width: 900px) and (orientation: landscape) {
     .ch-c {
-        grid-template-columns: repeat(4, 20vw);
-        grid-template-rows: 1fr 1fr;
-        gap: 5px 8px;
-        margin-top: 3vh;
+        grid-template-rows: none;
+        grid-auto-rows: 1fr;
+        padding-block: 3vh 2vh;
     }
 
     .grid {
-        padding-inline: calc((98vw - 20vw * 4) / 2);
+        --cols: 4;
+        --tile-w: 20vw;
+        --col-gap: 8px;
+        --row-gap: 5px;
         height: calc(100vh - 22vh);
         height: calc(100dvh - 22vh);
     }
@@ -3365,65 +3389,11 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     display: block;
 }
 
-/* ============================================
-   ULTRA-WIDE SCREEN STYLES (min-width: 2560px)
-   ============================================ */
-@media (min-width: 2560px) {
-
-    /* Prevent content from stretching too wide */
-    .main-menu {
-        max-width: 3200px;
-        margin: 0 auto;
-    }
-
-    .ch-c {
-        grid-template-columns: repeat(4, 16vw);
-        gap: 20px;
-    }
-
-    .grid {
-        padding-inline: calc((100vw - 16vw * 4) / 2);
-        max-width: 3000px;
-        margin: 0 auto;
-    }
-
-    .bottom-bar {
-        max-width: 3200px;
-        margin: 0 auto;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-
-    .ch-selection .ch-logo {
-        max-width: 2400px;
-        max-height: 80vh;
-        object-fit: contain;
-    }
-
-    .ch-selection .thecontent {
-        max-width: 3200px;
-        margin: 0 auto;
-    }
-
-    /* Scale up text for readability on large screens */
-    body {
-        font-size: 2.5vh;
-    }
-
-    .ch-c .ch.occupied span.tag {
-        font-size: 4vh;
-        padding: 2vh 5vh;
-    }
-
-    .bottom-bar .info .jg,
-    .bottom-bar .info #date {
-        font-size: 3em;
-    }
-
-    .bottom-bar .info #hour {
-        font-size: 6em;
-    }
-}
+/* Note: there is deliberately no min-width breakpoint for large monitors.
+   The whole menu is sized in vw/vh, so a 1440p or 4K screen is already a
+   scaled-up copy of a 1080p one. The old 2560px block re-sized the grid in
+   vw while leaving the scroll padding and the bottom-bar type behind, which
+   pushed the page off-centre and overflowed the clock out of the bar. */
 
 /* ============================================
    REDUCED MOTION PREFERENCES
