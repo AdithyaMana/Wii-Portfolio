@@ -34,18 +34,18 @@ export function MiiPaper({ onClose }) {
                 <div className="mii-paper-content">
                     <div className="mii-paper-section">
                         <h2 className="mii-paper-section-title">what i do</h2>
-                        <p>Started in UX but I kept picking up pieces until I was running the whole stack—Figma, React/TypeScript, Unity, Unreal, A-Frame. These days most of my time goes to LLM tooling and agent work. It's just work now.</p>
+                        <p>Started in UX, kept picking up tools. Figma, React, TypeScript, Unity, Unreal, A-Frame. Mostly LLM tooling and agents now.</p>
                     </div>
 
                     <div className="mii-paper-section">
                         <h2 className="mii-paper-section-title">outside the screen</h2>
-                        <p>I hike, fold origami, sketch, ride motorcycles, and play games for way too long. I'm also properly into history and theology—Byzantine church politics, ancient historiography, that stuff genuinely gets me going. I like knowing <em>why</em> things happened the way they did. That applies everywhere: civilizations, codebases, design systems.</p>
-                        <p>I care about how things feel, maybe too much. A good interface and a good trail actually have a lot in common.</p>
+                        <p>I hike, fold origami, sketch, ride motorcycles, and play games for too long. I'm weirdly into Byzantine church politics and ancient historiography. I just want to know why things turned out the way they did.</p>
+                        <p>I probably care too much about how things feel.</p>
                     </div>
 
                     <div className="mii-paper-section">
                         <h2 className="mii-paper-section-title">a few more things</h2>
-                        <p>Tufte changed how I think about showing information. I always sketch before prototyping. Motorcycling taught me more about feedback loops than any course. Currently working through a Satoshi Kamiya dragon (slow). I'll always stop on a trail to look. I have opinions about world-building in games.</p>
+                        <p>I always sketch before I prototype. Right now I'm folding a Satoshi Kamiya dragon and it's taking forever. On trails I stop to look at things even when nobody else wants to. I have strong opinions about world-building in games.</p>
                     </div>
                 </div>
 
