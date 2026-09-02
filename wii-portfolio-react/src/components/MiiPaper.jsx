@@ -34,26 +34,18 @@ export function MiiPaper({ onClose }) {
                 <div className="mii-paper-content">
                     <div className="mii-paper-section">
                         <h2 className="mii-paper-section-title">what i do</h2>
-                        <p>I come from UX but I keep ending up owning the whole stack. Figma, React/TypeScript, Unity, Unreal, A-Frame. Lately a lot of LLM tooling and agent work, less hobby, more just how I ship things now.</p>
+                        <p>Started in UX but I kept picking up pieces until I was running the whole stack—Figma, React/TypeScript, Unity, Unreal, A-Frame. These days most of my time goes to LLM tooling and agent work. It's just work now.</p>
                     </div>
 
                     <div className="mii-paper-section">
                         <h2 className="mii-paper-section-title">outside the screen</h2>
-                        <p>Hiker, origamist, sketcher, motorcyclist, gamer. Any given weekend I'm folding paper, on a trail, drawing in a sketchbook, on two wheels, or three hours into a game I should have finished a month ago.</p>
-                        <p>Also a theology and history nerd. Byzantine church politics, ancient historiography — that stuff genuinely gets me going. I like knowing why things went the way they did. Applies to civilisations, codebases, design systems.</p>
-                        <p>How things feel matters a lot to me. A good interface and a good trail are more similar than you'd expect.</p>
+                        <p>I hike, fold origami, sketch, ride motorcycles, and play games for way too long. I'm also properly into history and theology—Byzantine church politics, ancient historiography, that stuff genuinely gets me going. I like knowing <em>why</em> things happened the way they did. That applies everywhere: civilizations, codebases, design systems.</p>
+                        <p>I care about how things feel, maybe too much. A good interface and a good trail actually have a lot in common.</p>
                     </div>
 
                     <div className="mii-paper-section">
                         <h2 className="mii-paper-section-title">a few more things</h2>
-                        <ul className="mii-paper-list">
-                            <li>Tufte changed how I think about showing information</li>
-                            <li>I sketch before I prototype. Always.</li>
-                            <li>Motorcycling taught me more about feedback loops than any course</li>
-                            <li>Currently trying to fold a Satoshi Kamiya dragon. It's going.</li>
-                            <li>I will always stop on a trail to look at the view</li>
-                            <li>I have opinions about which games have the best world-building</li>
-                        </ul>
+                        <p>Tufte changed how I think about showing information. I always sketch before prototyping. Motorcycling taught me more about feedback loops than any course. Currently working through a Satoshi Kamiya dragon (slow). I'll always stop on a trail to look. I have opinions about world-building in games.</p>
                     </div>
                 </div>
 
