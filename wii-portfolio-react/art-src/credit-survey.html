@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CRediT Survey pixel art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script>
+        const INK = '#2a0f5c';
+        const VIOLET = '#7a3ff2';
+        const COLORS = ['#ff5d8f', '#ffb020', '#27c3a4', '#4c8dff', '#9b6bff', '#ff7a45', '#17b3d6'];
+
+        // The 14 CRediT contributor roles, in the taxonomy's order
+        const ROLES = ['bulb', 'database', 'chart', 'dollar', 'magnifier', 'flask', 'checklist', 'cube', 'code', 'person', 'shield', 'pie', 'pencil', 'review'];
+
+        // Diagonal scrolling checkerboard, a seamless loop every 12 frames
+        function checker(p, f) {
+            const s = 12, off = f * 2;
+            for (let y = 0; y < PH; y++) {
+                for (let x = 0; x < PW; x++) {
+                    const odd = (Math.floor((x + off) / s) + Math.floor((y + off) / s)) & 1;
+                    p.set(x, y, odd ? '#6b3fd4' : '#7a50e2');
+                }
+            }
+        }
+
+        function badge(p, name, x, y, color) {
+            p.frame(x, y, 16, 16, color, INK, 2);
+            p.rect(x + 3, y + 1, 10, 1, '#ffffff66');
+            icon(p, name, x + 3, y + 3);
+        }
+
+        function stylus(p, tx, ty) {
+            const ex = tx + 70, ey = ty + 64;
+            p.thick(tx + 5, ty + 5, ex, ey, 6, '#1c1c2a');
+            p.thick(tx + 5, ty + 5, ex, ey, 4, '#b8c0d0');
+            p.line(tx + 6, ty + 4, ex + 1, ey - 1, '#eef1f7');
+            p.thick(tx + 1, ty + 1, tx + 6, ty + 6, 3, '#1c1c2a');
+            p.line(tx + 2, ty + 2, tx + 6, ty + 6, '#6a7080');
+            p.set(tx, ty, '#1c1c2a');
+            p.thick(ex - 6, ey - 6, ex, ey, 4, '#7a3ff2');
+        }
+
+        function quiz(p, f) {
+            const X = 170, Y = 14, W = 142, H = 132;
+            p.frame(X, Y, W, H, '#fdfbff', INK, 2);
+            p.panel(X + 2, Y + 2, W - 4, 12, VIOLET, 1);
+            text(p, 'QUESTION 3/14', X + 7, Y + 5, { color: '#fff' });
+            for (let i = 0; i < 3; i++) p.disc(X + W - 26 + i * 8, Y + 8, 2, i < 2 ? '#ffd23f' : '#9b7bf0');
+
+            text(p, 'WHICH ICON MEANS', X + 8, Y + 20, { color: INK });
+            p.rect(X + 7, Y + 30, textWidth('DATA CURATION?') + 3, 9, '#ffe066');
+            text(p, 'DATA CURATION?', X + 9, Y + 31, { color: VIOLET });
+
+            const picked = f % 4 < 2 ? VIOLET : '#ffb020';
+            [['A', 'database'], ['B', 'cube'], ['C', 'chart']].forEach(([letter, name], i) => {
+                const tx = X + 8 + i * 45, ty = Y + 46;
+                if (i === 0) {
+                    p.frame(tx - 1, ty - 1, 42, 46, '#f1e8ff', picked, 2);
+                    p.frame(tx + 1, ty + 1, 38, 42, '#f1e8ff', picked, 1);
+                } else {
+                    p.frame(tx, ty, 40, 44, '#ffffff', '#cdbdf2', 2);
+                }
+                p.panel(tx + 3, ty + 3, 9, 9, i === 0 ? VIOLET : '#ece4fb', 1);
+                text(p, letter, tx + 5, ty + 4, { color: i === 0 ? '#fff' : INK });
+                icon(p, name, tx + 10, ty + 14, INK, 2);
+            });
+            // green tick on the chosen answer
+            p.disc(X + 45, Y + 47, 5, INK);
+            p.disc(X + 45, Y + 47, 4, '#22c07a');
+            p.sprite(['....#', '...#.', '#.#..', '.#...'], { '#': '#fff' }, X + 43, Y + 45);
+
+            for (let s = 0; s < 14; s++) p.rect(X + 8 + s * 7, Y + 100, 6, 6, s < 3 ? VIOLET : '#e4dafa');
+            text(p, '3/14', X + 108, Y + 99, { color: INK });
+            p.frame(X + 8, Y + 112, 46, 13, VIOLET, INK, 1);
+            text(p, 'NEXT ▶', X + 13, Y + 115, { color: '#fff' });
+        }
+
+        function draw(p, f) {
+            checker(p, f);
+            text(p, 'CASE STUDY', 12, 16, { color: '#fff', outline: INK });
+            logo(p, 'CRediT Role', {
+                x: 10, y: 28, size: 25, outlineWidth: 2, dotGap: 3,
+                bands: ['#ffffff', '#f4eeff', '#e3d6ff', '#cdb8ff'], light: '#ffffff', dark: '#b39ce8',
+                outline: INK, rim: '#ffffff', shadow: '#1c0550aa',
+            });
+            logo(p, 'Survey', {
+                x: 10, y: 50, size: 40, outlineWidth: 2,
+                bands: ['#fff3a6', '#ffd84a', '#ffb020', '#f28a12'], light: '#fffbe0', dark: '#c46200',
+                outline: INK, rim: '#ffffff', shadow: '#1c0550aa',
+            });
+            text(p, '14 CONTRIBUTOR ROLES', 12, 98, { color: '#fff', outline: INK });
+            ROLES.forEach((name, i) => badge(p, name, 12 + (i % 7) * 20, 110 + Math.floor(i / 7) * 20, COLORS[i % COLORS.length]));
+
+            quiz(p, f);
+            const tap = f % 6 < 3;
+            stylus(p, 210 + (tap ? 0 : 3), 98 + (tap ? 0 : 3));
+            if (tap && f % 6 === 1) { p.ring(210, 98, 4, '#ffffff'); p.ring(210, 98, 6, '#ffd23f'); }
+            [[160, 20, 0], [158, 150, 2], [306, 160, 1], [120, 76, 3]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
+        }
+
+        runFrames(draw, { frames: 12, delay: 140 });
+    </script>
+</body>
+</html>

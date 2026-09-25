@@ -56,11 +56,14 @@ export function SplashScreen({ onComplete }) {
         // Channel videos, audio, art — large files, fire and forget
         const backgroundLoad = () => {
             const channelArtImages = [
-                '/channelart/credit-survey/channel.jpg',
+                '/channelart/credit-survey/channel.webp',
                 '/channelart/credit-website/channel.jpg',
-                '/channelart/research-agent/channel.jpg',
-                '/channelart/resume/channel.jpg',
+                '/channelart/research-agent/channel.webp',
+                '/channelart/resume/channel.webp',
                 '/channelart/tuftes-razor/channel.jpg',
+                '/channelart/overtone/channel.webp',
+                '/channelart/betterposter/channel.webp',
+                '/channelart/icca-report/channel.webp',
                 '/channelart/mii/miis.png',
             ];
 

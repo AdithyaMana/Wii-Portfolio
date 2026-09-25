@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ICCA Report art</title>
+    <style>
+        @font-face { font-family: 'Rodin'; src: url('../public/fonts/FOT-Rodin%20Pro%20B.otf'); }
+        html, body { margin: 0; background: transparent; overflow: hidden; }
+        svg { display: block; }
+    </style>
+</head>
+<body>
+    <svg id="art" xmlns="http://www.w3.org/2000/svg"></svg>
+    <script src="lib.js"></script>
+    <script>
+        const STONE_INK = '#6b4a2a';
+        const NAVY = '#0d3470';
+
+        function cloud(parent, x, y, s, id) {
+            const clip = el('clipPath', { id }, parent.ownerSVGElement.querySelector('defs'));
+            el('rect', { x: x - 200 * s, y: y - 200 * s, width: 500 * s, height: 238 * s }, clip);
+            const g = el('g', { 'clip-path': `url(#${id})` }, parent);
+            const puffs = [[0, 0, 60], [70, -28, 76], [150, -4, 58], [-58, 14, 42], [205, 16, 38]];
+            puffs.forEach(([dx, dy, r]) => el('circle', { cx: x + dx * s, cy: y + dy * s + 10 * s, r: r * s, fill: '#d6e6f6' }, g));
+            puffs.forEach(([dx, dy, r]) => el('circle', { cx: x + dx * s, cy: y + dy * s, r: r * s, fill: '#fff' }, g));
+        }
+
+        function sky(bg, defs) {
+            el('rect', { width: W, height: H, fill: linear(defs, 'sky', [[0, '#1d5bb0'], [0.36, '#4d93d8'], [0.58, '#a8cdea'], [0.7, '#ffe2ab'], [0.8, '#ffc47a']]) }, bg);
+            el('circle', { cx: 1360, cy: 520, r: 760, fill: radial(defs, 'sunGlow', [[0, '#fff8dc', 0.95], [0.25, '#ffe29a', 0.55], [1, '#ffd27a', 0]]) }, bg);
+            const cx = 1360, cy = 520, n = 18;
+            for (let i = 0; i < n; i++) {
+                const a1 = (i / n) * Math.PI * 2, a2 = a1 + Math.PI / n * 0.6, R = 1800;
+                el('path', { d: `M${cx},${cy} L${cx + Math.cos(a1) * R},${cy + Math.sin(a1) * R} L${cx + Math.cos(a2) * R},${cy + Math.sin(a2) * R}Z`, fill: '#fff', opacity: 0.07 }, bg);
+            }
+            el('circle', { cx: 1360, cy: 520, r: 110, fill: '#fff6d2' }, bg);
+            cloud(bg, 170, 200, 1.15, 'c1');
+            cloud(bg, 860, 140, 0.75, 'c2');
+            cloud(bg, 1640, 190, 1.2, 'c3');
+            cloud(bg, 1230, 96, 0.5, 'c4');
+        }
+
+        function landscape(parent, defs) {
+            const g = el('g', {}, parent);
+            // hazy mountains, sea, the city
+            el('path', { d: 'M0,742 C140,700 280,690 420,716 C520,734 610,698 730,688 C860,678 980,716 1120,728 C1300,740 1500,700 1920,720 L1920,790 L0,790Z', fill: '#a9b8dc' }, g);
+            el('path', { d: 'M0,760 C200,740 360,752 520,744 C700,736 880,758 1100,752 L1100,790 L0,790Z', fill: '#91a6d2' }, g);
+            el('rect', { x: 0, y: 772, width: 1920, height: 120, fill: linear(defs, 'sea', [[0, '#5aa6de'], [1, '#2f7cc0']]) }, g);
+            const rand = rng(11);
+            for (let i = 0; i < 40; i++) {
+                const x = rand() * 1100, y = 782 + rand() * 70;
+                el('rect', { x, y, width: 14 + rand() * 40, height: 3, rx: 1.5, fill: '#fff', opacity: 0.35 + rand() * 0.35 }, g);
+            }
+            el('path', { d: 'M0,860 C220,842 480,850 700,862 C820,868 900,880 960,900 L960,1080 L0,1080Z', fill: linear(defs, 'land', [[0, '#d8bf8c'], [1, '#b8955f']]) }, g);
+            // white Athens houses spilling down to the water
+            for (let row = 0; row < 3; row++) {
+                for (let i = 0; i < 26 - row * 4; i++) {
+                    const w = 22 + rand() * 26 - row * 3, h = 14 + rand() * 18, x = rand() * 900, y = 856 + row * 40 + rand() * 20;
+                    el('rect', { x, y: y - h, width: w, height: h, fill: rand() > 0.3 ? '#f6f0e3' : '#ecdcc0', stroke: '#a88d62', 'stroke-width': 1.5 }, g);
+                    if (rand() > 0.5) el('rect', { x: x - 2, y: y - h - 5, width: w + 4, height: 6, fill: '#d4744a', stroke: '#8f4426', 'stroke-width': 1.5 }, g);
+                    el('rect', { x: x + w * 0.3, y: y - h * 0.6, width: w * 0.2, height: h * 0.3, fill: '#5a7fa8', opacity: 0.6 }, g);
+                }
+            }
+
+            // the Acropolis rock
+            el('path', {
+                d: 'M640,1080 L700,930 C740,880 800,860 862,840 C930,812 962,762 1000,720 L1030,672 L1700,662 C1740,690 1772,700 1820,720 C1870,740 1900,758 1920,768 L1920,1080Z',
+                fill: linear(defs, 'rock', [[0, '#eac18a'], [0.35, '#c98f57'], [1, '#8d5c33']], 0, 660, 0, 1080, { gradientUnits: 'userSpaceOnUse' }),
+                stroke: STONE_INK, 'stroke-width': 4, 'stroke-linejoin': 'round',
+            }, g);
+            el('path', { d: 'M1014,712 L1712,700 C1740,716 1760,724 1790,736 C1600,760 1300,752 1000,770 C990,750 1000,730 1014,712Z', fill: '#8d5c33', opacity: 0.35 }, g);
+            [['M880,860 C960,836 1040,842 1120,830', 5], ['M1180,812 C1300,796 1420,808 1520,796', 4], ['M1580,790 C1660,780 1740,790 1800,776', 4],
+                ['M760,960 C860,930 980,936 1080,918', 5], ['M1240,900 C1380,880 1520,892 1680,872', 4]]
+                .forEach(([d, w]) => el('path', { d, fill: 'none', stroke: '#8d5c33', 'stroke-width': w, 'stroke-linecap': 'round', opacity: 0.55 }, g));
+            el('path', { d: 'M1022,672 L1702,662 L1712,700 L1014,712Z', fill: '#efd29b', stroke: STONE_INK, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }, g);
+            for (let x = 1060; x < 1700; x += 46) el('line', { x1: x, y1: 671 - (x - 1022) / 68, x2: x - 2, y2: 710 - (x - 1022) / 70, stroke: '#c9a36c', 'stroke-width': 2 }, g);
+            // scrub on the slopes
+            const scrub = [[720, 930, 34], [770, 900, 28], [830, 880, 30], [900, 850, 24], [760, 980, 40], [860, 960, 36], [960, 930, 30],
+                [1780, 760, 26], [1840, 790, 34], [1890, 820, 30], [1760, 840, 30], [1150, 880, 26], [1300, 900, 22], [1560, 860, 28]];
+            scrub.forEach(([x, y, r]) => {
+                el('circle', { cx: x, cy: y + 4, r: r + 3, fill: '#2d4a22' }, g);
+                el('circle', { cx: x, cy: y, r, fill: '#5d8a3a' }, g);
+                el('circle', { cx: x - r * 0.3, cy: y - r * 0.35, r: r * 0.45, fill: '#86b04f' }, g);
+            });
+
+            parthenon(g, defs, 1360, 662);
+
+            // cypresses
+            [[96, 1010, 320, 58], [196, 1020, 250, 46], [1856, 1030, 260, 50]].forEach(([x, base, h, w]) => {
+                el('path', { d: `M${x},${base} C${x - w},${base - h * 0.35} ${x - w * 0.55},${base - h * 0.8} ${x},${base - h} C${x + w * 0.55},${base - h * 0.8} ${x + w},${base - h * 0.35} ${x},${base}Z`, fill: 'url(#cypress)', stroke: '#16301b', 'stroke-width': 4 }, g);
+                el('path', { d: `M${x - w * 0.2},${base - h * 0.3} C${x - w * 0.45},${base - h * 0.5} ${x - w * 0.3},${base - h * 0.75} ${x - w * 0.05},${base - h * 0.9}`, fill: 'none', stroke: '#6fa655', 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.7 }, g);
+            });
+
+            // Greek key border
+            el('rect', { x: 0, y: 1028, width: 1920, height: 52, fill: '#1f5fae' }, g);
+            el('line', { x1: 0, y1: 1030, x2: 1920, y2: 1030, stroke: '#f1c24b', 'stroke-width': 5 }, g);
+            const key = el('pattern', { id: 'meander', width: 48, height: 40, patternUnits: 'userSpaceOnUse', x: 0, y: 1036 }, defs);
+            el('path', { d: 'M0,34 H48 M8,34 V6 H40 V26 H18 V16 H28', fill: 'none', stroke: '#f1c24b', 'stroke-width': 4, 'stroke-linecap': 'square' }, key);
+            el('rect', { x: 0, y: 1036, width: 1920, height: 40, fill: 'url(#meander)' }, g);
+            return g;
+        }
+
+        function parthenon(parent, defs, C, B) {
+            const g = el('g', { stroke: STONE_INK, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }, parent);
+            const marble = 'url(#marble)';
+            // back colonnade, in shade
+            for (let i = 0; i < 7; i++) {
+                const x = C - 205 + i * 68.3;
+                el('rect', { x: x - 15, y: B - 228, width: 30, height: 176, fill: '#c6a473', 'stroke-width': 2.5 }, g);
+            }
+            // front colonnade
+            for (let i = 0; i < 8; i++) {
+                const x = C - 239 + i * 68.3;
+                el('path', { d: `M${x - 21},${B - 54} L${x - 18},${B - 222} L${x + 18},${B - 222} L${x + 21},${B - 54}Z`, fill: 'url(#column)' }, g);
+                el('line', { x1: x - 6, y1: B - 60, x2: x - 5, y2: B - 216, stroke: '#cdb084', 'stroke-width': 2 }, g);
+                el('line', { x1: x + 7, y1: B - 60, x2: x + 6, y2: B - 216, stroke: '#cdb084', 'stroke-width': 2 }, g);
+                el('path', { d: `M${x - 19},${B - 222} L${x - 28},${B - 232} L${x + 28},${B - 232} L${x + 19},${B - 222}Z`, fill: '#f3e1bd' }, g);
+                el('rect', { x: x - 31, y: B - 242, width: 62, height: 10, fill: '#f7ead0' }, g);
+            }
+            // stylobate steps
+            el('rect', { x: C - 300, y: B - 20, width: 600, height: 20, fill: '#dcc091' }, g);
+            el('rect', { x: C - 288, y: B - 38, width: 576, height: 18, fill: '#e8d0a4' }, g);
+            el('rect', { x: C - 276, y: B - 54, width: 552, height: 16, fill: marble }, g);
+            // entablature
+            el('rect', { x: C - 276, y: B - 272, width: 552, height: 30, fill: marble }, g);
+            el('rect', { x: C - 276, y: B - 302, width: 552, height: 30, fill: '#ecd6ad' }, g);
+            for (let x = C - 262; x < C + 262; x += 34) el('rect', { x, y: B - 298, width: 12, height: 22, fill: '#c9a878', 'stroke-width': 2 }, g);
+            el('rect', { x: C - 290, y: B - 314, width: 580, height: 12, fill: '#f7ead0' }, g);
+            // pediment
+            el('path', { d: `M${C - 290},${B - 314} L${C},${B - 378} L${C + 290},${B - 314}Z`, fill: '#f7ead0' }, g);
+            el('path', { d: `M${C - 252},${B - 320} L${C},${B - 370} L${C + 252},${B - 320}Z`, fill: '#e2c898', 'stroke-width': 2.5 }, g);
+            // sunlit edge highlights
+            el('line', { x1: C - 282, y1: B - 316, x2: C - 4, y2: B - 374, stroke: '#fff', 'stroke-width': 3, opacity: 0.8 }, g);
+            return g;
+        }
+
+        function laurel(parent, { cx, y, fs, side, leaves = 8 }) {
+            const g = el('g', {}, parent);
+            const size = fs / 236;
+            const sx = cx + side * fs * 1.2, sy = y + fs * 0.06;
+            const ex = cx + side * fs * 1.36, ey = y - fs * 0.92;
+            const qx = cx + side * fs * 1.66, qy = y - fs * 0.3;
+            el('path', { d: `M${sx},${sy} Q${qx},${qy} ${ex},${ey}`, fill: 'none', stroke: '#6b4a0a', 'stroke-width': 12 * size, 'stroke-linecap': 'round' }, g);
+            el('path', { d: `M${sx},${sy} Q${qx},${qy} ${ex},${ey}`, fill: 'none', stroke: '#e8b43a', 'stroke-width': 6 * size, 'stroke-linecap': 'round' }, g);
+            for (let i = 1; i <= leaves; i++) {
+                const t = i / (leaves + 0.6);
+                const x = (1 - t) ** 2 * sx + 2 * (1 - t) * t * qx + t * t * ex;
+                const y = (1 - t) ** 2 * sy + 2 * (1 - t) * t * qy + t * t * ey;
+                const dx = 2 * (1 - t) * (qx - sx) + 2 * t * (ex - qx), dy = 2 * (1 - t) * (qy - sy) + 2 * t * (ey - qy);
+                const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+                const L = (34 - t * 8) * size;
+                [-1, 1].forEach(k => {
+                    el('ellipse', {
+                        cx: L * 0.55, cy: 0, rx: L * 0.6, ry: L * 0.24, fill: 'url(#gold)', stroke: '#6b4a0a', 'stroke-width': 3 * size,
+                        transform: `translate(${x} ${y}) rotate(${ang + k * 42})`,
+                    }, g);
+                });
+            }
+            el('ellipse', { cx: 0, cy: 0, rx: 18 * size, ry: 8 * size, fill: 'url(#gold)', stroke: '#6b4a0a', 'stroke-width': 3 * size, transform: `translate(${ex} ${ey}) rotate(${side === 1 ? -80 : -100})` }, g);
+        }
+
+        function flask(parent, x, y, s) {
+            const g = el('g', { transform: `translate(${x} ${y}) scale(${s})`, stroke: NAVY, 'stroke-width': 5, 'stroke-linejoin': 'round' }, parent);
+            el('path', { d: 'M-11,-44 L-11,-14 L-36,26 Q-40,36 -28,36 L28,36 Q40,36 36,26 L11,-14 L11,-44Z', fill: '#fff' }, g);
+            el('path', { d: 'M-23,6 L-36,26 Q-40,36 -28,36 L28,36 Q40,36 36,26 L23,6Z', fill: '#3fd0a0', 'stroke-width': 0 }, g);
+            el('path', { d: 'M-11,-44 L-11,-14 L-36,26 Q-40,36 -28,36 L28,36 Q40,36 36,26 L11,-14 L11,-44Z', fill: 'none' }, g);
+            el('rect', { x: -16, y: -50, width: 32, height: 9, rx: 3, fill: '#fff' }, g);
+            [[-8, 20, 5], [8, 14, 4], [2, 26, 3], [14, -4, 3.5], [-4, -26, 4]].forEach(([cx, cy, r]) =>
+                el('circle', { cx, cy, r, fill: '#fff', 'stroke-width': 2.5 }, g));
+        }
+
+        function booklet(parent, defs, { x, y, rotate, s = 1 }) {
+            const g = el('g', { transform: `translate(${x} ${y}) rotate(${rotate}) scale(${s})` }, parent);
+            const w = 240, h = 310;
+            el('rect', { x: -w / 2 + 6, y: -h / 2 + 16, width: w, height: h, rx: 10, fill: 'rgba(40,30,10,0.35)' }, g);
+            [[26, 18, '#e9e2d0'], [13, 9, '#f4efe2']].forEach(([dx, dy, c]) =>
+                el('rect', { x: -w / 2 + dx, y: -h / 2 + dy, width: w, height: h, rx: 10, fill: c, stroke: NAVY, 'stroke-width': 5 }, g));
+            el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 10, fill: '#fffdf6', stroke: NAVY, 'stroke-width': 5 }, g);
+            el('path', { d: `M${-w / 2},${-h / 2 + 10} Q${-w / 2},${-h / 2} ${-w / 2 + 10},${-h / 2} L${w / 2 - 10},${-h / 2} Q${w / 2},${-h / 2} ${w / 2},${-h / 2 + 10} L${w / 2},${-h / 2 + 128} L${-w / 2},${-h / 2 + 128}Z`, fill: 'url(#coverBlue)', stroke: NAVY, 'stroke-width': 5 }, g);
+            el('circle', { cx: 0, cy: -h / 2 + 64, r: 48, fill: '#fff', stroke: NAVY, 'stroke-width': 5 }, g);
+            flask(g, 0, -h / 2 + 64, 0.9);
+            [[170, NAVY, 14], [140, NAVY, 14], [96, '#e8b43a', 10]].forEach(([bw, c, bh], i) =>
+                el('rect', { x: -w / 2 + 26, y: -h / 2 + 152 + i * 28, width: bw, height: bh, rx: bh / 2, fill: c }, g));
+            [180, 160, 172].forEach((bw, i) =>
+                el('rect', { x: -w / 2 + 26, y: -h / 2 + 238 + i * 16, width: bw, height: 7, rx: 3.5, fill: '#c6cedc' }, g));
+            el('rect', { x: -w / 2 + 8, y: -h / 2 + 8, width: w - 16, height: 26, rx: 8, fill: '#fff', opacity: 0.18 }, g);
+        }
+
+        function title(fg, defs, { cx, y, size, ribbonText, laurels = true }) {
+            const icca = linear(defs, 'iccaFill', [[0, '#ffffff'], [1, '#bcdcff']]);
+            const gold = linear(defs, 'reportFill', [[0, '#fff5b8'], [0.5, '#f7c43a'], [1, '#d4880f']]);
+            if (laurels) {
+                laurel(fg, { cx, y, fs: size, side: -1 });
+                laurel(fg, { cx, y, fs: size, side: 1 });
+            }
+            logo(fg, defs, { x: cx, y, size, spans: [{ text: 'ICCA', fill: icca }], outline: NAVY, outlineW: size * 0.2, rimW: size * 0.28, shadow: 'rgba(10,30,80,0.35)', spacing: size * 0.02 });
+            const rs = size * 0.46;
+            logo(fg, defs, { x: cx, y: y + size * 0.56, size: rs, spans: [{ text: 'REPORT', fill: gold }], outline: '#5a3606', outlineW: rs * 0.2, rimW: rs * 0.36, shadow: 'rgba(60,30,0,0.35)', spacing: rs * 0.14 });
+            if (ribbonText) {
+                pill(fg, { x: cx, y: y + size * 0.92, text: ribbonText, size: size * 0.125, fill: '#1f5fae', stroke: '#f1c24b', strokeW: 5, color: '#fff', spacing: 1.5, padX: 40, padY: 18 });
+            }
+        }
+
+        (async () => {
+            await ready();
+            const { defs, bg, fg } = setupSvg();
+            linear(defs, 'marble', [[0, '#fbf1dc'], [1, '#e2c797']]);
+            linear(defs, 'column', [[0, '#fff6e2'], [0.55, '#efdcb6'], [1, '#c8a676']], 0, 0, 1, 0);
+            linear(defs, 'cypress', [[0, '#3f7a3d'], [1, '#1f4226']], 0, 0, 1, 0);
+            linear(defs, 'gold', [[0, '#fff0a0'], [0.5, '#f2c440'], [1, '#c98a14']]);
+            linear(defs, 'coverBlue', [[0, '#3f86d6'], [1, '#1f5fae']]);
+
+            if (TILE) {
+                const land = el('g', { transform: `scale(${1280 / 1920})` }, fg);
+                landscape(land, defs);
+                title(fg, defs, { cx: 330, y: 260, size: 184 });
+                [[60, 110, 18], [600, 90, 16], [640, 330, 12], [1230, 120, 14]].forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff', 0.95));
+            } else {
+                sky(bg, defs);
+                landscape(fg, defs);
+                title(fg, defs, { cx: 520, y: 320, size: 236, ribbonText: 'Science for Better Healthcare Meetings' });
+                booklet(fg, defs, { x: 420, y: 820, rotate: -8 });
+                [[110, 130, 24], [930, 120, 20], [1000, 420, 14], [640, 700, 16], [1840, 420, 18]].forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff', 0.95));
+            }
+            document.body.dataset.done = '1';
+        })();
+    </script>
+</body>
+</html>

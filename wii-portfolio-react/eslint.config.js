@@ -5,7 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // art-src holds offline scripts for rendering channel art, not app code
+  globalIgnores(['dist', 'art-src']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
