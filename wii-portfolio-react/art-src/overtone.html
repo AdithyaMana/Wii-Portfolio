@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Overtone art</title>
+    <style>
+        @font-face { font-family: 'Rodin'; src: url('../public/fonts/FOT-Rodin%20Pro%20B.otf'); }
+        html, body { margin: 0; background: transparent; overflow: hidden; }
+        svg { display: block; }
+    </style>
+</head>
+<body>
+    <svg id="art" xmlns="http://www.w3.org/2000/svg"></svg>
+    <script src="lib.js"></script>
+    <script>
+        const CARDS = [
+            { word: 'VINE', color: '#35d05a', icons: '✿▲➤', tags: ['PLANT', 'NATURE', 'MOTION'], n: 21 },
+            { word: 'ECHO', color: '#6fcaf2', icons: '◉✺❄', tags: ['MIND', 'ABSTRACT', 'COLD'], n: 21 },
+            { word: 'OMEN', color: '#8c2459', icons: '◉✺☾', tags: ['DANGER', 'MIND', 'ABSTRACT'], n: 31 },
+            { word: 'DELTA', color: '#1fb3a6', icons: '▲●➤', tags: ['NATURE', 'WET', 'MOTION'], n: 21 },
+            { word: 'FOSSIL', color: '#f2a73b', icons: '◷❄▲', tags: ['TIME', 'COLD', 'NATURE'], n: 21 },
+        ];
+
+        function card(parent, c, { x, y, angle, scale, raised, shadow, glow }) {
+            const g = el('g', { transform: `translate(${x} ${y}) rotate(${angle}) scale(${scale})` }, parent);
+            const w = 250, h = 350, l = -w / 2, t = -h / 2;
+            if (raised) el('rect', { x: l - 10, y: t - 10, width: w + 20, height: h + 20, rx: 28, fill: '#ffd23f', filter: glow }, g);
+            el('rect', { x: l, y: t, width: w, height: h, rx: 20, fill: '#f7f1df', filter: shadow }, g);
+            // coloured header band, squared off at the bottom
+            el('rect', { x: l, y: t, width: w, height: 118, rx: 20, fill: c.color }, g);
+            el('rect', { x: l, y: t + 70, width: w, height: 48, fill: c.color }, g);
+            el('rect', { x: l, y: t + 6, width: w, height: 30, rx: 14, fill: '#fff', opacity: 0.18 }, g);
+            el('line', { x1: l, y1: t + 118, x2: l + w, y2: t + 118, stroke: '#10161c', 'stroke-width': 5 }, g);
+            el('rect', { x: l, y: t, width: w, height: h, rx: 20, fill: 'none', stroke: '#10161c', 'stroke-width': 7 }, g);
+            el('text', {
+                x: 0, y: t + 72, 'text-anchor': 'middle', 'font-family': 'Segoe UI Symbol', 'font-size': 38,
+                fill: '#fff', 'letter-spacing': 16, text: c.icons,
+            }, g);
+            el('text', { x: l + 22, y: t + 176, 'font-family': 'Rubik', 'font-weight': 700, 'font-size': 42, fill: '#141a20', text: c.word }, g);
+            c.tags.forEach((tag, i) => {
+                const danger = tag === 'DANGER';
+                const ty = t + 200 + i * 40;
+                const txt = el('text', {
+                    x: l + 34, y: ty + 16, 'font-family': 'Rodin', 'font-size': 17, 'letter-spacing': 2,
+                    fill: danger ? '#fff' : '#3b4c5d', 'dominant-baseline': 'central', text: tag,
+                }, g);
+                const r = el('rect', {
+                    x: l + 22, y: ty, width: txt.getComputedTextLength() + 26, height: 32, rx: 7,
+                    fill: danger ? '#ff8a2a' : '#e3e9ef', stroke: danger ? '#b9520e' : '#b7c3cf', 'stroke-width': 2.5,
+                }, g);
+                g.insertBefore(r, txt);
+            });
+            el('text', {
+                x: l + w - 20, y: t + h - 20, 'text-anchor': 'end', 'font-family': 'Rubik', 'font-weight': 700,
+                'font-size': 28, fill: '#141a20', text: c.n,
+            }, g);
+        }
+
+        function hand(parent, defs, { cx, pivotY, radius, step, scale }) {
+            const shadow = shadowFilter(defs, 'cardShadow', { dy: 16, std: 14, opacity: 0.55 });
+            const glow = blurFilter(defs, 'cardGlow', 14);
+            CARDS.forEach((c, i) => {
+                const angle = (i - 2) * step;
+                const rad = angle * Math.PI / 180;
+                const raised = i === 2;
+                const r = radius + (raised ? 60 * scale : 0);
+                card(parent, c, {
+                    x: cx + Math.sin(rad) * r, y: pivotY - Math.cos(rad) * r,
+                    angle, scale, raised, shadow, glow,
+                });
+            });
+        }
+
+        function popup(parent, defs, { x, y, text, size, rotate, fill }) {
+            logo(parent, defs, {
+                x, y, size, rotate, spans: [{ text, fill }], outline: '#10161c', outlineW: size * 0.22,
+                rim: '#fff', rimW: size * 0.36, shadowDy: size * 0.09,
+            });
+        }
+
+        function multChip(parent, { x, y, text, size, rotate }) {
+            const g = el('g', { transform: `translate(${x} ${y}) rotate(${rotate})` }, parent);
+            const t = el('text', {
+                x: 0, y: 0, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-family': 'Rubik',
+                'font-weight': 700, 'font-size': size, fill: '#fff', text,
+            }, g);
+            const w = t.getComputedTextLength() + size * 0.9, h = size * 1.35;
+            el('rect', { x: -w / 2 - 6, y: -h / 2 + 8, width: w + 12, height: h + 12, rx: h * 0.3, fill: 'rgba(0,0,0,0.4)' }, g);
+            el('rect', { x: -w / 2 - 6, y: -h / 2 - 6, width: w + 12, height: h + 12, rx: h * 0.3 + 4, fill: '#fff' }, g);
+            el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: h * 0.3, fill: '#1c9c90', stroke: '#10161c', 'stroke-width': 6 }, g);
+            el('rect', { x: -w / 2 + 8, y: -h / 2 + 6, width: w - 16, height: h * 0.36, rx: h * 0.18, fill: '#fff', opacity: 0.25 }, g);
+            g.appendChild(t);
+        }
+
+        function lens(parent, { x, y, r }) {
+            const g = el('g', { transform: `translate(${x} ${y})` }, parent);
+            el('circle', { r: r + 10, cy: 8, fill: 'rgba(0,0,0,0.35)' }, g);
+            el('circle', { r: r + 9, fill: '#fff' }, g);
+            el('circle', { r, fill: 'url(#lensGlass)', stroke: '#10161c', 'stroke-width': 6 }, g);
+            el('circle', { r: r * 0.72, fill: 'none', stroke: '#ffd23f', 'stroke-width': r * 0.1, opacity: 0.9 }, g);
+            el('ellipse', { cx: -r * 0.3, cy: -r * 0.38, rx: r * 0.42, ry: r * 0.22, fill: '#fff', opacity: 0.55, transform: `rotate(-30 ${-r * 0.3} ${-r * 0.38})` }, g);
+            sparkle(g, r * 0.35, r * 0.28, r * 0.22, '#fff', 0.9);
+        }
+
+        function background(bg, defs) {
+            el('rect', { width: W, height: H, fill: radial(defs, 'bgGrad', [[0, '#274764'], [0.45, '#152a3d'], [1, '#081018']], { cx: '50%', cy: '48%', r: '75%' }) }, bg);
+            const rand = rng(7);
+            for (let i = 0; i < 220; i++) {
+                el('circle', { cx: rand() * W, cy: rand() * H, r: 0.8 + rand() * 2.2, fill: rand() > 0.7 ? '#ffd9a0' : '#cfe8ff', opacity: 0.15 + rand() * 0.5 }, bg);
+            }
+            // sound rings radiating from the hand of cards
+            for (let r = 140; r < 1300; r += 72) {
+                el('circle', { cx: W / 2, cy: 640, r, fill: 'none', stroke: '#7fd3f7', 'stroke-width': 2, opacity: Math.max(0.03, 0.2 - r / 7000) }, bg);
+            }
+            el('ellipse', { cx: W / 2, cy: 300, rx: 820, ry: 300, fill: radial(defs, 'warm', [[0, '#ff8a3d', 0.35], [1, '#ff8a3d', 0]]) }, bg);
+            // standing-wave harmonics: the fundamental and its overtones
+            const glow = blurFilter(defs, 'waveGlow', 7);
+            const colors = ['#ff7a2f', '#ffc93c', '#7fd3f7', '#b48cff', '#5fe08a'];
+            colors.forEach((color, k) => {
+                const n = k + 1, amp = 150 / Math.sqrt(n), cy = 640;
+                [1, -1].forEach(sign => {
+                    let d = '';
+                    for (let x = 0; x <= W; x += 8) {
+                        const yv = cy + sign * amp * Math.sin(n * Math.PI * x / W);
+                        d += (x ? 'L' : 'M') + x + ',' + yv.toFixed(1);
+                    }
+                    const op = sign === 1 ? 0.55 : 0.18;
+                    el('path', { d, fill: 'none', stroke: color, 'stroke-width': 10, opacity: op * 0.6, filter: glow }, bg);
+                    el('path', { d, fill: 'none', stroke: color, 'stroke-width': 3, opacity: op }, bg);
+                });
+            });
+            el('rect', { width: W, height: H, fill: radial(defs, 'vignette', [[0.55, '#000', 0], [1, '#000', 0.55]], { cx: '50%', cy: '50%', r: '72%' }) }, bg);
+        }
+
+        (async () => {
+            await ready();
+            const { defs, bg, fg } = setupSvg();
+            radial(defs, 'lensGlass', [[0, '#d9f4ff'], [0.55, '#5fb8e6'], [1, '#1c5d8c']], { cx: '40%', cy: '35%', r: '70%' });
+            const over = linear(defs, 'overFill', [[0, '#ffc36b'], [0.55, '#ff7a2f'], [1, '#e2401b']]);
+            const tone = linear(defs, 'toneFill', [[0, '#fff29a'], [0.5, '#ffc93c'], [1, '#ff9a1c']]);
+            const popFill = linear(defs, 'popFill', [[0, '#fff29a'], [1, '#ff9a1c']]);
+
+            if (!TILE) background(bg, defs);
+
+            if (TILE) {
+                hand(fg, defs, { cx: 640, pivotY: 1480, radius: 880, step: 11, scale: 0.86 });
+                lens(fg, { x: 150, y: 470, r: 50 });
+                lens(fg, { x: 1135, y: 440, r: 42 });
+                popup(fg, defs, { x: 150, y: 600, text: '+55', size: 70, rotate: -10, fill: popFill });
+                multChip(fg, { x: 1095, y: 610, text: '×2.5', size: 56, rotate: 8 });
+                logo(fg, defs, {
+                    x: 640, y: 292, size: 206, outline: '#1a0e06', outlineW: 30, rimW: 50, shadowDy: 16,
+                    spans: [{ text: 'OVER', fill: over }, { text: 'TONE', fill: tone }],
+                });
+                [[118, 120, 22], [1170, 150, 26], [360, 380, 14], [930, 385, 16], [1225, 300, 12], [60, 280, 12]]
+                    .forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff6d8', 0.95));
+            } else {
+                hand(fg, defs, { cx: 960, pivotY: 1690, radius: 900, step: 12.5, scale: 1 });
+                lens(fg, { x: 300, y: 700, r: 70 });
+                lens(fg, { x: 1640, y: 760, r: 58 });
+                popup(fg, defs, { x: 420, y: 560, text: '+55', size: 92, rotate: -10, fill: popFill });
+                popup(fg, defs, { x: 1690, y: 610, text: '+120', size: 64, rotate: 9, fill: popFill });
+                multChip(fg, { x: 1470, y: 520, text: '×2.5', size: 64, rotate: 8 });
+                logo(fg, defs, {
+                    x: 960, y: 355, size: 240, outline: '#1a0e06', outlineW: 32, rimW: 54, shadowDy: 18,
+                    spans: [{ text: 'OVER', fill: over }, { text: 'TONE', fill: tone }],
+                });
+                pill(fg, { x: 960, y: 446, text: 'MEANING IS THE PHYSICS', size: 30, spacing: 9, fill: 'rgba(8,16,24,0.75)', stroke: '#7fd3f7', color: '#dff2ff' });
+                [[250, 190, 26], [1680, 210, 30], [560, 470, 16], [1350, 460, 18], [1820, 420, 14], [120, 450, 14], [1500, 330, 12], [410, 320, 12]]
+                    .forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff6d8', 0.95));
+            }
+            document.body.dataset.done = '1';
+        })();
+    </script>
+</body>
+</html>

@@ -27,7 +27,7 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://www.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&viewport=-159%2C-34%2C0.73&t=XHJPjZQl2nXOeLnm-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1',
         embed: 'https://embed.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&scaling=min-zoom&content-scaling=fixed&embed-host=wii-portfolio',
-        videoformat: 'png'
+        videoformat: 'webp'
     },
     {
         id: 'credit-survey',
@@ -36,7 +36,7 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://www.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&t=bAE08gPrxq7fiShM-1',
         embed: 'https://embed.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&scaling=min-zoom&content-scaling=fixed&embed-host=wii-portfolio',
-        videoformat: 'png'
+        videoformat: 'webp'
     },
     {
         id: 'credit-website',
@@ -78,7 +78,34 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/view?usp=sharing',
         embed: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/preview',
-        videoformat: 'png'
+        videoformat: 'webp'
+    },
+    {
+        id: 'overtone',
+        title: 'Overtone',
+        assets: 'assets/channels/',
+        channelart: 'channelart/',
+        target: 'https://playovertone.web.app/',
+        embed: 'https://playovertone.web.app/',
+        videoformat: 'jpg'
+    },
+    {
+        id: 'betterposter',
+        title: 'BetterPoster',
+        assets: 'assets/channels/',
+        channelart: 'channelart/',
+        target: 'https://betterposter.scienceux.org/',
+        embed: 'https://betterposter.scienceux.org/',
+        videoformat: 'jpg'
+    },
+    {
+        id: 'icca-report',
+        title: 'ICCA Report',
+        assets: 'assets/channels/',
+        channelart: 'channelart/',
+        target: 'https://iccaworld.aflip.in/wavelength_report.html',
+        embed: 'https://iccaworld.aflip.in/wavelength_report.html',
+        videoformat: 'jpg'
     },
 ];
 

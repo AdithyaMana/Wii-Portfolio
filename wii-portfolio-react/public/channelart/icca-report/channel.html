@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICCA Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #4d93d8;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, #1d5bb0 0%, #4d93d8 36%, #a8cdea 58%, #ffe2ab 70%, #ffc47a 80%);
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        /* Sun sitting behind the Parthenon */
+        .sun-glow {
+            background: radial-gradient(circle at 70.8% 48%, rgba(255, 248, 220, 0.95) 0%, rgba(255, 226, 154, 0.55) 16%, rgba(255, 210, 122, 0) 42%);
+            animation: sun-pulse 5s ease-in-out infinite alternate;
+        }
+
+        @keyframes sun-pulse {
+            from {
+                opacity: 0.75;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .rays {
+            position: absolute;
+            left: 70.8%;
+            top: 48%;
+            width: 300vmax;
+            height: 300vmax;
+            margin: -150vmax 0 0 -150vmax;
+            background: repeating-conic-gradient(rgba(255, 255, 255, 0.08) 0deg 6deg, transparent 6deg 20deg);
+            animation: spin 90s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .cloud {
+            position: absolute;
+            left: 0;
+            aspect-ratio: 300 / 110;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 110'%3E%3CclipPath id='c'%3E%3Crect width='300' height='100'/%3E%3C/clipPath%3E%3Cg clip-path='url(%23c)'%3E%3Cg fill='%23d6e6f6' transform='translate(0 8)'%3E%3Ccircle cx='70' cy='70' r='44'/%3E%3Ccircle cx='140' cy='52' r='58'/%3E%3Ccircle cx='214' cy='70' r='44'/%3E%3Ccircle cx='32' cy='84' r='28'/%3E%3Ccircle cx='266' cy='86' r='26'/%3E%3C/g%3E%3Cg fill='white'%3E%3Ccircle cx='70' cy='70' r='44'/%3E%3Ccircle cx='140' cy='52' r='58'/%3E%3Ccircle cx='214' cy='70' r='44'/%3E%3Ccircle cx='32' cy='84' r='28'/%3E%3Ccircle cx='266' cy='86' r='26'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+            animation: drift linear infinite;
+        }
+
+        @keyframes drift {
+            from {
+                transform: translateX(-40vw);
+            }
+
+            to {
+                transform: translateX(120vw);
+            }
+        }
+
+        /* Gulls gliding over the city */
+        .gull {
+            position: absolute;
+            left: 0;
+            width: 3%;
+            aspect-ratio: 24 / 8;
+            animation: glide linear infinite;
+        }
+
+        .gull::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8'%3E%3Cpath d='M1,6 Q6,0 12,6 Q18,0 23,6' fill='none' stroke='%232a4a7a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+            animation: flap 0.9s ease-in-out infinite alternate;
+        }
+
+        @keyframes glide {
+            0% {
+                transform: translate(-10vw, 0);
+            }
+
+            50% {
+                transform: translate(50vw, -3vh);
+            }
+
+            100% {
+                transform: translate(110vw, 1vh);
+            }
+        }
+
+        @keyframes flap {
+            from {
+                transform: scaleY(1);
+            }
+
+            to {
+                transform: scaleY(0.45);
+            }
+        }
+
+        .art {
+            background: url('channel.webp') center / cover no-repeat;
+        }
+
+        /* Warm dust rising in the evening light */
+        .mote {
+            position: absolute;
+            width: 0.6%;
+            aspect-ratio: 1;
+            min-width: 3px;
+            border-radius: 50%;
+            background: #fff3c4;
+            box-shadow: 0 0 6px 2px rgba(255, 220, 140, 0.8);
+            animation: rise ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translate(0, 0);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: translate(3vw, -30vh);
+                opacity: 0;
+            }
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 3%;
+            aspect-ratio: 1;
+            background: #fff;
+            clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+            animation: sparkle 2.8s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+
+            0%,
+            100% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1) rotate(45deg);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="layer sun-glow"></div>
+        <div class="rays"></div>
+        <div class="layer">
+            <div class="cloud" style="top: 6%; width: 22%; animation-duration: 70s; animation-delay: -20s;"></div>
+            <div class="cloud" style="top: 22%; width: 14%; animation-duration: 55s; animation-delay: -44s;"></div>
+            <div class="cloud" style="top: 3%; width: 17%; animation-duration: 85s; animation-delay: -70s;"></div>
+            <div class="cloud" style="top: 36%; width: 10%; animation-duration: 45s; animation-delay: -8s;"></div>
+            <div class="gull" style="top: 44%; animation-duration: 26s; animation-delay: -6s;"></div>
+            <div class="gull" style="top: 48%; width: 2.2%; animation-duration: 30s; animation-delay: -9s;"></div>
+        </div>
+        <div class="layer art"></div>
+        <div class="layer">
+            <div class="mote" style="top: 70%; left: 62%; animation-duration: 7s;"></div>
+            <div class="mote" style="top: 74%; left: 76%; animation-duration: 9s; animation-delay: 2s;"></div>
+            <div class="mote" style="top: 66%; left: 86%; animation-duration: 8s; animation-delay: 4s;"></div>
+            <div class="mote" style="top: 80%; left: 54%; animation-duration: 10s; animation-delay: 1s;"></div>
+            <div class="mote" style="top: 72%; left: 94%; animation-duration: 7.5s; animation-delay: 5s;"></div>
+            <div class="sparkle" style="top: 13%; left: 3%;"></div>
+            <div class="sparkle" style="top: 10%; left: 47%; width: 2.2%; animation-delay: 1.2s;"></div>
+            <div class="sparkle" style="top: 42%; left: 50%; width: 2%; animation-delay: 0.6s;"></div>
+        </div>
+    </div>
+</body>
+
+</html>

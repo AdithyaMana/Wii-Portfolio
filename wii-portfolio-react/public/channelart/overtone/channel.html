@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overtone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0b1520;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(ellipse at 50% 48%, #274764 0%, #152a3d 45%, #081018 100%);
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        /* Warm light behind the logo */
+        .glow {
+            background: radial-gradient(ellipse 60% 40% at 50% 38%, rgba(255, 138, 61, 0.35) 0%, transparent 70%);
+            animation: glow-pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                opacity: 0.55;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* Sound rings spreading out from the hand of cards */
+        .ring {
+            position: absolute;
+            left: 50%;
+            top: 82%;
+            width: 30%;
+            aspect-ratio: 1;
+            border: 2px solid rgba(127, 211, 247, 0.55);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0.2);
+            opacity: 0;
+            animation: ring-out 6s ease-out infinite;
+        }
+
+        .ring:nth-child(2) {
+            animation-delay: 2s;
+        }
+
+        .ring:nth-child(3) {
+            animation-delay: 4s;
+        }
+
+        @keyframes ring-out {
+            0% {
+                transform: translate(-50%, -50%) scale(0.2);
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* The fundamental and its overtones, scrolling sideways */
+        .waves svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .waves path {
+            fill: none;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 4px currentColor);
+            animation: wave-scroll linear infinite;
+        }
+
+        @keyframes wave-scroll {
+            to {
+                transform: translateX(-1280px);
+            }
+        }
+
+        .twinkle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background: #cfe8ff;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.15;
+            }
+
+            50% {
+                opacity: 0.9;
+            }
+        }
+
+        .art {
+            background: url('channel.webp') center / cover no-repeat;
+            transform-origin: 50% 100%;
+            animation: breathe 7s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.025);
+            }
+        }
+
+        /* Glossy sweep that only lands on the art itself */
+        .shine {
+            -webkit-mask: url('channel.webp') center / cover no-repeat;
+            mask: url('channel.webp') center / cover no-repeat;
+            transform-origin: 50% 100%;
+            animation: breathe 7s ease-in-out infinite;
+        }
+
+        .shine::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.55) 50%, transparent 60%);
+            background-size: 250% 100%;
+            animation: sweep 6s ease-in-out infinite;
+        }
+
+        @keyframes sweep {
+            0% {
+                background-position: 130% 0;
+            }
+
+            45%,
+            100% {
+                background-position: -30% 0;
+            }
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 3.5%;
+            aspect-ratio: 1;
+            background: #fff6d8;
+            clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+            animation: sparkle 2.6s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+
+            0%,
+            100% {
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1) rotate(45deg);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="layer">
+            <div class="twinkle" style="top: 8%; left: 12%;"></div>
+            <div class="twinkle" style="top: 14%; left: 84%; animation-delay: 1s;"></div>
+            <div class="twinkle" style="top: 52%; left: 6%; animation-delay: 2s;"></div>
+            <div class="twinkle" style="top: 48%; left: 93%; animation-delay: 0.5s;"></div>
+            <div class="twinkle" style="top: 5%; left: 55%; animation-delay: 1.5s;"></div>
+            <div class="twinkle" style="top: 60%; left: 30%; animation-delay: 2.4s;"></div>
+            <div class="twinkle" style="top: 58%; left: 72%; animation-delay: 0.8s;"></div>
+        </div>
+        <div class="layer glow"></div>
+        <div class="layer">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="ring"></div>
+        </div>
+        <div class="layer waves">
+            <svg viewBox="0 0 1280 720" preserveAspectRatio="none">
+                <path data-wave="1,74" style="color: #ff7a2f; stroke: #ff7a2f; opacity: 0.6; animation-duration: 14s;" />
+                <path data-wave="2,50" style="color: #ffc93c; stroke: #ffc93c; opacity: 0.55; animation-duration: 10s;" />
+                <path data-wave="3,34" style="color: #7fd3f7; stroke: #7fd3f7; opacity: 0.55; animation-duration: 8s;" />
+                <path data-wave="4,26" style="color: #b48cff; stroke: #b48cff; opacity: 0.5; animation-duration: 6s;" />
+            </svg>
+        </div>
+        <div class="layer art"></div>
+        <div class="layer shine"></div>
+        <div class="layer">
+            <div class="sparkle" style="top: 12%; left: 6%;"></div>
+            <div class="sparkle" style="top: 18%; left: 90%; animation-delay: 0.9s;"></div>
+            <div class="sparkle" style="top: 50%; left: 28%; width: 2.4%; animation-delay: 1.6s;"></div>
+            <div class="sparkle" style="top: 46%; left: 70%; width: 2.4%; animation-delay: 0.4s;"></div>
+        </div>
+    </div>
+    <script>
+        // Periodic sine waves twice the frame wide, so a -1280px scroll loops seamlessly
+        document.querySelectorAll('[data-wave]').forEach(path => {
+            const [k, amp] = path.dataset.wave.split(',').map(Number);
+            let d = '';
+            for (let x = 0; x <= 2560; x += 16) {
+                d += (x ? 'L' : 'M') + x + ',' + (440 + amp * Math.sin(2 * Math.PI * k * x / 1280)).toFixed(1);
+            }
+            path.setAttribute('d', d);
+        });
+    </script>
+</body>
+
+</html>

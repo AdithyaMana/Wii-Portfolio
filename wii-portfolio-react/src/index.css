@@ -1018,21 +1018,21 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     filter: contrast(1.05) saturate(1.05);
 }
 
-/* Case-study art (1536x1024) has its title text near the bottom — stay
+/* Credit Website art (1536x1024) has its title text near the bottom — stay
    anchored low so the crop eats sky, not the title, but off the very
    bottom edge so the art reads a little lower in frame */
-.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo {
     object-position: center 80%;
 }
 
-/* Resume art has its "My Resume" title near the top (opposite of the
-   other case studies) — anchor top so cover fills the frame edge to
-   edge and any crop eats snow at the bottom, not the title */
-.ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo {
-    object-fit: cover;
-    object-position: center top;
+/* DS pixel-art channels: keep each art pixel a hard-edged square at any
+   size, and crop evenly so the title up top and the dialogue box or UI
+   along the bottom both stay in frame */
+.ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo {
+    object-position: center;
+    image-rendering: pixelated;
 }
 
 /* GitHub is pixel art: keep it crisp and uncropped */
@@ -1367,7 +1367,7 @@ body.wii-tab-open .wii-cursor {
     background: #fafaf7;
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.2);
-    width: min(660px, 92vw);
+    width: min(600px, 92vw);
     max-height: 90vh;
     overflow-y: auto;
     display: flex;
@@ -1425,48 +1425,67 @@ body.wii-tab-open .wii-cursor {
     gap: 2.5vh;
 }
 
-.mii-paper-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8vh;
+.mii-paper-intro p {
+    font-family: 'Regular', sans-serif;
+    font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+    line-height: 1.7;
+    margin: 0;
+    color: #555;
 }
 
-.mii-paper-section-title {
+.mii-paper-intro p + p {
+    margin-top: 0.6em;
+}
+
+.mii-paper-intro .mii-paper-hook {
+    font-family: 'Bold', sans-serif;
+    color: #1a8ec8;
+}
+
+/* Label/value plates, like the info rows on a Mii's profile */
+.mii-paper-facts {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9vh;
+}
+
+.mii-paper-facts div {
+    display: flex;
+    align-items: baseline;
+    gap: 1em;
+    padding: 0.75em 1.1em;
+    background: #eef6fb;
+    border: 1px solid #dcebf5;
+    border-radius: 10px;
+}
+
+.mii-paper-facts dt {
+    flex: 0 0 8.5em;
     font-family: 'TitleMed', sans-serif;
-    font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+    font-size: clamp(0.72rem, 1.2vw, 0.85rem);
     color: #37bef4;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    margin: 0 0 0.7em 0;
 }
 
-.mii-paper-section p {
-    font-family: 'Regular', sans-serif;
-    font-size: clamp(0.85rem, 1.4vw, 1rem);
-    line-height: 1.75;
+.mii-paper-facts dd {
     margin: 0;
-    color: #555;
-}
-
-.mii-paper-section p + p {
-    margin-top: 0.65em;
-}
-
-.mii-paper-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.7vh;
-}
-
-.mii-paper-list li {
     font-family: 'Regular', sans-serif;
-    font-size: clamp(0.85rem, 1.4vw, 1rem);
-    color: #555;
-    line-height: 1.55;
-    padding-left: 0;
+    font-size: clamp(0.88rem, 1.4vw, 1rem);
+    line-height: 1.5;
+    color: #444;
+}
+
+@media (max-width: 480px) {
+    .mii-paper-facts div {
+        flex-direction: column;
+        gap: 0.2em;
+    }
+
+    .mii-paper-facts dt {
+        flex-basis: auto;
+    }
 }
 
 .mii-paper-footer {

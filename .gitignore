@@ -17,3 +17,6 @@ Thumbs.db
 # Env files
 .env
 .env.local
+
+# Firebase deploy cache
+.firebase/
