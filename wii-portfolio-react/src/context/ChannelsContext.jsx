@@ -76,8 +76,8 @@ const DEFAULT_CHANNELS = [
         title: 'Resume',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/view?usp=sharing',
-        embed: 'https://drive.google.com/file/d/1ZuYEF79wt3AbnAVJjn5Onfw5NYhgaPO4/preview',
+        target: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/view?usp=sharing',
+        embed: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/preview',
         videoformat: 'png'
     },
 ];
