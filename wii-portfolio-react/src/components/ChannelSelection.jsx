@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
-import { MOBILE_ART_QUERY, mobileArtSrc } from '../channelArt';
+import { MOBILE_ART_QUERY, artUrl, mobileArtSrc } from '../channelArt';
 
 const MiiPaper = lazy(() => import('./MiiPaper').then(m => ({ default: m.MiiPaper })));
 const WiiTab = lazy(() => import('./WiiTab').then(m => ({ default: m.WiiTab })));
@@ -81,10 +81,10 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
         if (!channel) return '';
         // If it's a real video format, return it directly
         if (['mp4', 'webm', 'ogg', 'mov'].includes(channel.videoformat)) {
-            return `/${channel.assets}${channel.id}/video.${channel.videoformat}`;
+            return artUrl(`/${channel.assets}${channel.id}/video.${channel.videoformat}`);
         }
 
-        return `/${channel.assets}${channel.id}/video.${videoFormat}`;
+        return artUrl(`/${channel.assets}${channel.id}/video.${videoFormat}`);
     };
 
     const handleVideoError = () => {
@@ -249,13 +249,6 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                     )}
                     {/* Reflection removed for performance */}
                 </div>
-
-                {/* Case Study Under Progress notification */}
-                {(channel.id === 'tuftes-razor') && (
-                    <div className="ch-progress-notification">
-                        <span>🚧 Case study under progress — check out the website and go full screen!</span>
-                    </div>
-                )}
             </div>
 
             {/* Bottom bar with buttons */}

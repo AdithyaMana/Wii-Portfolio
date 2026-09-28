@@ -26,7 +26,7 @@ Everything from the cursor to the startup sound to the warning screen is faithfu
 | Research Agent | Case study — opens Figma deck |
 | Credit Survey | Case study — opens Figma deck |
 | Credit Website | Opens Medium article |
-| Tufte's Razor | Case study in progress — opens live site |
+| Tufte's Razor | Opens the live app |
 | Github | Links to GitHub profile |
 | LinkedIn | Links to LinkedIn profile |
 | Resume | Opens resume PDF |
@@ -113,7 +113,7 @@ Each channel is an object in `ChannelsContext.jsx`:
 }
 ```
 
-Channel art (`/channelart/{id}/channel.html`) is rendered inside an iframe in the grid tile. The preview screen loads `/assets/channels/{id}/video.{format}` and `/assets/channels/{id}/audio.{format}`; on phones and other portrait screens, channels with `mobileart` show `/assets/channels/{id}/video-mobile.webp` full screen instead. The pixel art is drawn by the scenes in `wii-portfolio-react/art-src/` and rendered with `art-src/render.py`.
+Channel art (`/channelart/{id}/channel.html`) is rendered inside an iframe in the grid tile. The preview screen loads `/assets/channels/{id}/video.{format}` and `/assets/channels/{id}/audio.{format}`; on phones and other portrait screens, channels with `mobileart` show `/assets/channels/{id}/video-mobile.webp` full screen instead. The art is drawn by the scenes in `wii-portfolio-react/art-src/` and rendered with `art-src/render.py`. Art is served with a year-long cache, so every art URL carries `ART_VERSION` from `src/channelArt.js`: bump it whenever you republish art.
 
 Channel state is persisted to `localStorage` under the key `adifolio-channels-v17`. Bumping the version resets to defaults on next load.
 

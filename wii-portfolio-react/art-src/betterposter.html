@@ -2,133 +2,293 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BetterPoster 8-bit art</title>
+    <title>BetterPoster 16-bit art</title>
 </head>
 <body>
     <pre id="out"></pre>
     <script src="pixel.js"></script>
     <script src="nes.js"></script>
     <script>
+        // BetterPoster as a 16-bit Sonic zone: Green Hill checkered soil, a
+        // loop, palms and a glittering sea, spinning rings, the zone's title
+        // card and a signpost holding up a #betterposter. Painted at 480x270
+        // (270x480 tall), finer than the other pixel scenes.
+        const SW = TALL ? 270 : 480, SH = TALL ? 480 : 270;
+        const INK = '#101020';
+        const SKY = ['#1848c8', '#2058d8', '#3070e0', '#4890e8', '#68b0f0', '#90d0f8'];
+        const SOIL = ['#c86818', '#8c4010'], GRASS = ['#78e030', '#38b018', '#187808'];
+        const GOLD = { hi: '#fff8a0', lit: '#f8e040', mid: '#e0a800', dark: '#a86800', edge: '#583000' };
+
         // Where everything sits on the wide canvas and on the tall phone one
         const LAYOUT = TALL ? {
-            title: [67, 24, 2, 'center'], tagline: [[67, 72, 'EVIDENCE-BASED'], [67, 82, 'POSTER TEMPLATES']],
-            poster: [26, 102, 84, 56], ground: 200, start: [67, 214], watch: [111, 92],
-            clouds: [[8, 6, 1], [100, 2, 0.6], [4, 100, 0.7]], hills: [[20, 200, 44, 30], [110, 200, 34, 22]],
+            sea: [218, 254], ground: 372, loop: [186, 312, 56], palms: [[36, 372, 84, 1]],
+            clouds: [[20, 176, 30], [150, 190, 40], [80, 202, 24]], hills: [[80, 254, 70, 26], [220, 254, 50, 18]],
+            rings: [[58, 292], [78, 283], [98, 279], [118, 283]], sign: [86, 372],
+            hud: [30, 34], title: [135, 88, 'center'], tagline: [135, 166, ['EVIDENCE-BASED', 'POSTER TEMPLATES']], flowers: [124, 252],
         } : {
-            title: [12, 15, 3, 'left'], tagline: [[12, 70, 'EVIDENCE-BASED'], [12, 80, 'POSTER TEMPLATES']],
-            poster: [174, 40, 58, 40], ground: 116, start: [84, 98], watch: [216, 14],
-            clouds: [[172, 2, 0.7], [150, 90, 0.5]], hills: [[40, 116, 46, 30], [140, 116, 30, 18]],
+            sea: [138, 176], ground: 222, loop: [396, 164, 52], palms: [[26, 222, 78, 1], [318, 222, 60, -1]],
+            clouds: [[260, 28, 40], [150, 70, 30], [360, 10, 34], [40, 112, 26]], hills: [[130, 176, 70, 22], [270, 176, 56, 16]],
+            rings: [[182, 170], [202, 160], [222, 156], [242, 160], [262, 170]], sign: [150, 222],
+            hud: [14, 24], title: [20, 66, 'left'], tagline: [22, 146, ['EVIDENCE-BASED POSTER TEMPLATES']], flowers: [96, 260, 460],
         };
 
-        function hill(p, cx, base, rx, ry) {
-            for (let y = base - ry - 1; y < base; y++) {
-                for (let x = cx - rx - 1; x <= cx + rx + 1; x++) {
-                    const d = ((x - cx) / (rx + 1)) ** 2 + ((y - base) / (ry + 1)) ** 2, e = ((x - cx) / rx) ** 2 + ((y - base) / ry) ** 2;
-                    if (e <= 1) p.set(x, y, NES.green);
-                    else if (d <= 1) p.set(x, y, NES.black);
+        // ---- scenery
+        function sky(p) {
+            const [seaTop] = LAYOUT.sea;
+            for (let y = 0; y < seaTop; y++) {
+                const t = y / seaTop, k = Math.min(SKY.length - 1, Math.floor(t * SKY.length));
+                // dither the seams between bands like the Mega Drive would
+                const e = t * SKY.length - k, c = e > 0.75 && k < SKY.length - 1 && (y + 0) % 2 === 0 ? SKY[k + 1] : SKY[k];
+                p.rect(0, y, SW, 1, c);
+            }
+            LAYOUT.clouds.forEach(([x, y, w]) => cloud(p, x, y, w));
+        }
+
+        function cloud(p, x, y, w) {
+            const h = Math.round(w / 3);
+            for (let j = 0; j < h; j++) {
+                for (let i = 0; i < w; i++) {
+                    const u = (i - w / 2) / (w / 2), v = (j - h) / h;
+                    const puff = 0.55 + 0.25 * Math.cos(u * 7) * (1 - Math.abs(u));
+                    if (u * u + (v / puff) ** 2 > 1) continue;
+                    p.set(x + i, y + j, j > h * 0.7 ? '#b8dcff' : j > h * 0.45 ? '#e0f0ff' : '#ffffff');
                 }
             }
-            // the dark spots every hill in the Mushroom Kingdom has
-            [[-0.35, 0.55], [0.3, 0.4], [0.05, 0.75]].forEach(([u, v]) => {
-                const sx = Math.round(cx + u * rx), sy = Math.round(base - v * ry);
-                p.rect(sx - 1, sy, 3, 2, NES.forest);
-                p.rect(sx, sy - 1, 1, 4, NES.forest);
+        }
+
+        // far-off island cliffs with waterfalls, then the glittering sea
+        function island(p, f, cx, top, rx, h) {
+            const base = LAYOUT.sea[0];
+            for (let x = cx - rx; x <= cx + rx; x++) {
+                const u = (x - cx) / rx, y0 = Math.round(base - h * Math.sqrt(Math.max(0, 1 - u ** 4)));
+                for (let y = y0; y < base; y++) {
+                    const rock = y > y0 + 3;
+                    p.set(x, y, !rock ? (y === y0 ? '#88e060' : '#40a030') : ((x >> 2) + (y >> 2)) % 2 ? '#306858' : '#285848');
+                }
+            }
+            // two waterfalls, their stripes running down a pixel a frame
+            [-0.4, 0.35].forEach(k => {
+                const wx = Math.round(cx + k * rx);
+                for (let y = base - h + 6; y < base; y++) {
+                    for (let i = 0; i < 4; i++) p.set(wx + i, y, (y + i - f * 2) % 6 < 2 ? '#ffffff' : '#a8d8ff');
+                }
             });
         }
 
+        function sea(p, f) {
+            const [top, bottom] = LAYOUT.sea;
+            for (let y = top; y < bottom; y++) {
+                const t = (y - top) / (bottom - top);
+                p.rect(0, y, SW, 1, t < 0.3 ? '#3878e0' : t < 0.65 ? '#2860c8' : '#2050b0');
+            }
+            // glints: short white dashes that shimmer on and off
+            const rand = rng(11);
+            for (let i = 0; i < (TALL ? 26 : 44); i++) {
+                const x = Math.floor(rand() * SW), y = top + 2 + Math.floor(rand() * (bottom - top - 4)), ph = Math.floor(rand() * 4), w = 2 + Math.floor(rand() * 5);
+                if ((f + ph) % 4 < 2) p.rect(x, y, w, 1, (f + ph) % 4 ? '#b0e0ff' : '#ffffff');
+            }
+        }
+
+        // rolling green hills in the middle distance, with a lighter crest
+        function hills(p) {
+            LAYOUT.hills.forEach(([cx, base, rx, ry]) => {
+                for (let x = cx - rx; x <= cx + rx; x++) {
+                    const u = (x - cx) / rx, top = Math.round(base - ry * Math.cos(u * Math.PI / 2));
+                    for (let y = top; y < base + 12; y++) p.set(x, y, y < top + 2 ? '#70d040' : ((x + y) >> 3) % 2 ? '#30a028' : '#289020');
+                }
+            });
+        }
+
+        // the meadow between the sea and the soil: bushy tops, then diamonds
+        function meadow(p) {
+            const top = LAYOUT.sea[1] - 4, gy = LAYOUT.ground;
+            for (let x = 0; x < SW; x++) {
+                const edge = Math.round(top + 2.5 * Math.sin(x / 7) + 1.5 * Math.sin(x / 3.1 + 1));
+                for (let y = edge; y < gy; y++) {
+                    const diamond = ((Math.abs(((x + y) % 16) - 8) + Math.abs(((x - y + 1600) % 16) - 8)) < 7);
+                    p.set(x, y, y < edge + 2 ? '#88e050' : y < edge + 5 ? '#48b830' : diamond ? '#309828' : '#207818');
+                }
+            }
+        }
+
+        // the checkered soil with its grass lip
         function ground(p) {
             const gy = LAYOUT.ground;
-            p.rect(0, gy, NW, NH - gy, NES.green);
-            p.rect(0, gy, NW, 2, NES.lime);
-            p.rect(0, gy + 2, NW, 1, NES.black);
-            for (let x = 3; x < NW; x += 8) for (let y = gy + 6 + (x % 16 ? 5 : 0); y < NH; y += 10) p.sprite(['#.#', '.#.'], { '#': NES.forest }, x, y);
-        }
-
-        // An 8-bit #betterposter: skinny side columns, the main finding big in
-        // the green middle, a QR code for the paper, figures down the right
-        function poster(p, f, x, y, W, H) {
-            const lx = x + 3, cx0 = x + Math.round(W * 0.28), cx1 = x + Math.round(W * 0.72), rx = cx1 + 3;
-            // easel: ledge in front, legs down to the grass
-            const gy = LAYOUT.ground + 1, mid = x + W / 2;
-            p.line(mid, y - 4, mid, gy, NES.brown);
-            [[x + 8, x + 2], [x + W - 9, x + W - 3]].forEach(([top, foot]) => {
-                p.line(top, y + H, foot, gy, NES.brown);
-                p.line(top + 1, y + H, foot + 1, gy, NES.olive);
-            });
-            p.rect(x, y, W, H, NES.black);
-            p.rect(x + 1, y + 1, W - 2, H - 2, NES.white);
-            // left column: title, authors, sections
-            [0.8, 0.65].forEach((k, i) => p.rect(lx, y + 3 + i * 3, Math.round((cx0 - lx - 2) * k), 2, NES.black));
-            for (let s = 0, sy = y + 11; sy < y + H - 6; s++, sy += Math.max(8, Math.round(H / 4))) {
-                p.rect(lx, sy, Math.round((cx0 - lx) * 0.5), 1, NES.green);
-                for (let l = 0; l < 3 && sy + 3 + l * 2 < y + H - 3; l++) p.rect(lx, sy + 3 + l * 2, cx0 - lx - 3 - (l % 2) * 2, 1, NES.silver);
+            for (let y = gy; y < SH; y++) {
+                for (let x = 0; x < SW; x++) {
+                    const cx = Math.floor(x / 12), cy = Math.floor((y - gy - 6) / 12), inX = x % 12, inY = (y - gy - 6 + 120) % 12;
+                    let c = (cx + cy) & 1 ? SOIL[1] : SOIL[0];
+                    if (inY === 0 || inX === 0) c = shade(c, 1.15);
+                    if (inY === 11 || inX === 11) c = shade(c, 0.8);
+                    p.set(x, y, c);
+                }
             }
-            // the finding, in plain English
-            p.rect(cx0, y + 2, cx1 - cx0, H - 4, NES.green);
-            const tw = cx1 - cx0 - 6;
-            [[0.6, NES.white], [0.95, NES.yellow], [0.55, NES.white], [0.75, NES.white]].forEach(([k, c], i) =>
-                p.rect(cx0 + 3, y + 5 + i * Math.max(3, Math.round(H / 11)), Math.round(tw * k), Math.max(2, Math.round(H / 20)), c));
-            // QR code with its three finder squares
-            const q = Math.max(7, Math.round(H / 5)), qx = cx0 + 3, qy = y + H - q - 4, rand = rng(42);
-            p.rect(qx - 1, qy - 1, q + 2, q + 2, NES.white);
-            for (let j = 0; j < q; j++) for (let i = 0; i < q; i++) if (rand() < 0.5) p.set(qx + i, qy + j, NES.black);
-            [[0, 0], [q - 3, 0], [0, q - 3]].forEach(([i, j]) => { p.rect(qx + i, qy + j, 3, 3, NES.black); });
-            // right column: a bar chart, a trend line, then text
-            const ch = Math.round(H * 0.3), base = y + 3 + ch;
-            [0.4, 0.6, 0.8, 1].forEach((k, i) => p.rect(rx + i * Math.max(3, Math.round((x + W - 3 - rx) / 4)), base - Math.round(ch * k), 2, Math.round(ch * k), [NES.pale, NES.mint, NES.green, NES.forest][i]));
-            p.rect(rx - 1, base, x + W - 3 - rx + 1, 1, NES.black);
-            const ly = base + Math.max(4, Math.round(H * 0.12));
-            p.line(rx, ly + 5, rx + Math.round((x + W - 4 - rx) * 0.5), ly + 2, NES.orange);
-            p.line(rx + Math.round((x + W - 4 - rx) * 0.5), ly + 2, x + W - 4, ly, NES.orange);
-            for (let l = 0; ly + 9 + l * 2 < y + H - 3; l++) p.rect(rx, ly + 9 + l * 2, x + W - 4 - rx - (l % 2) * 2, 1, NES.silver);
-            p.rect(x - 2, y + H, W + 4, 3, NES.olive);
-            p.rect(x - 2, y + H + 3, W + 4, 1, NES.brown);
-            // a glint sweeping over the paper now and then
-            if (f % 6 === 2) twinkle(p, x + W - 6, y + 4, 2, NES.white);
+            // grass: a bright top, a dark underside that hangs in tufts
+            for (let x = 0; x < SW; x++) {
+                const tuft = [3, 5, 6, 5, 3, 2][x % 6];
+                p.rect(x, gy - 2, 1, 2, GRASS[0]);
+                p.rect(x, gy, 1, 3, GRASS[1]);
+                p.rect(x, gy + 3, 1, tuft, GRASS[2]);
+            }
         }
 
-        // the 5 second rule as a power-up: a stopwatch whose hand ticks round
-        function stopwatch(p, f, x, y) {
-            const bob = [0, 0, -1, -1, -1, 0][f % 6];
-            p.sprite([
-                '....KKK....',
-                '....KRK....',
-                '..KKKKKKK..',
-                '.KWWWWWWWK.',
-                'KWWWWWWWWWK',
-                'KWWWWWWWWWK',
-                'KWWWWWWWWWK',
-                'KWWWWWWWWWK',
-                'KWWWWWWWWWK',
-                '.KWWWWWWWK.',
-                '..KKKKKKK..',
-            ], { K: NES.black, R: NES.red, W: NES.white }, x, y + bob);
-            const hands = [[0, -3], [2, -2], [3, 0], [2, 2], [0, 3], [-2, 2], [-3, 0], [-2, -2]];
-            const [hx, hy] = hands[Math.floor(f * hands.length / 12)];
-            p.line(x + 5, y + 6 + bob, x + 5 + hx, y + 6 + hy + bob, NES.green);
-            p.set(x + 5, y + 6 + bob, NES.black);
-            nesText(p, '5 SEC', x + 5, y + 13 + bob, { micro: true, anchor: 'center', color: NES.white, outline: NES.black });
+        // the loop: a ring of checkered soil with grass round its inside
+        function loop(p) {
+            const [cx, cy, R] = LAYOUT.loop, T = 12;
+            for (let y = cy - R - 2; y <= cy + R + 6; y++) {
+                for (let x = cx - R - 2; x <= cx + R + 2; x++) {
+                    const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+                    if (d > R || y > LAYOUT.ground) continue;
+                    if (d < R - T - 4) continue;
+                    if (d < R - T) { p.set(x, y, d < R - T - 2 ? GRASS[0] : GRASS[1]); continue; }
+                    const a = Math.atan2(y - cy, x - cx), cell = (Math.floor((a + Math.PI) / (Math.PI / 12)) + (d > R - T / 2 ? 1 : 0)) & 1;
+                    p.set(x, y, d > R - 1 ? '#582808' : cell ? SOIL[1] : SOIL[0]);
+                }
+            }
+        }
+
+        function palm(p, x, base, h, lean) {
+            // trunk of stacked segments curving gently
+            let tx = x, ty = base;
+            const n = Math.round(h / 6), tops = [];
+            for (let i = 0; i < n; i++) {
+                const nx = x + Math.round(lean * 10 * (i / n) ** 2), ny = base - (i + 1) * 6;
+                p.rect(nx - 3, ny, 7, 6, i % 2 ? '#a86828' : '#c88038');
+                p.rect(nx - 3, ny, 1, 6, '#704010');
+                p.rect(nx + 3, ny, 1, 6, '#704010');
+                p.rect(nx - 2, ny + 5, 5, 1, '#804818');
+                tx = nx; ty = ny;
+            }
+            // fronds drooping from the crown
+            [[-1, -0.25], [-0.75, 0.25], [-0.35, -0.55], [0.35, -0.55], [0.75, 0.25], [1, -0.25]].forEach(([dx, dy]) => {
+                let px = tx, py = ty;
+                for (let s = 1; s <= 22; s++) {
+                    const x1 = Math.round(tx + dx * s * 1.3), y1 = Math.round(ty + dy * s + 0.035 * s * s);
+                    const w = s < 16 ? 3 : 2;
+                    p.thick(px, py, x1, y1, w, s % 4 < 2 ? '#30b030' : '#209020');
+                    p.set(x1, y1 + 2, '#107010');
+                    px = x1; py = y1;
+                }
+            });
+            p.disc(tx, ty + 1, 3, '#704010');
+        }
+
+        // Green Hill sunflowers, spinning their petals a notch each frame
+        function sunflower(p, f, x, base) {
+            p.rect(x, base - 16, 2, 16, '#208018');
+            p.rect(x + 2, base - 8, 3, 2, '#30a020');
+            const cx = x + 1, cy = base - 20, spin = f % 2;
+            for (let k = 0; k < 8; k++) {
+                const a = (k + spin * 0.5) * Math.PI / 4;
+                p.disc(Math.round(cx + 5 * Math.cos(a)), Math.round(cy + 5 * Math.sin(a)), 2, k % 2 ? '#f8d020' : '#f8f040');
+            }
+            p.disc(cx, cy, 3, '#904810');
+            p.disc(cx, cy, 2, '#c07020');
+        }
+
+        // ---- rings: turning edge-on and back every four frames
+        function ring(p, f, x, y) {
+            const w = [6, 4, 1, 4][f % 4];
+            for (let j = -7; j <= 7; j++) {
+                for (let i = -7; i <= 7; i++) {
+                    const u = w ? i / w : i * 7, v = j / 6.5, d = u * u + v * v;
+                    const inner = w > 2 ? (i / Math.max(1, w - 2.4)) ** 2 + (j / 4) ** 2 : 9;
+                    if (d > 1 || inner < 1) continue;
+                    const lit = i < 0 && j < 0 ? GOLD.hi : j < 1 ? GOLD.lit : j < 4 ? GOLD.mid : GOLD.dark;
+                    p.set(x + i, y + j, d > 0.72 && w > 1 ? (j > 0 ? GOLD.dark : GOLD.mid) : lit);
+                }
+            }
+            if (w > 1 && f % 6 === 0) twinkle(p, x - 3, y - 4, 2, '#ffffff');
+        }
+
+        // ---- the end-of-act signpost, holding up a #betterposter
+        function signpost(p, f, x, base) {
+            const W = 44, H = 30, top = base - 52;
+            p.rect(x - 1, top + H, 3, base - top - H, '#606878');
+            p.rect(x - 1, top + H, 1, base - top - H, '#a0a8b8');
+            p.rect(x - 4, base - 2, 9, 3, '#404858');
+            const sx = x - W / 2, sy = top;
+            p.rect(sx - 2, sy - 2, W + 4, H + 4, INK);
+            p.rect(sx - 1, sy - 1, W + 2, H + 2, '#d0d8e8');
+            p.rect(sx, sy, W, H, '#ffffff');
+            // the poster: thin side columns, the finding big in the green middle
+            const c0 = sx + 11, c1 = sx + W - 11;
+            p.rect(c0, sy + 1, c1 - c0, H - 2, '#18a058');
+            [[3, 0.7, '#ffffff'], [8, 0.95, '#fff060'], [13, 0.6, '#ffffff'], [18, 0.8, '#ffffff']].forEach(([dy, k, c]) => p.rect(c0 + 2, sy + dy, Math.round((c1 - c0 - 4) * k), 3, c));
+            for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) if ((i * 7 + j * 3 + i * j) % 3) p.set(c0 + 2 + i, sy + 23 + j, INK);
+            [sx + 2, c1 + 2].forEach(cx => {
+                p.rect(cx, sy + 3, 7, 2, '#404858');
+                for (let l = 0; l < 6; l++) p.rect(cx, sy + 8 + l * 3, 7 - (l % 2) * 2, 1, '#a0a8b8');
+            });
+            // a sparkle running round the frame
+            const glint = [[sx, sy], [sx + W, sy], [sx + W, sy + H], [sx, sy + H]][Math.floor(f / 3) % 4];
+            twinkle(p, glint[0], glint[1], f % 3 === 1 ? 2 : 1, '#ffffff');
+        }
+
+        // ---- HUD and title card
+        function hud(p) {
+            const [x, y] = LAYOUT.hud;
+            [['SCORE', '1990'], ['TIME', '0:05'], ['RINGS', '50']].forEach(([label, value], i) => {
+                nesText(p, label, x, y + i * 12, { color: '#f8e020', outline: INK });
+                nesText(p, value, x + 52, y + i * 12, { color: '#ffffff', outline: INK });
+            });
+        }
+
+        // a slanted, outlined word from the logo font, like the zone names
+        function zoneText(p, str, x, y, { size, anchor = 'left', fill, under, slant = 0.22 }) {
+            const m = logoMask(str, { size }), b = m.box, lean = Math.round(b.h * slant);
+            const s = new Mask(b.w + lean + 8, b.h + 8);
+            for (let my = 0; my < b.h; my++) {
+                for (let mx = 0; mx < b.w; mx++) if (m.get(b.x0 + mx, b.y0 + my)) s.set(4 + mx + Math.round((b.h - my) * slant), 4 + my);
+            }
+            const ox = (anchor === 'center' ? Math.round(x - (b.w + lean) / 2) : x) - 4, oy = y - 4;
+            const edge = s.grow(true).grow(false);
+            p.mask(edge, INK, ox + 2, oy + 3);
+            p.mask(edge, INK, ox, oy);
+            p.mask(s, (mx, my) => (my - 4 > b.h * 0.58 ? under : fill), ox, oy);
+            return b.w + lean;
+        }
+
+        function titleCard(p, f) {
+            const [x, y, anchor] = LAYOUT.title, center = anchor === 'center';
+            // the blue band the zone name sits on, with a checkered trim
+            const bw = TALL ? 250 : 250, bx = center ? x - bw / 2 : x - 8, by = y - 6;
+            for (let j = 0; j < 34; j++) {
+                const skew = Math.round((34 - j) * 0.3);
+                p.rect(bx + skew, by + j, bw, 1, j < 2 ? '#88b8ff' : '#1838a8');
+            }
+            for (let i = 0; i < bw; i += 6) p.rect(bx + i, by + 34, 3, 3, (i / 6) % 2 ? '#f8e020' : '#ffffff');
+            const w = zoneText(p, 'BETTERPOSTER', center ? x : x, y - 2, { size: TALL ? 26 : 34, anchor, fill: '#ffffff', under: '#c8d8ff' });
+            // ZONE, then the act number in its yellow oval
+            const zx = center ? x - 30 : x + w - 110, zy = y + 40;
+            const zw = zoneText(p, 'ZONE', zx, zy, { size: 26, anchor: center ? 'center' : 'left', fill: '#f8e020', under: '#f0a000' });
+            const ax = Math.round((center ? zx + zw / 2 : zx + zw) + 28), ay = zy + 12;
+            p.disc(ax, ay, 15, INK);
+            for (let j = -13; j <= 13; j++) for (let i = -17; i <= 17; i++) if ((i / 17) ** 2 + (j / 13) ** 2 <= 1) p.set(ax + i, ay + j, j < -4 ? '#fff060' : '#f8c800');
+            nesText(p, 'ACT', ax, ay - 9, { color: INK, anchor: 'center', micro: true });
+            nesText(p, '1', ax, ay - 3, { color: '#e02010', outline: INK, anchor: 'center', scale: 2 });
         }
 
         function draw(p, f) {
-            p.rect(0, 0, NW, NH, NES.sky);
-            LAYOUT.clouds.forEach(([x, y, s]) => nesCloud(p, x, y, s));
-            LAYOUT.hills.forEach(([cx, base, rx, ry]) => hill(p, cx, base, rx, ry));
+            sky(p);
+            island(p, f, TALL ? 196 : 330, 0, TALL ? 64 : 90, TALL ? 30 : 30);
+            if (!TALL) island(p, f, 70, 0, 60, 18);
+            sea(p, f);
+            meadow(p);
+            hills(p);
+            loop(p);
+            LAYOUT.palms.forEach(([x, base, h, lean]) => palm(p, x, base, h, lean));
             ground(p);
-            poster(p, f, ...LAYOUT.poster);
-            stopwatch(p, f, ...LAYOUT.watch);
-
-            const [tx, ty, scale, anchor] = LAYOUT.title;
-            const hashW = glyphMask(NES_FONT, '#', scale, 0).w;
-            const betterW = glyphMask(NES_FONT, 'BETTER', scale, 0).w, left = anchor === 'center' ? tx - Math.round((hashW + scale + betterW) / 2) : tx;
-            nesLogo(p, '#', left, ty, { scale, top: NES.yellow, bottom: NES.gold, shadow: NES.royal });
-            nesLogo(p, 'BETTER', left + hashW + scale, ty, { scale, top: NES.white, bottom: NES.silver, shine: NES.white, shadow: NES.royal });
-            nesLogo(p, 'POSTER', tx, ty + scale * 9, { scale, anchor, top: NES.mint, bottom: NES.green, shine: NES.pale, shadow: NES.forest });
-            LAYOUT.tagline.forEach(([x, y, line]) => nesText(p, line, x, y, { anchor: TALL ? 'center' : 'left', shadow: NES.black }));
-            pushStart(p, f, ...LAYOUT.start);
+            LAYOUT.flowers.forEach(x => sunflower(p, f, x, LAYOUT.ground - 1));
+            signpost(p, f, ...LAYOUT.sign);
+            LAYOUT.rings.forEach(([x, y], i) => ring(p, f + i, x, y));
+            hud(p);
+            titleCard(p, f);
+            const [gx, gy, lines] = LAYOUT.tagline;
+            lines.forEach((line, i) => nesText(p, line, gx, gy + i * 12, { color: '#ffffff', outline: INK, anchor: TALL ? 'center' : 'left' }));
         }
 
-        runFrames(draw, { frames: 12, delay: 140, size: [NW, NH] });
+        runFrames(draw, { frames: 12, delay: 140, size: [SW, SH] });
     </script>
 </body>
 </html>

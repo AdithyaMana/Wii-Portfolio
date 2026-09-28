@@ -7,13 +7,10 @@
 <body>
     <pre id="out"></pre>
     <script src="pixel.js"></script>
+    <script src="credit-icons.js"></script>
     <script>
         const INK = '#2a0f5c';
         const VIOLET = '#7a3ff2';
-        const COLORS = ['#ff5d8f', '#ffb020', '#27c3a4', '#4c8dff', '#9b6bff', '#ff7a45', '#17b3d6'];
-
-        // The 14 CRediT contributor roles, in the taxonomy's order
-        const ROLES = ['bulb', 'database', 'chart', 'dollar', 'magnifier', 'flask', 'checklist', 'cube', 'code', 'person', 'shield', 'pie', 'pencil', 'review'];
 
         // Where everything sits on the wide canvas and on the tall phone one
         const LAYOUT = TALL ? {
@@ -35,10 +32,10 @@
             }
         }
 
-        function badge(p, name, x, y, color) {
-            p.frame(x, y, 16, 16, color, INK, 2);
-            p.rect(x + 3, y + 1, 10, 1, '#ffffff66');
-            icon(p, name, x + 3, y + 3);
+        // one role's icon on a card tinted with its colour
+        function badge(p, i, x, y) {
+            p.frame(x, y, 18, 18, shade(ROLE_ICONS[i].color, 1.82), INK, 2);
+            roleIcon(p, i, x + 2, y + 2, { ink: INK });
         }
 
         function stylus(p, tx, ty) {
@@ -64,7 +61,8 @@
             text(p, 'DATA CURATION?', X + 9, Y + 31, { color: VIOLET });
 
             const picked = f % 4 < 2 ? VIOLET : '#ffb020';
-            [['A', 'database'], ['B', 'cube'], ['C', 'chart']].forEach(([letter, name], i) => {
+            // data curation, resources, formal analysis
+            [['A', 1], ['B', 7], ['C', 2]].forEach(([letter, role], i) => {
                 const tx = X + 8 + i * 45, ty = Y + 46;
                 if (i === 0) {
                     p.frame(tx - 1, ty - 1, 42, 46, '#f1e8ff', picked, 2);
@@ -74,7 +72,7 @@
                 }
                 p.panel(tx + 3, ty + 3, 9, 9, i === 0 ? VIOLET : '#ece4fb', 1);
                 text(p, letter, tx + 5, ty + 4, { color: i === 0 ? '#fff' : INK });
-                icon(p, name, tx + 10, ty + 14, INK, 2);
+                roleIcon(p, role, tx + 6, ty + 13, { scale: 2, ink: INK });
             });
             // green tick on the chosen answer
             p.disc(X + 45, Y + 47, 5, INK);
@@ -103,7 +101,7 @@
             });
             const [lx, ly] = LAYOUT.roles;
             text(p, '14 CONTRIBUTOR ROLES', lx, ly, { color: '#fff', outline: INK });
-            ROLES.forEach((name, i) => badge(p, name, lx + (i % 7) * 20, ly + 12 + Math.floor(i / 7) * 20, COLORS[i % COLORS.length]));
+            ROLE_ICONS.forEach((_, i) => badge(p, i, lx + (i % 7) * 20, ly + 12 + Math.floor(i / 7) * 20));
 
             const [qx, qy] = LAYOUT.quiz, sx = qx + 40, sy = qy + 84;
             quiz(p, f, qx, qy);

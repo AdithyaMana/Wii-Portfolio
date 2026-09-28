@@ -14,33 +14,12 @@
 
         // Where everything sits on the wide canvas and on the tall phone one
         const LAYOUT = TALL ? {
-            title: [15, 30, 36], url: [90, 70], button: [45, 272], hub: [90, 178, 60, 60],
-            twinkles: [[160, 16, 0], [12, 100, 2], [168, 250, 1], [14, 300, 3]],
+            title: [15, 44, 36], url: [90, 86], hub: [90, 194, 62, 70],
+            twinkles: [[160, 22, 0], [12, 104, 2], [168, 268, 1], [22, 296, 3]],
         } : {
-            title: [12, 38, 40], url: [14, 80], button: [14, 104], hub: [247, 92, 56, 54],
+            title: [12, 58, 40], url: [14, 100], hub: [247, 92, 56, 54],
             twinkles: [[180, 20, 0], [306, 164, 2], [150, 150, 1], [110, 10, 3]],
         };
-
-        // Wii-style pointing hand
-        const HAND = scale2x([
-            '.....KK.........',
-            '....KWWK........',
-            '....KWWK........',
-            '....KWWK........',
-            '....KWWKKK......',
-            '....KWWKWWKKK...',
-            '....KWWKWWKWWKK.',
-            '.KK.KWWKWWKWWKLK',
-            'KWWKKWWWWWWWWKLK',
-            'KWWWKWWWWWWWWWLK',
-            '.KWWWWWWWWWWWWLK',
-            '..KWWWWWWWWWWWLK',
-            '..KWWWWWWWWWWLK.',
-            '...KWWWWWWWWWLK.',
-            '....KWWWWWWWLK..',
-            '.....KLLLLLLLK..',
-            '.....KKKKKKKKK..',
-        ]);
 
         function backdrop(p) {
             p.vgrad(0, 0, PW, PH, ['#07335f', '#0a4a8a', BLUE, '#2f86dc']);
@@ -128,25 +107,12 @@
             });
         }
 
-        function connect(p, f) {
-            const [bx, by] = LAYOUT.button, press = f % 6 === 4 ? 1 : 0, bw = 90;
-            p.frame(bx, by + press, bw, 15, press ? '#e8f1fb' : '#ffffff', INK, 2);
-            if (!press) p.rect(bx + 3, by + 13, bw - 6, 1, '#bcd6f0');
-            p.disc(bx + 11, by + 7 + press, 4, BLUE);
-            p.sprite(['..#..', '..#..', '#####', '..#..', '..#..'], { '#': '#fff' }, bx + 9, by + 5 + press);
-            text(p, 'CONNECT', bx + 20, by + 4 + press, { color: BLUE });
-            const tap = [0, 0, 1, 2, 3, 1][f % 6], cx = bx + bw - 14, cy = by + 8;
-            p.sprite(HAND, { K: INK, W: '#ffffff', L: '#b8e4f2' }, cx - 11, cy - 7 + tap);
-            if (f % 6 === 4) { p.ring(cx, cy + 1, 5, '#ffffff'); p.ring(cx, cy + 1, 7, '#ffd23f'); }
-        }
-
         function draw(p, f) {
             backdrop(p);
             network(p, f);
             title(p);
             const [ux, uy] = LAYOUT.url;
             text(p, 'LINKEDIN.COM/IN/AKIRAUX', ux, uy, { color: '#ffffff', outline: INK, anchor: TALL ? 'center' : 'left' });
-            connect(p, f);
             LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#ffffff'));
         }
 
