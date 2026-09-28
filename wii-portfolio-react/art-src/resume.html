@@ -43,11 +43,11 @@
         // horizon is where the hills meet the sky; the path starts there at pathX.
         const LAYOUT = TALL ? {
             horizon: 246, pathX: 96, flowers: 50, clouds: [[112, 14, 1], [150, 64, 0.6], [8, 104, 0.6]], trees: [[158, 244], [20, 300]],
-            title: [24, 26], start: [90, 268], card: [18, 108],
+            title: [90, 24], start: [90, 268], card: [18, 108],
             twinkles: [[164, 22, 0], [10, 60, 2], [170, 110, 1], [12, 250, 3], [166, 290, 2]],
         } : {
             horizon: 118, pathX: 116, flowers: 70, clouds: [[26, 12, 1.1], [132, 30, 0.8], [118, 6, 0.6]], trees: [[150, 116], [22, 158]],
-            title: [24, 14], start: [84, 100], card: [168, 14],
+            title: [82, 14], start: [82, 102], card: [168, 14],
             twinkles: [[160, 14, 0], [304, 6, 2], [8, 60, 1], [156, 84, 3], [314, 150, 2]],
         };
 
@@ -136,14 +136,15 @@
 
         function draw(p, f) {
             scenery(p);
+            // "My", "Resume" and PRESS START all centred on the same line
             const [tx, ty] = LAYOUT.title;
             logo(p, 'My', {
-                x: tx, y: ty, size: 42, outlineWidth: 2,
+                x: tx, y: ty, anchor: 'center', size: 42, outlineWidth: 2,
                 bands: ['#fff3a6', '#ffd84a', '#ffb020', '#f28a12'], light: '#fffbe0', dark: '#c46200',
                 outline: INK, rim: '#ffffff', shadow: '#1d3f8a66',
             });
             logo(p, 'Resume', {
-                x: tx - 14, y: ty + 40, size: 36, outlineWidth: 2,
+                x: tx, y: ty + 40, anchor: 'center', size: 36, outlineWidth: 2,
                 bands: ['#ffffff', '#fff4ef', '#ffe0d6', '#ffc9b8'], light: '#ffffff', dark: '#f0a590',
                 outline: '#9e1712', rim: '#ffffff', shadow: '#1d3f8a66',
             });

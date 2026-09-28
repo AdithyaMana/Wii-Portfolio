@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 import { useChannels } from '../context/ChannelsContext';
-import { previewSrc } from '../channelArt';
+import { artUrl, previewSrc } from '../channelArt';
 
 export function SplashScreen({ onComplete }) {
     const [showWarning, setShowWarning] = useState(true);
@@ -73,7 +73,8 @@ export function SplashScreen({ onComplete }) {
                 '/channelart/linkedin/Linkedin Icon.webm',
             ];
 
-            channelArtImages.forEach(src => { const i = new Image(); i.src = src; });
+            // the tiles' channel.html pages ask for their art with the version on
+            channelArtImages.forEach(src => { const i = new Image(); i.src = src.endsWith('.webp') ? artUrl(src) : src; });
             channelArtVideos.forEach(src => {
                 const v = document.createElement('video');
                 v.preload = 'auto'; v.muted = true; v.src = src; v.load();
@@ -98,7 +99,7 @@ export function SplashScreen({ onComplete }) {
                 a.load();
 
                 // Channel HTML prefetch
-                fetch(`/${channel.channelart}${channel.id}/channel.html`).catch(() => {});
+                fetch(artUrl(`/${channel.channelart}${channel.id}/channel.html`)).catch(() => {});
             });
         };
 

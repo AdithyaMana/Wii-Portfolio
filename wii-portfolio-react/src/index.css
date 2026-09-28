@@ -1018,9 +1018,9 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     filter: contrast(1.05) saturate(1.05);
 }
 
-/* Pixel-art channels (DS and 8-bit): keep each art pixel a hard-edged
-   square at any size, and crop evenly so the title up top and the UI along
-   the bottom both stay in frame */
+/* Pixel-art channels (DS, 8-bit and 16-bit): keep each art pixel a
+   hard-edged square at any size, and crop evenly so the title up top and the
+   UI along the bottom both stay in frame */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
@@ -1028,11 +1028,16 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 .ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="linkedin"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="betterposter"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="icca-report"] .ch-logo {
     object-position: center;
     image-rendering: pixelated;
+}
+
+/* Overtone's art is painted at full size, so it gets the same even crop but
+   ordinary smooth scaling */
+.ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo {
+    object-position: center;
 }
 
 /* The <picture> that offers phones the tall art shouldn't add a box of its
@@ -1054,7 +1059,6 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
         max-height: none;
         object-fit: cover;
         object-position: center 20%;
-        image-rendering: pixelated;
     }
 }
 
@@ -1126,46 +1130,6 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 .ch-selection .wii-btn.disabled-btn {
     opacity: 0.5;
     pointer-events: none;
-}
-
-/* Case Study Under Progress notification — anchored to the foot of the art
-   (the logo container stops 15vh above the bottom), clear of the title the
-   pixel art puts in its top-left corner */
-.ch-progress-notification {
-    position: absolute;
-    bottom: calc(15vh + 2vh);
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(to bottom, #f0f0f0, #d0d0d0);
-    border: 3px solid #888;
-    border-radius: 12px;
-    padding: 1.5vh 3vw;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 100;
-    animation: notification-bounce 0.5s ease-out;
-}
-
-.ch-progress-notification span {
-    font-size: 2.5vh;
-    color: #444;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-@keyframes notification-bounce {
-    0% {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-    }
-
-    60% {
-        transform: translateX(-50%) translateY(5px);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
 }
 
 /* Legacy button support - hide old styles */

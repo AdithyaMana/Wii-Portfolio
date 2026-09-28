@@ -14,11 +14,11 @@
         const LAYOUT = TALL ? {
             icca: [67, 22], report: [67, 58], tagline: [67, 80], start: [67, 98],
             temple: [67, 150, 80], rock: [14, 121, 150], sea: 174, key: 224, sun: [110, 116], land: [190, 4],
-            clouds: [[4, 4, 0.8]], cypress: [[10, 212, 26], [126, 214, 22]], houses: [0, 198, 135, 222], gull: [30, 112],
+            clouds: [[4, 4, 0.8]], cypress: [[11, 218, 34], [24, 219, 22], [124, 218, 32], [111, 219, 20]], gull: [30, 112],
         } : {
             icca: [72, 15], report: [72, 48], tagline: [72, 67], start: [72, 84],
             temple: [182, 78, 80], rock: [128, 236, 78], sea: 94, key: 122, sun: [220, 20], land: [106, 6],
-            clouds: [[118, 6, 0.8]], cypress: [[8, 120, 26], [232, 120, 24]], houses: [0, 110, 128, 121], gull: [118, 40],
+            clouds: [[118, 6, 0.8]], cypress: [[10, 121, 34], [23, 121, 22], [229, 121, 32], [216, 121, 20]], gull: [118, 40],
         };
 
         function sky(p) {
@@ -110,28 +110,33 @@
             }
         }
 
-        function houses(p) {
-            const [x0, y0, x1, y1] = LAYOUT.houses, rand = rng(11);
-            for (let i = 0; i < 26; i++) {
-                const w = 6 + Math.floor(rand() * 6), h = 5 + Math.floor(rand() * 4);
-                const x = x0 + Math.floor(rand() * (x1 - x0 - w)), y = y0 + Math.floor(rand() * (y1 - y0));
-                p.rect(x - 1, y - h - 1, w + 2, h + 2, NES.black);
-                p.rect(x, y - h, w, h, NES.white);
-                p.rect(x, y - h, w, 1, rand() < 0.5 ? NES.rust : NES.cream);
-                p.set(x + 2, y - h + 3, NES.blue);
-                if (w > 8) p.set(x + w - 3, y - h + 3, NES.blue);
+        // Italian cypress: a tall flame of foliage lit from the left, its edge
+        // bulging every few rows so it reads as clumps, on a short trunk
+        function cypress(p, x, base, h) {
+            const top = base - 4 - h, m = new Mask(15, h + 2), half = [];
+            for (let j = 0; j < h; j++) {
+                const t = j / h, body = t < 0.35 ? (t / 0.35) * 4 : t < 0.8 ? 4 : 4 - ((t - 0.8) / 0.2) * 2;
+                half.push(Math.max(0, Math.round(body)) + (j % 5 < 2 && t > 0.15 ? 1 : 0));
+                for (let dx = -half[j]; dx <= half[j]; dx++) m.set(7 + dx, j + 1);
             }
+            p.rect(x - 1, base - 4, 3, 5, NES.black);
+            p.rect(x, base - 4, 1, 4, NES.olive);
+            p.mask(m.grow(false), NES.black, x - 7, top - 1);
+            p.mask(m, (mx, my) => {
+                const j = my - 1, dx = mx - 7, w = half[j];
+                if (w > 1 && dx >= w - 1) return NES.forest;
+                if (dx < 0 && (j * 2 + dx * 3) % 7 === 0) return NES.mint;
+                if (dx > 0 && (j + dx) % 6 === 0) return NES.forest;
+                return NES.green;
+            }, x - 7, top - 1);
         }
 
-        function cypress(p, x, base, h) {
-            for (let y = 0; y < h; y++) {
-                const half = Math.round(3.5 * Math.sin(Math.PI * Math.min(1, (y + 2) / h)) + 0.5);
-                p.rect(x - half - 1, base - y, half * 2 + 3, 1, NES.black);
-            }
-            for (let y = 1; y < h - 1; y++) {
-                const half = Math.round(3.5 * Math.sin(Math.PI * Math.min(1, (y + 2) / h)) + 0.5);
-                p.rect(x - half, base - y, half * 2 + 1, 1, NES.forest);
-                if (y % 4 < 2) p.rect(x - half + 1, base - y, 1, 1, NES.green);
+        // a few low shrubs dotted over the city's ground
+        function shrubs(p) {
+            const [top, rise] = LAYOUT.land, rand = rng(15);
+            for (let i = 0; i < (TALL ? 7 : 9); i++) {
+                const x = 30 + Math.floor(rand() * (NW - 60)), y = Math.round(top - rise * x / NW) + 5 + Math.floor(rand() * (LAYOUT.key - top - 9));
+                p.sprite(['.KKK.', 'KMGGK', 'KGGFK', '.KKK.'], { K: NES.black, M: NES.mint, G: NES.green, F: NES.forest }, x, y);
             }
         }
 
@@ -166,7 +171,7 @@
             sea(p, f);
             rock(p);
             land(p);
-            houses(p);
+            shrubs(p);
             temple(p, f);
             LAYOUT.cypress.forEach(([x, base, h]) => cypress(p, x, base, h));
             meander(p);

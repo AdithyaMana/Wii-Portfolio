@@ -7,77 +7,116 @@
 <body>
     <pre id="out"></pre>
     <script src="pixel.js"></script>
+    <script src="credit-icons.js"></script>
     <script>
         const INK = '#0b3140';
-        const COLORS = ['#ff5d8f', '#ffb020', '#27c3a4', '#4c8dff', '#9b6bff', '#ff7a45', '#17b3d6'];
-
-        // The 14 CRediT contributor roles, in the taxonomy's order
-        const ROLES = ['bulb', 'database', 'chart', 'dollar', 'magnifier', 'flask', 'checklist', 'cube', 'code', 'person', 'shield', 'pie', 'pencil', 'review'];
-        const HOVER = 11;
-
-        // Wii-style pointing hand
-        const HAND = [
-            '.....KK.........',
-            '....KWWK........',
-            '....KWWK........',
-            '....KWWK........',
-            '....KWWKKK......',
-            '....KWWKWWKKK...',
-            '....KWWKWWKWWKK.',
-            '.KK.KWWKWWKWWKLK',
-            'KWWKKWWWWWWWWKLK',
-            'KWWWKWWWWWWWWWLK',
-            '.KWWWWWWWWWWWWLK',
-            '..KWWWWWWWWWWWLK',
-            '..KWWWWWWWWWWLK.',
-            '...KWWWWWWWWWLK.',
-            '....KWWWWWWWLK..',
-            '.....KLLLLLLLK..',
-            '.....KKKKKKKKK..',
-        ];
-        const BIG_HAND = scale2x(HAND);
+        const WAX = ['#ffe28a', '#ffd059', '#ffbd3a', '#f5a524'], CELL_LINE = '#c9780c';
 
         // Where everything sits on the wide canvas and on the tall phone one
         const LAYOUT = TALL ? {
-            title: [12, 26], browser: [19, 100], badges: [25, 266],
-            twinkles: [[160, 30, 0], [8, 100, 2], [170, 256, 1], [12, 300, 3], [150, 96, 1]],
+            title: [90, 22, 'center'], browser: [17, 98, 146, 150], tagline: [90, 258, 'center'],
+            twinkles: [[166, 18, 0], [10, 90, 2], [168, 240, 1], [20, 296, 3], [160, 292, 1]],
         } : {
-            title: [12, 16], browser: [170, 14], badges: [14, 110],
-            twinkles: [[160, 20, 0], [158, 150, 2], [306, 164, 1], [150, 100, 3], [22, 152, 1]],
+            title: [14, 30, 'left'], browser: [174, 12, 134, 158], tagline: [16, 124, 'left'],
+            twinkles: [[160, 20, 0], [150, 158, 2], [316, 150, 1], [140, 104, 3], [24, 164, 1]],
         };
 
-        // Wallpaper of faint role icons drifting diagonally, a seamless loop
-        // every 12 frames: each diagonal of cells repeats the same icon
-        function wallpaper(p, f) {
-            const s = 24, off = f * 2;
-            for (let y = 0; y < PH; y++) {
-                for (let x = 0; x < PW; x++) {
-                    const odd = (Math.floor((x + s * 4 - off) / s) + Math.floor((y + s * 4 - off) / s)) & 1;
-                    p.set(x, y, odd ? '#1d9a90' : '#22a699');
-                }
+        // A pointy-top hexagon whose roofs climb one pixel for every two across
+        function hexMask(w, h) {
+            const m = new Mask(w, h), c = w / 2;
+            for (let y = 0; y < h; y++) {
+                const hw = Math.min(c, 2 * Math.min(y, h - 1 - y) + 1);
+                for (let x = c - hw; x < c + hw; x++) m.set(x, y);
             }
-            for (let b = -1; b <= Math.ceil(PH / s); b++) {
-                for (let a = -1; a <= Math.ceil(PW / s); a++) {
-                    if ((a + b) & 1) continue;
-                    const name = ROLES[(((a - b) / 2) % ROLES.length + ROLES.length) % ROLES.length];
-                    icon(p, name, a * s + off + 7, b * s + off + 7, '#3bbcad');
-                }
-            }
+            return m;
         }
 
-        function tile(p, name, x, y, color, hover) {
-            if (hover) {
-                p.frame(x - 1, y - 2, 26, 26, color, INK, 2);
-                p.rect(x + 2, y - 1, 20, 1, '#ffffff66');
-                icon(p, name, x + 2, y + 1, '#ffffff', 2);
-                return;
+        // The honeycomb: the 14 roles as cells in rows of 2-3-4-3-2, which
+        // together make one big hexagon. Cells are 22px, 26px apart.
+        const CELL = hexMask(22, 22), STEP = 26, ROW = 20, ROWS = [2, 3, 4, 3, 2];
+        const CELLS = [];
+        ROWS.forEach((n, r) => {
+            for (let i = 0; i < n; i++) CELLS.push({ role: CELLS.length, x: 39 + (i - (n - 1) / 2) * STEP, y: r * ROW });
+        });
+        const COMB_W = 3 * STEP + 22, COMB_H = (ROWS.length - 1) * ROW + 22, PAD = 5;
+
+        // wax fills the walls between cells and follows their outline outside
+        const WAX_MASK = (() => {
+            let m = new Mask(COMB_W + PAD * 2, COMB_H + PAD * 2);
+            CELLS.forEach(c => { for (let y = 0; y < 22; y++) for (let x = 0; x < 22; x++) if (CELL.get(x, y)) m.set(PAD + c.x + x, PAD + c.y + y); });
+            for (let k = 0; k < 3; k++) m = m.grow(true);
+            return m;
+        })();
+        const WAX_EDGE = WAX_MASK.grow(false), CELL_EDGE = CELL.grow(false);
+
+        // Honey fills one cell after another round the middle of the comb
+        const HONEY_ROUTE = [3, 8, 10, 5];
+        const honeyCell = f => HONEY_ROUTE[Math.floor(f / 3)];
+
+        function comb(p, f, X, Y) {
+            const ox = X - PAD, oy = Y - PAD, landed = honeyCell(f);
+            p.mask(WAX_EDGE, INK, ox - 1, oy - 1);
+            p.mask(WAX_MASK, (mx, my) => {
+                const t = my / WAX_MASK.h, k = Math.min(WAX.length - 1, Math.floor(t * WAX.length));
+                return !WAX_MASK.get(mx, my - 1) ? '#fff2c2' : WAX[k];
+            }, ox, oy);
+            CELLS.forEach(c => {
+                const x = X + c.x, y = Y + c.y, honey = c.role === landed;
+                p.mask(CELL_EDGE, CELL_LINE, x - 1, y - 1);
+                p.mask(CELL, (mx, my) => {
+                    if (honey) return my < 8 ? '#ffe690' : my < 15 ? '#ffd45c' : '#ffc23a';
+                    return !CELL.get(mx, my + 1) || !CELL.get(mx + 1, my + 1) ? '#f6dca4' : '#fff8e6';
+                }, x, y);
+                if (honey) p.rect(x + 5, y + 5, 3, 1, '#ffffff');
+                roleIcon(p, c.role, x + 4, y + 4 - (honey ? 1 : 0), { ink: INK });
+            });
+        }
+
+        const BEE = {
+            up: [
+                '....LLL.LLL....',
+                '...LWWWLWWWL...',
+                '...LWWWLWWWL...',
+                '....LLLKLLL.K..',
+                '...KKKKKKKKKK..',
+                '..KYYKYYKYKKKK.',
+                'KKYYYKYYKYKKWKK',
+                '..KYYKYYKYKKKK.',
+                '...KKKKKKKKKK..',
+            ],
+            down: [
+                '...............',
+                '...............',
+                '...........K...',
+                '....KKKKKKK.K..',
+                '..LLLKYYKKKKKK.',
+                '.LWWWLYYKYKKWKK',
+                'KLWWWLYYKYKKKK.',
+                '..LLLKYYKYKKKK.',
+                '...KKKKKKKKKK..',
+            ],
+        };
+        // a bee perched in the notch between the two top cells
+        function bee(p, f, X, Y) {
+            const bob = [0, 0, -1, -1][f % 4], x = X + 39 - 7, y = Y - 6 + bob;
+            p.sprite(f % 2 ? BEE.down : BEE.up, { K: INK, Y: '#ffd23f', W: '#ffffff', L: '#9fdcf5' }, x, y);
+        }
+
+        // Faint honeycomb on the wallpaper, sliding left three pixels a frame
+        function wallpaper(p, f) {
+            p.rect(0, 0, PW, PH, '#22a699');
+            const W = 36, H = 36, cell = hexMask(W, H), edge = new Mask(W, H);
+            for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+                if (cell.get(x, y) && (!cell.get(x - 1, y) || !cell.get(x, y - 1) || !cell.get(x + 1, y) || !cell.get(x, y + 1))) edge.set(x, y);
             }
-            p.frame(x, y, 24, 24, '#ffffff', '#c5dde0', 2);
-            icon(p, name, x + 2, y + 2, color, 2);
+            const off = (f * 3) % W;
+            for (let r = -1; r * 27 < PH; r++) {
+                for (let c = -2; c * W < PW + W; c++) p.mask(edge, '#1d9a90', c * W + (r & 1 ? W / 2 : 0) - off, r * 27);
+            }
         }
 
         function browser(p, f) {
-            const [X, Y] = LAYOUT.browser, W = 142, H = 146;
+            const [X, Y, W, H] = LAYOUT.browser;
             p.frame(X, Y, W, H, '#f7fbfb', INK, 2);
             p.panel(X + 2, Y + 2, W - 4, 12, '#2c6f7a', 1);
             ['#ff6b6b', '#ffcf40', '#3ddc84'].forEach((c, i) => p.disc(X + 9 + i * 7, Y + 8, 2, c));
@@ -88,65 +127,30 @@
             icon(p, 'magnifier', X + 9, Y + 19, '#7aa6ab');
             [[X + 22, 26], [X + 50, 18], [X + 70, 30]].forEach(([x, w]) => p.rect(x, Y + 23, w, 2, '#cfe2e4'));
 
-            const gx = X + 7, gy = Y + 36;
-            ROLES.forEach((name, i) => {
-                if (i === HOVER) return;
-                tile(p, name, gx + (i % 5) * 26, gy + Math.floor(i / 5) * 26, COLORS[i % COLORS.length], false);
-            });
-            const hx = gx + (HOVER % 5) * 26, hy = gy + Math.floor(HOVER / 5) * 26;
-            tile(p, ROLES[HOVER], hx, hy, COLORS[HOVER % COLORS.length], true);
-
-            // role name and download button, pressed on the click frames
-            text(p, 'VISUALIZATION', X + 8, Y + 118, { color: INK });
-            const press = f % 6 === 4 ? 1 : 0;
-            const bx = X + 8, by = Y + 128 + press, bw = 78;
-            p.frame(bx, by, bw, 13, press ? '#e8612e' : '#ff7a45', INK, 1);
-            if (!press) p.rect(bx + 2, by + 1, bw - 4, 1, '#ffb08a');
-            // glint sweeping across the button
-            const gxp = bx - 8 + (f % 12) * 8;
-            for (let j = 0; j < 11; j++) {
-                const sx = gxp + (10 - j);
-                if (sx > bx && sx < bx + bw - 2) p.set(sx, by + 1 + j, '#ffffff66');
-            }
-            text(p, 'DOWNLOAD', bx + 6, by + 3, { color: '#fff' });
-            p.sprite(['..#..', '..#..', '#####', '.###.', '..#..'], { '#': '#fff' }, bx + bw - 13, by + 4);
-            return [bx + bw - 12, by + 7];
-        }
-
-        // A few big role badges bobbing in a wave
-        function badges(p, f) {
-            const [x0, y0] = LAYOUT.badges;
-            ['bulb', 'database', 'code', 'pencil'].forEach((name, i) => {
-                const x = x0 + i * 34, y = y0 + Math.round(Math.sin(((f + i * 3) / 12) * Math.PI * 2) * 2);
-                const c = ['#ff5d8f', '#ffb020', '#4c8dff', '#ff7a45'][i];
-                p.rect(x + 2, y0 + 28, 24, 2, '#0b314055');
-                p.frame(x, y, 28, 28, c, INK, 2);
-                p.rect(x + 3, y + 1, 22, 1, '#ffffff66');
-                icon(p, name, x + 4, y + 4, '#ffffff', 2);
-            });
+            const cx = Math.round(X + (W - COMB_W) / 2), cy = Math.round(Y + 30 + (H - 30 - COMB_H) / 2);
+            comb(p, f, cx, cy);
+            bee(p, f, cx, cy);
         }
 
         function draw(p, f) {
             wallpaper(p, f);
-            const [tx, ty] = LAYOUT.title;
-            text(p, 'CASE STUDY', tx, ty, { color: '#fff', outline: INK });
+            const [tx, ty, anchor] = LAYOUT.title;
+            text(p, 'CASE STUDY', tx + (anchor === 'left' ? 2 : 0), ty, { color: '#fff', outline: INK, anchor });
             logo(p, 'CRediT Role Icon', {
-                x: tx - 2, y: ty + 12, size: 19, outlineWidth: 2, dotGap: 2,
+                x: tx, y: ty + 12, anchor, size: 19, outlineWidth: 2, dotGap: 2,
                 bands: ['#ffffff', '#f4eeff', '#e3d6ff', '#cdb8ff'], light: '#ffffff', dark: '#b39ce8',
                 outline: INK, rim: '#ffffff', shadow: '#06242e99',
             });
             logo(p, 'Website', {
-                x: tx - 2, y: ty + 32, size: 40, outlineWidth: 2,
+                x: tx, y: ty + 32, anchor, size: 40, outlineWidth: 2,
                 bands: ['#fff0c2', '#ffd07a', '#ff9f4a', '#f0702a'], light: '#fffbe8', dark: '#c04a10',
                 outline: INK, rim: '#ffffff', shadow: '#06242e99',
             });
+            const [gx, gy, ga] = LAYOUT.tagline;
+            text(p, '14 CONTRIBUTOR ROLES', gx, gy, { color: '#fff', outline: INK, anchor: ga });
+            text(p, 'ONE ICON FOR EACH', gx, gy + 11, { color: '#ffe28a', outline: INK, anchor: ga });
 
-            badges(p, f);
-            const [cx, cy] = browser(p, f);
-            // fingertip on the button: hovers, then taps it every six frames
-            const tap = [0, 0, 1, 2, 3, 1][f % 6];
-            p.sprite(BIG_HAND, { K: INK, W: '#ffffff', L: '#b8e4f2' }, cx - 11, cy - 5 + tap - 2);
-            if (f % 6 === 4) { p.ring(cx, cy + 1, 5, '#ffffff'); p.ring(cx, cy + 1, 7, '#ffd23f'); }
+            browser(p, f);
             LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
         }
 

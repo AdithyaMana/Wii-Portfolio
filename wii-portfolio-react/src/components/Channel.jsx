@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
+import { artUrl } from '../channelArt';
 
 export const Channel = memo(function Channel({ channel, isBlank, onClick, onHover, className = '' }) {
     const { playSFX } = useAudio();
@@ -27,7 +28,7 @@ export const Channel = memo(function Channel({ channel, isBlank, onClick, onHove
                 <img src="/channelart/disc/disc.png" className="spinnin" alt="Disc" loading="lazy" />
             )}
             <iframe
-                src={`/${channel.channelart}${channel.id}/channel.html`}
+                src={artUrl(`/${channel.channelart}${channel.id}/channel.html`)}
                 title={channel.title}
                 style={{ border: 'none', pointerEvents: 'none' }}
                 allow="autoplay; encrypted-media"
