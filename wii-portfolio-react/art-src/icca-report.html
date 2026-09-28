@@ -54,14 +54,6 @@
                 p.set(b, y, NES.black);
             }
             p.rect(l, top - 1, r - l, 1, NES.black);
-            // scrub clinging to the slopes
-            const rand = rng(9);
-            for (let i = 0; i < 9; i++) {
-                const y = top + 6 + Math.floor(rand() * (sea - top - 10)), t = (y - top) / (sea - top);
-                const x = rand() < 0.5 ? Math.round(l - t * t * 26 + 2 + rand() * 8) : Math.round(r + t * t * 16 - 10 + rand() * 6);
-                p.disc(x, y, 2, NES.black);
-                p.disc(x, y, 1, NES.green);
-            }
         }
 
         // The Parthenon: steps, eight columns, the frieze, the pediment
@@ -131,15 +123,6 @@
             }, x - 7, top - 1);
         }
 
-        // a few low shrubs dotted over the city's ground
-        function shrubs(p) {
-            const [top, rise] = LAYOUT.land, rand = rng(15);
-            for (let i = 0; i < (TALL ? 7 : 9); i++) {
-                const x = 30 + Math.floor(rand() * (NW - 60)), y = Math.round(top - rise * x / NW) + 5 + Math.floor(rand() * (LAYOUT.key - top - 9));
-                p.sprite(['.KKK.', 'KMGGK', 'KGGFK', '.KKK.'], { K: NES.black, M: NES.mint, G: NES.green, F: NES.forest }, x, y);
-            }
-        }
-
         // Greek key border along the bottom
         function meander(p) {
             const y0 = LAYOUT.key;
@@ -171,7 +154,6 @@
             sea(p, f);
             rock(p);
             land(p);
-            shrubs(p);
             temple(p, f);
             LAYOUT.cypress.forEach(([x, base, h]) => cypress(p, x, base, h));
             meander(p);
