@@ -1,0 +1,68 @@
+name: Deploy to Firebase Hosting
+
+# Builds the site and publishes it to Firebase Hosting (the "akiraux" site in
+# firebase.json) whenever main changes, or when run by hand from the Actions
+# tab. It needs the FIREBASE_SERVICE_ACCOUNT repository secret: the JSON key
+# of a service account that can deploy to the wii-portfolio-adi project.
+# Until that secret is set, the deploy is skipped rather than failing.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-hosting
+
+jobs:
+  check:
+    name: Check for Firebase credentials
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.secret.outputs.ready }}
+    steps:
+      - name: Look for the service account secret
+        id: secret
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$SERVICE_ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping the Firebase deploy: add the FIREBASE_SERVICE_ACCOUNT repository secret to turn it on."
+          fi
+
+  deploy:
+    name: Build and deploy
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: wii-portfolio-react/package-lock.json
+
+      - name: Install dependencies
+        working-directory: wii-portfolio-react
+        run: npm ci
+
+      - name: Build
+        working-directory: wii-portfolio-react
+        run: npm run build
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: wii-portfolio-adi
+          channelId: live
