@@ -1018,28 +1018,48 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     filter: contrast(1.05) saturate(1.05);
 }
 
-/* Credit Website art (1536x1024) has its title text near the bottom — stay
-   anchored low so the crop eats sky, not the title, but off the very
-   bottom edge so the art reads a little lower in frame */
-.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo {
-    object-position: center 80%;
-}
-
-/* DS pixel-art channels: keep each art pixel a hard-edged square at any
-   size, and crop evenly so the title up top and the dialogue box or UI
-   along the bottom both stay in frame */
+/* Pixel-art channels (DS, 8-bit and 16-bit): keep each art pixel a
+   hard-edged square at any size, and crop evenly so the title up top and the
+   UI along the bottom both stay in frame */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo {
+.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="linkedin"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="betterposter"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="icca-report"] .ch-logo {
     object-position: center;
     image-rendering: pixelated;
 }
 
-/* GitHub is pixel art: keep it crisp and uncropped */
-.ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
-    object-fit: contain;
-    transform: scale(1.5);
-    image-rendering: pixelated;
+/* Overtone's art is painted at full size, so it gets the same even crop but
+   ordinary smooth scaling */
+.ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo {
+    object-position: center;
+}
+
+/* The <picture> that offers phones the tall art shouldn't add a box of its
+   own around the image */
+.ch-selection .ch-logo-container picture {
+    display: contents;
+}
+
+/* Phones and other portrait screens: a channel with tall art fills the
+   whole preview with it rather than sitting in a letterboxed band. Short
+   screens crop the bottom first, where the scenes keep their least
+   important details. Keep the query in step with MOBILE_ART_QUERY in
+   channelArt.js. */
+@media (max-aspect-ratio: 3/4) {
+    .ch-selection .ch-logo-container[data-mobile-art] .ch-logo {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        object-position: center 20%;
+    }
 }
 
 /* Disc is a small graphic on black — contain it */
@@ -1110,44 +1130,6 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 .ch-selection .wii-btn.disabled-btn {
     opacity: 0.5;
     pointer-events: none;
-}
-
-/* Case Study Under Progress notification */
-.ch-progress-notification {
-    position: absolute;
-    top: 3vh;
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(to bottom, #f0f0f0, #d0d0d0);
-    border: 3px solid #888;
-    border-radius: 12px;
-    padding: 1.5vh 3vw;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 100;
-    animation: notification-bounce 0.5s ease-out;
-}
-
-.ch-progress-notification span {
-    font-size: 2.5vh;
-    color: #444;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-@keyframes notification-bounce {
-    0% {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-    }
-
-    60% {
-        transform: translateX(-50%) translateY(5px);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
 }
 
 /* Legacy button support - hide old styles */
@@ -2694,11 +2676,6 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     .ch-selection video.ch-logo {
         width: 100vw;
         height: auto;
-    }
-
-    /* The desktop pixel-art zoom overflows small screens */
-    .ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
-        transform: none;
     }
 
     /* Nav arrows: comfortable thumb targets at screen edges */

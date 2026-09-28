@@ -2,207 +2,293 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BetterPoster art</title>
-    <style>
-        @font-face { font-family: 'Rodin'; src: url('../public/fonts/FOT-Rodin%20Pro%20B.otf'); }
-        html, body { margin: 0; background: transparent; overflow: hidden; }
-        svg { display: block; }
-    </style>
+    <title>BetterPoster 16-bit art</title>
 </head>
 <body>
-    <svg id="art" xmlns="http://www.w3.org/2000/svg"></svg>
-    <script src="lib.js"></script>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script src="nes.js"></script>
     <script>
-        const INK = '#173a2a';
+        // BetterPoster as a 16-bit Sonic zone: Green Hill checkered soil, a
+        // loop, palms and a glittering sea, spinning rings, the zone's title
+        // card and a signpost holding up a #betterposter. Painted at 480x270
+        // (270x480 tall), finer than the other pixel scenes.
+        const SW = TALL ? 270 : 480, SH = TALL ? 480 : 270;
+        const INK = '#101020';
+        const SKY = ['#1848c8', '#2058d8', '#3070e0', '#4890e8', '#68b0f0', '#90d0f8'];
+        const SOIL = ['#c86818', '#8c4010'], GRASS = ['#78e030', '#38b018', '#187808'];
+        const GOLD = { hi: '#fff8a0', lit: '#f8e040', mid: '#e0a800', dark: '#a86800', edge: '#583000' };
 
-        function qr(parent, x, y, size) {
-            const n = 21, m = size / (n + 2);
-            const rand = rng(42);
-            const g = el('g', { transform: `translate(${x} ${y})` }, parent);
-            el('rect', { width: size, height: size, rx: 6, fill: '#fff' }, g);
-            const finder = (cx, cy) => (c, r) => c >= cx && c < cx + 7 && r >= cy && r < cy + 7;
-            const finders = [finder(0, 0), finder(n - 7, 0), finder(0, n - 7)];
-            for (let r = 0; r < n; r++) {
-                for (let c = 0; c < n; c++) {
-                    if (finders.some(f => f(c, r)) || (c < 8 && r < 8) || (c > n - 9 && r < 8) || (c < 8 && r > n - 9)) continue;
-                    if (rand() > 0.52) el('rect', { x: (c + 1) * m, y: (r + 1) * m, width: m + 0.4, height: m + 0.4, fill: INK }, g);
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            sea: [218, 254], ground: 372, loop: [186, 312, 56], palms: [[36, 372, 84, 1]],
+            clouds: [[20, 176, 30], [150, 190, 40], [80, 202, 24]], hills: [[80, 254, 70, 26], [220, 254, 50, 18]],
+            rings: [[58, 292], [78, 283], [98, 279], [118, 283]], sign: [86, 372],
+            hud: [30, 34], title: [135, 88, 'center'], tagline: [135, 166, ['EVIDENCE-BASED', 'POSTER TEMPLATES']], flowers: [124, 252],
+        } : {
+            sea: [138, 176], ground: 222, loop: [396, 164, 52], palms: [[26, 222, 78, 1], [318, 222, 60, -1]],
+            clouds: [[260, 28, 40], [150, 70, 30], [360, 10, 34], [40, 112, 26]], hills: [[130, 176, 70, 22], [270, 176, 56, 16]],
+            rings: [[182, 170], [202, 160], [222, 156], [242, 160], [262, 170]], sign: [150, 222],
+            hud: [14, 24], title: [20, 66, 'left'], tagline: [22, 146, ['EVIDENCE-BASED POSTER TEMPLATES']], flowers: [96, 260, 460],
+        };
+
+        // ---- scenery
+        function sky(p) {
+            const [seaTop] = LAYOUT.sea;
+            for (let y = 0; y < seaTop; y++) {
+                const t = y / seaTop, k = Math.min(SKY.length - 1, Math.floor(t * SKY.length));
+                // dither the seams between bands like the Mega Drive would
+                const e = t * SKY.length - k, c = e > 0.75 && k < SKY.length - 1 && (y + 0) % 2 === 0 ? SKY[k + 1] : SKY[k];
+                p.rect(0, y, SW, 1, c);
+            }
+            LAYOUT.clouds.forEach(([x, y, w]) => cloud(p, x, y, w));
+        }
+
+        function cloud(p, x, y, w) {
+            const h = Math.round(w / 3);
+            for (let j = 0; j < h; j++) {
+                for (let i = 0; i < w; i++) {
+                    const u = (i - w / 2) / (w / 2), v = (j - h) / h;
+                    const puff = 0.55 + 0.25 * Math.cos(u * 7) * (1 - Math.abs(u));
+                    if (u * u + (v / puff) ** 2 > 1) continue;
+                    p.set(x + i, y + j, j > h * 0.7 ? '#b8dcff' : j > h * 0.45 ? '#e0f0ff' : '#ffffff');
                 }
             }
-            [[0, 0], [n - 7, 0], [0, n - 7]].forEach(([c, r]) => {
-                el('rect', { x: (c + 1) * m, y: (r + 1) * m, width: 7 * m, height: 7 * m, fill: INK }, g);
-                el('rect', { x: (c + 2) * m, y: (r + 2) * m, width: 5 * m, height: 5 * m, fill: '#fff' }, g);
-                el('rect', { x: (c + 3) * m, y: (r + 3) * m, width: 3 * m, height: 3 * m, fill: INK }, g);
+        }
+
+        // far-off island cliffs with waterfalls, then the glittering sea
+        function island(p, f, cx, top, rx, h) {
+            const base = LAYOUT.sea[0];
+            for (let x = cx - rx; x <= cx + rx; x++) {
+                const u = (x - cx) / rx, y0 = Math.round(base - h * Math.sqrt(Math.max(0, 1 - u ** 4)));
+                for (let y = y0; y < base; y++) {
+                    const rock = y > y0 + 3;
+                    p.set(x, y, !rock ? (y === y0 ? '#88e060' : '#40a030') : ((x >> 2) + (y >> 2)) % 2 ? '#306858' : '#285848');
+                }
+            }
+            // two waterfalls, their stripes running down a pixel a frame
+            [-0.4, 0.35].forEach(k => {
+                const wx = Math.round(cx + k * rx);
+                for (let y = base - h + 6; y < base; y++) {
+                    for (let i = 0; i < 4; i++) p.set(wx + i, y, (y + i - f * 2) % 6 < 2 ? '#ffffff' : '#a8d8ff');
+                }
             });
         }
 
-        // A #betterposter: skinny side columns, the plain-language finding
-        // huge in the green middle, QR code for the full paper.
-        function poster(parent, defs, { x, y, scale = 1, rotate = 0 }) {
-            const Wp = 820, Hp = 540;
-            const g = el('g', { transform: `translate(${x} ${y}) rotate(${rotate}) scale(${scale}) translate(${-Wp / 2} 0)` }, parent);
-            el('rect', { x: -6, y: -6, width: Wp + 12, height: Hp + 12, rx: 18, fill: INK, filter: 'url(#posterShadow)' }, g);
-            el('rect', { width: Wp, height: Hp, rx: 13, fill: '#fdfcf7' }, g);
-
-            // left column: title, authors, sections
-            [[190, '#23332b'], [172, '#23332b'], [118, '#23332b']].forEach(([w, c], i) =>
-                el('rect', { x: 22, y: 26 + i * 26, width: w, height: 16, rx: 8, fill: c }, g));
-            el('rect', { x: 22, y: 112, width: 150, height: 10, rx: 5, fill: '#8aa39a' }, g);
-            el('rect', { x: 22, y: 130, width: 110, height: 10, rx: 5, fill: '#8aa39a' }, g);
-            for (let s = 0; s < 3; s++) {
-                const sy = 170 + s * 120;
-                el('rect', { x: 22, y: sy, width: 92, height: 13, rx: 6, fill: '#1d9a55' }, g);
-                [196, 180, 190, 150, 170].forEach((w, i) =>
-                    el('rect', { x: 22, y: sy + 26 + i * 16, width: w, height: 8, rx: 4, fill: '#c9d3cd' }, g));
+        function sea(p, f) {
+            const [top, bottom] = LAYOUT.sea;
+            for (let y = top; y < bottom; y++) {
+                const t = (y - top) / (bottom - top);
+                p.rect(0, y, SW, 1, t < 0.3 ? '#3878e0' : t < 0.65 ? '#2860c8' : '#2050b0');
             }
-
-            // centre: the one finding, in plain English
-            el('rect', { x: 246, y: 18, width: 328, height: Hp - 36, rx: 10, fill: 'url(#posterGreen)' }, g);
-            const lines = [['Say the', '#fff'], ['main finding', '#ffe066'], ['in plain', '#fff'], ['English.', '#fff']];
-            lines.forEach(([t, c], i) => el('text', {
-                x: 272, y: 92 + i * 52, 'font-family': 'Rubik', 'font-weight': 700, 'font-size': 40, fill: c, text: t,
-            }, g));
-            [250, 230, 180].forEach((w, i) =>
-                el('rect', { x: 272, y: 296 + i * 18, width: w, height: 8, rx: 4, fill: '#fff', opacity: 0.45 }, g));
-            qr(g, 272, 386, 108);
-            el('text', { x: 398, y: 432, 'font-family': 'Rodin', 'font-size': 17, fill: '#fff', text: 'Scan for the' }, g);
-            el('text', { x: 398, y: 456, 'font-family': 'Rodin', 'font-size': 17, fill: '#fff', text: 'full paper' }, g);
-
-            // right column: the "ammo bar" of figures
-            const cx = 594;
-            el('rect', { x: cx, y: 22, width: 204, height: 170, rx: 8, fill: '#eef4ef' }, g);
-            [[62, '#9fdcae'], [88, '#6cc98a'], [118, '#3fb56b'], [148, '#1d9a55']].forEach(([h, c], i) =>
-                el('rect', { x: cx + 22 + i * 44, y: 176 - h, width: 30, height: h, rx: 5, fill: c }, g));
-            el('line', { x1: cx + 14, y1: 177, x2: cx + 192, y2: 177, stroke: '#23332b', 'stroke-width': 3 }, g);
-            el('rect', { x: cx, y: 210, width: 204, height: 130, rx: 8, fill: '#eef4ef' }, g);
-            el('polyline', {
-                points: `${cx + 18},318 ${cx + 60},290 ${cx + 100},300 ${cx + 140},252 ${cx + 186},232`,
-                fill: 'none', stroke: '#f2a73b', 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
-            }, g);
-            [[cx + 60, 290], [cx + 140, 252], [cx + 186, 232]].forEach(([px, py]) =>
-                el('circle', { cx: px, cy: py, r: 7, fill: '#fff', stroke: '#f2a73b', 'stroke-width': 4 }, g));
-            [190, 170, 184, 120, 160, 176].forEach((w, i) =>
-                el('rect', { x: cx + 6, y: 366 + i * 18, width: w, height: 8, rx: 4, fill: '#c9d3cd' }, g));
-            el('rect', { width: Wp, height: Hp, rx: 13, fill: 'none', stroke: INK, 'stroke-width': 6 }, g);
-            return g;
+            // glints: short white dashes that shimmer on and off
+            const rand = rng(11);
+            for (let i = 0; i < (TALL ? 26 : 44); i++) {
+                const x = Math.floor(rand() * SW), y = top + 2 + Math.floor(rand() * (bottom - top - 4)), ph = Math.floor(rand() * 4), w = 2 + Math.floor(rand() * 5);
+                if ((f + ph) % 4 < 2) p.rect(x, y, w, 1, (f + ph) % 4 ? '#b0e0ff' : '#ffffff');
+            }
         }
 
-        function easel(parent, { x, top, bottom, spread, ledgeY, ledgeW, back }) {
-            const g = el('g', {}, parent);
-            const wood = (x1, y1, x2, y2, w, color) => {
-                el('line', { x1, y1, x2, y2, stroke: '#4a2c12', 'stroke-width': w + 10, 'stroke-linecap': 'round' }, g);
-                el('line', { x1, y1, x2, y2, stroke: color, 'stroke-width': w, 'stroke-linecap': 'round' }, g);
-            };
-            if (back) wood(x, top + 20, x, bottom + 10, 20, '#9a6230');
-            wood(x - 18, top, x - spread, bottom, 26, '#c98a4b');
-            wood(x + 18, top, x + spread, bottom, 26, '#c98a4b');
-            return (board) => {
-                // ledge goes in front of the board
-                el('rect', { x: x - ledgeW / 2, y: ledgeY, width: ledgeW, height: 30, rx: 8, fill: '#c98a4b', stroke: '#4a2c12', 'stroke-width': 6 }, board);
-                el('rect', { x: x - ledgeW / 2 + 10, y: ledgeY + 6, width: ledgeW - 20, height: 7, rx: 3, fill: '#fff', opacity: 0.3 }, board);
-            };
+        // rolling green hills in the middle distance, with a lighter crest
+        function hills(p) {
+            LAYOUT.hills.forEach(([cx, base, rx, ry]) => {
+                for (let x = cx - rx; x <= cx + rx; x++) {
+                    const u = (x - cx) / rx, top = Math.round(base - ry * Math.cos(u * Math.PI / 2));
+                    for (let y = top; y < base + 12; y++) p.set(x, y, y < top + 2 ? '#70d040' : ((x + y) >> 3) % 2 ? '#30a028' : '#289020');
+                }
+            });
         }
 
-        function badge(parent, { x, y, r, rotate, icon }) {
-            const g = sticker(parent, { x, y, r, rotate, fill: 'url(#badgeFill)', ring: '#178a4b', ringW: 10, shadow: 'rgba(10,60,30,0.3)', gloss: 0.6 });
-            icon(g, r);
+        // the meadow between the sea and the soil: bushy tops, then diamonds
+        function meadow(p) {
+            const top = LAYOUT.sea[1] - 4, gy = LAYOUT.ground;
+            for (let x = 0; x < SW; x++) {
+                const edge = Math.round(top + 2.5 * Math.sin(x / 7) + 1.5 * Math.sin(x / 3.1 + 1));
+                for (let y = edge; y < gy; y++) {
+                    const diamond = ((Math.abs(((x + y) % 16) - 8) + Math.abs(((x - y + 1600) % 16) - 8)) < 7);
+                    p.set(x, y, y < edge + 2 ? '#88e050' : y < edge + 5 ? '#48b830' : diamond ? '#309828' : '#207818');
+                }
+            }
         }
 
-        function stopwatch(g, r) {
-            const s = r / 70;
-            el('rect', { x: -10 * s, y: -52 * s, width: 20 * s, height: 16 * s, rx: 4 * s, fill: INK }, g);
-            el('circle', { cy: -8 * s, r: 30 * s, fill: '#fff', stroke: INK, 'stroke-width': 7 * s }, g);
-            el('path', { d: `M0,${-8 * s} L0,${-30 * s} A${22 * s},${22 * s} 0 0 1 ${19 * s},${-19 * s} Z`, fill: '#5fd48a' }, g);
-            el('line', { x1: 0, y1: -8 * s, x2: 0, y2: -30 * s, stroke: INK, 'stroke-width': 5 * s, 'stroke-linecap': 'round' }, g);
-            el('text', { y: 50 * s, 'text-anchor': 'middle', 'font-family': 'Rubik', 'font-weight': 700, 'font-size': 26 * s, fill: INK, text: '5 SEC' }, g);
+        // the checkered soil with its grass lip
+        function ground(p) {
+            const gy = LAYOUT.ground;
+            for (let y = gy; y < SH; y++) {
+                for (let x = 0; x < SW; x++) {
+                    const cx = Math.floor(x / 12), cy = Math.floor((y - gy - 6) / 12), inX = x % 12, inY = (y - gy - 6 + 120) % 12;
+                    let c = (cx + cy) & 1 ? SOIL[1] : SOIL[0];
+                    if (inY === 0 || inX === 0) c = shade(c, 1.15);
+                    if (inY === 11 || inX === 11) c = shade(c, 0.8);
+                    p.set(x, y, c);
+                }
+            }
+            // grass: a bright top, a dark underside that hangs in tufts
+            for (let x = 0; x < SW; x++) {
+                const tuft = [3, 5, 6, 5, 3, 2][x % 6];
+                p.rect(x, gy - 2, 1, 2, GRASS[0]);
+                p.rect(x, gy, 1, 3, GRASS[1]);
+                p.rect(x, gy + 3, 1, tuft, GRASS[2]);
+            }
         }
 
-        function eye(g, r) {
-            const s = r / 70;
-            el('path', { d: `M${-44 * s},0 Q0,${-40 * s} ${44 * s},0 Q0,${40 * s} ${-44 * s},0Z`, fill: '#fff', stroke: INK, 'stroke-width': 6 * s, 'stroke-linejoin': 'round' }, g);
-            el('circle', { r: 17 * s, fill: '#1d9a55', stroke: INK, 'stroke-width': 4 * s }, g);
-            el('circle', { r: 7 * s, fill: INK }, g);
-            el('circle', { cx: 6 * s, cy: -6 * s, r: 4 * s, fill: '#fff' }, g);
-            [[-30, -30], [0, -40], [30, -30]].forEach(([dx, dy]) =>
-                el('line', { x1: dx * s * 1.2, y1: dy * s * 1.2, x2: dx * s * 1.38, y2: dy * s * 1.38, stroke: INK, 'stroke-width': 5 * s, 'stroke-linecap': 'round' }, g));
+        // the loop: a ring of checkered soil with grass round its inside
+        function loop(p) {
+            const [cx, cy, R] = LAYOUT.loop, T = 12;
+            for (let y = cy - R - 2; y <= cy + R + 6; y++) {
+                for (let x = cx - R - 2; x <= cx + R + 2; x++) {
+                    const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+                    if (d > R || y > LAYOUT.ground) continue;
+                    if (d < R - T - 4) continue;
+                    if (d < R - T) { p.set(x, y, d < R - T - 2 ? GRASS[0] : GRASS[1]); continue; }
+                    const a = Math.atan2(y - cy, x - cx), cell = (Math.floor((a + Math.PI) / (Math.PI / 12)) + (d > R - T / 2 ? 1 : 0)) & 1;
+                    p.set(x, y, d > R - 1 ? '#582808' : cell ? SOIL[1] : SOIL[0]);
+                }
+            }
         }
 
-        function hills(parent, defs, scaleX, scaleY, offsetY) {
-            const p = (d) => d.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (_, a, b) => `${a * scaleX},${b * scaleY + offsetY}`);
-            el('path', { d: p('M0,880 C400,800 800,850 1150,880 S1700,810 1920,790 L1920,1080 L0,1080Z'), fill: '#a6e39c' }, parent);
-            return () => {
-                el('path', { d: p('M0,965 C420,880 900,930 1300,955 S1760,905 1920,915 L1920,1080 L0,1080Z'), fill: 'url(#grass)', stroke: '#2f8f4a', 'stroke-width': 4 }, parent);
-            };
-        }
-
-        function background(bg, defs) {
-            el('rect', { width: W, height: H, fill: radial(defs, 'bgGrad', [[0, '#fffbe6'], [0.35, '#e8f8d8'], [0.75, '#a3dfb2'], [1, '#5cba7e']], { cx: '65%', cy: '52%', r: '80%' }) }, bg);
-            const cx = 1255, cy = 560, R = 2400, n = 26;
+        function palm(p, x, base, h, lean) {
+            // trunk of stacked segments curving gently
+            let tx = x, ty = base;
+            const n = Math.round(h / 6), tops = [];
             for (let i = 0; i < n; i++) {
-                const a1 = (i / n) * Math.PI * 2, a2 = ((i + 0.5) / n) * Math.PI * 2;
-                el('path', { d: `M${cx},${cy} L${cx + Math.cos(a1) * R},${cy + Math.sin(a1) * R} L${cx + Math.cos(a2) * R},${cy + Math.sin(a2) * R}Z`, fill: '#fff', opacity: 0.26 }, bg);
+                const nx = x + Math.round(lean * 10 * (i / n) ** 2), ny = base - (i + 1) * 6;
+                p.rect(nx - 3, ny, 7, 6, i % 2 ? '#a86828' : '#c88038');
+                p.rect(nx - 3, ny, 1, 6, '#704010');
+                p.rect(nx + 3, ny, 1, 6, '#704010');
+                p.rect(nx - 2, ny + 5, 5, 1, '#804818');
+                tx = nx; ty = ny;
             }
-            const pat = el('pattern', { id: 'dots', width: 26, height: 26, patternUnits: 'userSpaceOnUse' }, defs);
-            el('circle', { cx: 13, cy: 13, r: 4, fill: '#1d9a55' }, pat);
-            el('rect', { width: W, height: H, fill: 'url(#dots)', opacity: 0.12, mask: 'url(#dotMask)' }, bg);
-            const mask = el('mask', { id: 'dotMask' }, defs);
-            el('rect', { width: W, height: H, fill: radial(defs, 'dotFade', [[0.45, '#fff', 0], [1, '#fff', 1]], { cx: '65%', cy: '50%', r: '70%' }) }, mask);
+            // fronds drooping from the crown
+            [[-1, -0.25], [-0.75, 0.25], [-0.35, -0.55], [0.35, -0.55], [0.75, 0.25], [1, -0.25]].forEach(([dx, dy]) => {
+                let px = tx, py = ty;
+                for (let s = 1; s <= 22; s++) {
+                    const x1 = Math.round(tx + dx * s * 1.3), y1 = Math.round(ty + dy * s + 0.035 * s * s);
+                    const w = s < 16 ? 3 : 2;
+                    p.thick(px, py, x1, y1, w, s % 4 < 2 ? '#30b030' : '#209020');
+                    p.set(x1, y1 + 2, '#107010');
+                    px = x1; py = y1;
+                }
+            });
+            p.disc(tx, ty + 1, 3, '#704010');
         }
 
-        function confetti(parent, seed, count, box) {
-            const rand = rng(seed);
-            const colors = ['#ffd23f', '#1d9a55', '#ff8a5b', '#6fcaf2', '#fff'];
-            for (let i = 0; i < count; i++) {
-                const x = box[0] + rand() * (box[2] - box[0]), y = box[1] + rand() * (box[3] - box[1]);
-                el('rect', {
-                    x: -9, y: -4, width: 18, height: 8, rx: 3, fill: colors[i % colors.length], stroke: INK, 'stroke-width': 2,
-                    transform: `translate(${x} ${y}) rotate(${rand() * 180})`,
-                }, parent);
+        // Green Hill sunflowers, spinning their petals a notch each frame
+        function sunflower(p, f, x, base) {
+            p.rect(x, base - 16, 2, 16, '#208018');
+            p.rect(x + 2, base - 8, 3, 2, '#30a020');
+            const cx = x + 1, cy = base - 20, spin = f % 2;
+            for (let k = 0; k < 8; k++) {
+                const a = (k + spin * 0.5) * Math.PI / 4;
+                p.disc(Math.round(cx + 5 * Math.cos(a)), Math.round(cy + 5 * Math.sin(a)), 2, k % 2 ? '#f8d020' : '#f8f040');
             }
+            p.disc(cx, cy, 3, '#904810');
+            p.disc(cx, cy, 2, '#c07020');
         }
 
-        (async () => {
-            await ready();
-            const { defs, bg, fg } = setupSvg();
-            linear(defs, 'posterGreen', [[0, '#27b066'], [1, '#148546']]);
-            linear(defs, 'ribbonFill', [[0, '#2fbf6c'], [1, '#158a48']]);
-            linear(defs, 'grass', [[0, '#7ad97b'], [1, '#3aa857']]);
-            radial(defs, 'badgeFill', [[0, '#ffffff'], [1, '#e3f6e8']], { cx: '50%', cy: '35%', r: '70%' });
-            shadowFilter(defs, 'posterShadow', { dy: 18, std: 16, color: '#0b3a1e', opacity: 0.35 });
-            const hash = linear(defs, 'hashFill', [[0, '#fff29a'], [1, '#ffbf1f']]);
-            const better = linear(defs, 'betterFill', [[0, '#ffffff'], [1, '#cdf3d9']]);
-            const posterFill = linear(defs, 'posterWord', [[0, '#8df2b0'], [0.55, '#34c774'], [1, '#169a50']]);
-            const titleStyle = { outline: '#0d4a2a', shadow: 'rgba(10,70,30,0.35)', anchor: 'middle' };
-
-            if (TILE) {
-                const front = hills(fg, defs, 1280 / 1920, 720 / 1080, 0);
-                const ledge = easel(fg, { x: 945, top: 170, bottom: 700, spread: 150, ledgeY: 488, ledgeW: 360, back: true });
-                poster(fg, defs, { x: 945, y: 130, scale: 0.64, rotate: 2 });
-                ledge(fg);
-                front();
-                badge(fg, { x: 1180, y: 150, r: 58, rotate: 12, icon: stopwatch });
-                logo(fg, defs, { ...titleStyle, x: 338, y: 258, size: 150, spans: [{ text: '#', fill: hash }, { text: 'Better', fill: better }] });
-                logo(fg, defs, { ...titleStyle, x: 338, y: 420, size: 150, spans: [{ text: 'Poster', fill: posterFill }] });
-                badge(fg, { x: 150, y: 588, r: 50, rotate: -10, icon: eye });
-                confetti(fg, 3, 7, [470, 480, 640, 640]);
-                [[80, 110, 20], [590, 90, 16], [1240, 330, 14], [640, 560, 12]].forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff', 0.95));
-            } else {
-                background(bg, defs);
-                const front = hills(fg, defs, 1, 1, 0);
-                const ledge = easel(fg, { x: 1255, top: 340, bottom: 1040, spread: 225, ledgeY: 842, ledgeW: 540, back: true });
-                poster(fg, defs, { x: 1255, y: 300, scale: 1 });
-                ledge(fg);
-                front();
-                badge(fg, { x: 1650, y: 300, r: 74, rotate: 12, icon: stopwatch });
-                logo(fg, defs, { ...titleStyle, x: 470, y: 350, size: 188, spans: [{ text: '#', fill: hash }, { text: 'Better', fill: better }] });
-                logo(fg, defs, { ...titleStyle, x: 470, y: 548, size: 188, spans: [{ text: 'Poster', fill: posterFill }] });
-                ribbon(fg, { x: 470, y: 668, text: 'Evidence-based poster templates', size: 30, fill: 'url(#ribbonFill)', tail: '#0f6b38', ink: INK });
-                badge(fg, { x: 250, y: 850, r: 66, rotate: -10, icon: eye });
-                confetti(fg, 3, 12, [560, 760, 860, 900]);
-                confetti(fg, 9, 6, [1720, 440, 1860, 760]);
-                [[140, 170, 26], [790, 150, 22], [1810, 230, 18], [880, 470, 14], [1760, 800, 16], [640, 820, 12]].forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff', 0.95));
+        // ---- rings: turning edge-on and back every four frames
+        function ring(p, f, x, y) {
+            const w = [6, 4, 1, 4][f % 4];
+            for (let j = -7; j <= 7; j++) {
+                for (let i = -7; i <= 7; i++) {
+                    const u = w ? i / w : i * 7, v = j / 6.5, d = u * u + v * v;
+                    const inner = w > 2 ? (i / Math.max(1, w - 2.4)) ** 2 + (j / 4) ** 2 : 9;
+                    if (d > 1 || inner < 1) continue;
+                    const lit = i < 0 && j < 0 ? GOLD.hi : j < 1 ? GOLD.lit : j < 4 ? GOLD.mid : GOLD.dark;
+                    p.set(x + i, y + j, d > 0.72 && w > 1 ? (j > 0 ? GOLD.dark : GOLD.mid) : lit);
+                }
             }
-            document.body.dataset.done = '1';
-        })();
+            if (w > 1 && f % 6 === 0) twinkle(p, x - 3, y - 4, 2, '#ffffff');
+        }
+
+        // ---- the end-of-act signpost, holding up a #betterposter
+        function signpost(p, f, x, base) {
+            const W = 44, H = 30, top = base - 52;
+            p.rect(x - 1, top + H, 3, base - top - H, '#606878');
+            p.rect(x - 1, top + H, 1, base - top - H, '#a0a8b8');
+            p.rect(x - 4, base - 2, 9, 3, '#404858');
+            const sx = x - W / 2, sy = top;
+            p.rect(sx - 2, sy - 2, W + 4, H + 4, INK);
+            p.rect(sx - 1, sy - 1, W + 2, H + 2, '#d0d8e8');
+            p.rect(sx, sy, W, H, '#ffffff');
+            // the poster: thin side columns, the finding big in the green middle
+            const c0 = sx + 11, c1 = sx + W - 11;
+            p.rect(c0, sy + 1, c1 - c0, H - 2, '#18a058');
+            [[3, 0.7, '#ffffff'], [8, 0.95, '#fff060'], [13, 0.6, '#ffffff'], [18, 0.8, '#ffffff']].forEach(([dy, k, c]) => p.rect(c0 + 2, sy + dy, Math.round((c1 - c0 - 4) * k), 3, c));
+            for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) if ((i * 7 + j * 3 + i * j) % 3) p.set(c0 + 2 + i, sy + 23 + j, INK);
+            [sx + 2, c1 + 2].forEach(cx => {
+                p.rect(cx, sy + 3, 7, 2, '#404858');
+                for (let l = 0; l < 6; l++) p.rect(cx, sy + 8 + l * 3, 7 - (l % 2) * 2, 1, '#a0a8b8');
+            });
+            // a sparkle running round the frame
+            const glint = [[sx, sy], [sx + W, sy], [sx + W, sy + H], [sx, sy + H]][Math.floor(f / 3) % 4];
+            twinkle(p, glint[0], glint[1], f % 3 === 1 ? 2 : 1, '#ffffff');
+        }
+
+        // ---- HUD and title card
+        function hud(p) {
+            const [x, y] = LAYOUT.hud;
+            [['SCORE', '1990'], ['TIME', '0:05'], ['RINGS', '50']].forEach(([label, value], i) => {
+                nesText(p, label, x, y + i * 12, { color: '#f8e020', outline: INK });
+                nesText(p, value, x + 52, y + i * 12, { color: '#ffffff', outline: INK });
+            });
+        }
+
+        // a slanted, outlined word from the logo font, like the zone names
+        function zoneText(p, str, x, y, { size, anchor = 'left', fill, under, slant = 0.22 }) {
+            const m = logoMask(str, { size }), b = m.box, lean = Math.round(b.h * slant);
+            const s = new Mask(b.w + lean + 8, b.h + 8);
+            for (let my = 0; my < b.h; my++) {
+                for (let mx = 0; mx < b.w; mx++) if (m.get(b.x0 + mx, b.y0 + my)) s.set(4 + mx + Math.round((b.h - my) * slant), 4 + my);
+            }
+            const ox = (anchor === 'center' ? Math.round(x - (b.w + lean) / 2) : x) - 4, oy = y - 4;
+            const edge = s.grow(true).grow(false);
+            p.mask(edge, INK, ox + 2, oy + 3);
+            p.mask(edge, INK, ox, oy);
+            p.mask(s, (mx, my) => (my - 4 > b.h * 0.58 ? under : fill), ox, oy);
+            return b.w + lean;
+        }
+
+        function titleCard(p, f) {
+            const [x, y, anchor] = LAYOUT.title, center = anchor === 'center';
+            // the blue band the zone name sits on, with a checkered trim
+            const bw = TALL ? 250 : 250, bx = center ? x - bw / 2 : x - 8, by = y - 6;
+            for (let j = 0; j < 34; j++) {
+                const skew = Math.round((34 - j) * 0.3);
+                p.rect(bx + skew, by + j, bw, 1, j < 2 ? '#88b8ff' : '#1838a8');
+            }
+            for (let i = 0; i < bw; i += 6) p.rect(bx + i, by + 34, 3, 3, (i / 6) % 2 ? '#f8e020' : '#ffffff');
+            const w = zoneText(p, 'BETTERPOSTER', center ? x : x, y - 2, { size: TALL ? 26 : 34, anchor, fill: '#ffffff', under: '#c8d8ff' });
+            // ZONE, then the act number in its yellow oval
+            const zx = center ? x - 30 : x + w - 110, zy = y + 40;
+            const zw = zoneText(p, 'ZONE', zx, zy, { size: 26, anchor: center ? 'center' : 'left', fill: '#f8e020', under: '#f0a000' });
+            const ax = Math.round((center ? zx + zw / 2 : zx + zw) + 28), ay = zy + 12;
+            p.disc(ax, ay, 15, INK);
+            for (let j = -13; j <= 13; j++) for (let i = -17; i <= 17; i++) if ((i / 17) ** 2 + (j / 13) ** 2 <= 1) p.set(ax + i, ay + j, j < -4 ? '#fff060' : '#f8c800');
+            nesText(p, 'ACT', ax, ay - 9, { color: INK, anchor: 'center', micro: true });
+            nesText(p, '1', ax, ay - 3, { color: '#e02010', outline: INK, anchor: 'center', scale: 2 });
+        }
+
+        function draw(p, f) {
+            sky(p);
+            island(p, f, TALL ? 196 : 330, 0, TALL ? 64 : 90, TALL ? 30 : 30);
+            if (!TALL) island(p, f, 70, 0, 60, 18);
+            sea(p, f);
+            meadow(p);
+            hills(p);
+            loop(p);
+            LAYOUT.palms.forEach(([x, base, h, lean]) => palm(p, x, base, h, lean));
+            ground(p);
+            LAYOUT.flowers.forEach(x => sunflower(p, f, x, LAYOUT.ground - 1));
+            signpost(p, f, ...LAYOUT.sign);
+            LAYOUT.rings.forEach(([x, y], i) => ring(p, f + i, x, y));
+            hud(p);
+            titleCard(p, f);
+            const [gx, gy, lines] = LAYOUT.tagline;
+            lines.forEach((line, i) => nesText(p, line, gx, gy + i * 12, { color: '#ffffff', outline: INK, anchor: TALL ? 'center' : 'left' }));
+        }
+
+        runFrames(draw, { frames: 12, delay: 140, size: [SW, SH] });
     </script>
 </body>
 </html>

@@ -60,9 +60,18 @@
 
         const BOOKS = ['#b04a4a', '#4a6ab0', '#c9a040', '#4a9a6a', '#7a4ab0', '#c07040', '#d8c8a0', '#5a8aa0', '#a05a80'];
 
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            shelves: [2, 38, 74, 110, 146, 182, 218, 254, 290], posts: [0, 88, 176], lamp: [80, 180],
+            robot: [26, 150], title: [12, 30], twinkles: [[150, 30, 0], [166, 116, 2], [20, 134, 1], [156, 240, 3]],
+        } : {
+            shelves: [2, 38, 74, 110, 146], posts: [0, 104, 212, 316], lamp: [226, 80],
+            robot: [178, 52], title: [12, 16], twinkles: [[160, 40, 0], [306, 12, 2], [246, 124, 1], [170, 116, 3], [40, 150, 2]],
+        };
+
         function library(p) {
             p.rect(0, 0, PW, PH, '#2a1a12');
-            [2, 38, 74, 110].forEach((top, row) => {
+            LAYOUT.shelves.forEach((top, row) => {
                 const plank = top + 30, rand = rng(row * 31 + 5);
                 p.rect(0, top, PW, 30, '#3a2418');
                 for (let x = 0; x < PW;) {
@@ -80,10 +89,10 @@
                 p.rect(0, plank, PW, 1, '#c98a4a');
                 p.rect(0, plank + 4, PW, 2, '#1e120c');
             });
-            [0, 104, 212, 316].forEach(x => { p.rect(x, 0, 4, PH, '#7a4a24'); p.rect(x, 0, 1, PH, '#a86a36'); p.rect(x + 3, 0, 1, PH, '#4a2a14'); });
+            LAYOUT.posts.forEach(x => { p.rect(x, 0, 4, PH, '#7a4a24'); p.rect(x, 0, 1, PH, '#a86a36'); p.rect(x + 3, 0, 1, PH, '#4a2a14'); });
             // DS-style dim so the characters pop, plus a warm pool of lamplight
             p.rect(0, 0, PW, PH, '#10163088');
-            [[74, '#ffd98a14'], [56, '#ffd98a18'], [40, '#ffe7a820']].forEach(([r, c]) => p.disc(226, 62, r, c));
+            [[74, '#ffd98a14'], [56, '#ffd98a18'], [40, '#ffe7a820']].forEach(([r, c]) => p.disc(...LAYOUT.lamp, r, c));
         }
 
         function magnifier(p, lx, ly) {
@@ -112,42 +121,31 @@
             });
         }
 
-        function dialog(p, f) {
-            const X = 8, Y = 122, W = 304, H = 42;
-            p.frame(X, Y, W, H, '#5aa0f0', INK, 2);
-            p.frame(X + 3, Y + 3, W - 6, H - 6, '#fbfbf7', '#2f6fc0', 1);
-            p.frame(X + 10, Y - 9, 42, 12, '#2f86e0', INK, 1);
-            text(p, 'AGENT', X + 31, Y - 6, { color: '#fff', anchor: 'center' });
-            text(p, 'I CAN DO THE RESEARCH, BUT I HAVE', X + 12, Y + 10, { color: '#383838', shadow: '#d4d4d4' });
-            text(p, 'NO FRONT END. CAN YOU DESIGN ONE?', X + 12, Y + 23, { color: '#383838', shadow: '#d4d4d4' });
-            text(p, '▼', X + W - 18, Y + H - 12 + (f % 6 < 3 ? 0 : 1), { color: '#e2413b' });
-        }
-
         const BIG_ROBOT = scale2x(ROBOT);
 
         function draw(p, f) {
             library(p);
             const bob = Math.round(Math.sin((f / 12) * Math.PI * 2) * 2);
-            const papers = [[276, 14, '#2f86e0', 0], [294, 52, '#22b573', 4], [266, 92, '#9b6bff', 8]]
-                .map(([x, y, c, ph]) => [x, y + Math.round(Math.sin(((f + ph) / 12) * Math.PI * 2)), c]);
-            const lens = [268, 58 + bob];
+            const [rx, ry0] = LAYOUT.robot, ry = ry0 + bob;
+            const papers = [[98, -20, '#2f86e0', 0], [116, 18, '#22b573', 4], [88, 58, '#9b6bff', 8]]
+                .map(([x, y, c, ph]) => [rx + x, ry0 + y + Math.round(Math.sin(((f + ph) / 12) * Math.PI * 2)), c]);
+            const lens = [rx + 90, ry + 24];
             links(p, lens, papers.map(([x, y]) => [x + 5, y + 6]), f);
             papers.forEach(([x, y, c]) => p.sprite(PAPER, { K: INK, W: '#fff', B: c, G: '#9fb4cc', L: '#dcebf8' }, x, y));
 
-            const rx = 178, ry = 34 + bob;
             p.sprite(BIG_ROBOT, ROBOT_PAL, rx, ry);
             if (f === 7) {
                 [22, 36].forEach(c => { p.rect(rx + c, ry + 28, 6, 8, '#10305f'); p.rect(rx + c, ry + 32, 6, 2, '#6fe3ff'); });
             }
             magnifier(p, lens[0], lens[1]);
 
-            text(p, 'CASE STUDY', 12, 16, { color: '#fff', outline: INK });
+            const [tx, ty] = LAYOUT.title;
+            text(p, 'CASE STUDY', tx, ty, { color: '#fff', outline: INK });
             const blue = { size: 30, outlineWidth: 2, bands: ['#e6f6ff', '#9fd8ff', '#5ab4f5', '#2f86e0'], light: '#ffffff', dark: '#1b5fb5', outline: INK, rim: '#ffffff', shadow: '#00000088' };
-            logo(p, 'Research', { ...blue, x: 10, y: 28 });
-            logo(p, 'Agent', { ...blue, x: 10, y: 56 });
+            logo(p, 'Research', { ...blue, x: tx - 2, y: ty + 12 });
+            logo(p, 'Agent', { ...blue, x: tx - 2, y: ty + 40 });
 
-            dialog(p, f);
-            [[160, 40, 0], [306, 10, 2], [246, 104, 1], [170, 96, 3]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
         }
 
         runFrames(draw, { frames: 12, delay: 140 });
