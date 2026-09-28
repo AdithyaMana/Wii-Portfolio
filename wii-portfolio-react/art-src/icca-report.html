@@ -2,174 +2,392 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ICCA Report 8-bit art</title>
+    <title>ICCA Report sunset art</title>
 </head>
 <body>
     <pre id="out"></pre>
     <script src="pixel.js"></script>
-    <script src="nes.js"></script>
     <script>
-        // Where everything sits on the wide canvas and on the tall phone one.
-        // rock: the Acropolis plateau [left, right, top]; sea: its top edge
+        // ICCA Report as a 16-bit title screen: the Parthenon backlit by a huge
+        // setting sun over the Aegean, god rays turning behind the columns, a
+        // glittering sun path on the sea, and the title in gold classical
+        // capitals. 384x216 (216x384 tall), so the pixels are SNES-sized.
+        const SW = TALL ? 216 : 384, SH = TALL ? 384 : 216;
+
+        // dusk, from the top of the sky down to the glow on the horizon
+        const SKY = ['#1a1033', '#28154a', '#3d1a5e', '#5a206a', '#7c2a70', '#a23a6e', '#c85266', '#e2705c', '#f39456', '#fbb85e', '#ffd782', '#ffeab0'];
+        // the sea reflects it, darkening towards us
+        const SEA = ['#ffc878', '#f59a5a', '#d8705e', '#a8546a', '#7a3d68', '#553060', '#3a2352', '#251943'];
+        const SUN = ['#ffd070', '#ffeaa0', '#fff8dc'];
+        const SHADOW = ['#140a1c', '#1f1028', '#2e1834', '#43223e'];
+        const RIM = ['#ff8a5a', '#ffb870', '#ffe0a0'];
+        const GOLD = ['#3a1a06', '#7a4610', '#b8781c', '#e8aa30', '#ffd460', '#fff0b0'];
+
+        // Where everything sits on the wide canvas and on the tall phone one
         const LAYOUT = TALL ? {
-            icca: [67, 22], report: [67, 58], tagline: [67, 80], start: [67, 98],
-            temple: [67, 150, 80], rock: [14, 121, 150], sea: 174, key: 224, sun: [110, 116], land: [190, 4],
-            clouds: [[4, 4, 0.8]], cypress: [[11, 218, 34], [24, 219, 22], [124, 218, 32], [111, 219, 20]], gull: [30, 112],
+            horizon: 262, sun: [108, 196, 34], rock: [22, 46, 170, 194, 236], temple: [108, 236, 84],
+            clouds: [[-10, 150, 90, 5], [118, 138, 110, 6], [20, 178, 56, 3], [150, 178, 70, 4], [60, 112, 70, 4]],
+            birds: [[48, 172, 0], [62, 164, 2], [170, 162, 1]], trees: [[34, 250, 14], [184, 250, 16], [52, 242, 9]],
+            ship: [150, 332, 1], title: [108, 34, 30], report: [108, 76], meander: [108, 94, 132], tagline: [108, 104], start: [108, 132], stars: 26,
         } : {
-            icca: [72, 15], report: [72, 48], tagline: [72, 67], start: [72, 84],
-            temple: [182, 78, 80], rock: [128, 236, 78], sea: 94, key: 122, sun: [220, 20], land: [106, 6],
-            clouds: [[118, 6, 0.8]], cypress: [[10, 121, 34], [23, 121, 22], [229, 121, 32], [216, 121, 20]], gull: [118, 40],
+            horizon: 142, sun: [278, 76, 36], rock: [188, 212, SW + 4, SW + 4, 114], temple: [278, 114, 88],
+            clouds: [[146, 20, 120, 6], [300, 32, 100, 5], [178, 56, 60, 3], [-10, 70, 86, 4], [338, 64, 60, 3]],
+            birds: [[200, 52, 0], [214, 44, 2], [352, 50, 1]], trees: [[198, 130, 16], [364, 118, 14], [206, 126, 10]],
+            ship: [74, 184, 1], title: [96, 28, 34], report: [96, 74], meander: [96, 92, 140], tagline: [96, 102], start: [96, 128], stars: 34,
         };
 
-        function sky(p) {
-            const sea = LAYOUT.sea;
-            p.rect(0, 0, NW, sea, NES.sky);
-            p.rect(0, sea - 14, NW, 14, NES.ice);
-            const [sx, sy] = LAYOUT.sun;
-            p.disc(sx, sy, 9, NES.yellow);
-            p.disc(sx, sy, 7, NES.cream);
-            LAYOUT.clouds.forEach(([x, y, s]) => nesCloud(p, x, y, s));
-        }
-
-        function sea(p, f) {
-            const y0 = LAYOUT.sea;
-            p.rect(0, y0, NW, NH - y0, NES.royal);
-            p.rect(0, y0, NW, 1, NES.white);
-            const rand = rng(6);
-            for (let i = 0; i < 24; i++) {
-                const x = Math.floor(rand() * NW), y = y0 + 3 + Math.floor(rand() * 12), k = Math.floor(rand() * 4);
-                if ((f + k) % 4 < 2) p.rect(x, y, 3, 1, NES.blue);
-                else p.rect(x + 1, y, 2, 1, NES.white);
+        // ---- sky: a dithered dusk gradient, brightening round the sun,
+        // with god rays that turn one ray's width per loop
+        function sky(p, f) {
+            const H = LAYOUT.horizon, [sx, sy] = LAYOUT.sun, top = SKY.length - 1;
+            const turn = (f / 12) * (Math.PI * 2 / 14);
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < SW; x++) {
+                    const d = Math.hypot(x - sx, y - sy), a = Math.atan2(y - sy, x - sx);
+                    let t = Math.pow(y / H, 1.3) * (top - 1);
+                    t += 3.6 * Math.pow(Math.max(0, 1 - d / 120), 1.7);
+                    if (Math.cos(14 * (a - turn)) > 0.55) t += 1.2 * Math.max(0, 1 - d / 230);
+                    t = Math.max(0, Math.min(top, t));
+                    const k = Math.floor(t);
+                    p.set(x, y, t - k > bayer(x, y) && k < top ? SKY[k + 1] : SKY[k]);
+                }
+            }
+            // a few stars still out at the top
+            const rand = rng(12);
+            for (let i = 0; i < LAYOUT.stars; i++) {
+                const x = Math.floor(rand() * SW), y = Math.floor(rand() * H * 0.32), ph = Math.floor(rand() * 4);
+                p.set(x, y, (f + ph) % 4 === 0 ? '#ffffff' : '#c8a8e8');
+                if ((f + ph) % 4 === 0 && rand() < 0.5) twinkle(p, x, y, 1, '#ffffffaa');
             }
         }
 
-        // the Acropolis: a flat-topped rock falling away to the sea
-        function rock(p) {
-            const [l, r, top] = LAYOUT.rock, sea = LAYOUT.sea + 10;
-            for (let y = top; y < sea; y++) {
-                const t = (y - top) / (sea - top), ease = t * t;
-                const a = Math.round(l - ease * 26), b = Math.round(r + ease * 16);
-                p.rect(a, y, b - a, 1, y < top + 2 ? NES.cream : (y - top) % 9 < 2 ? NES.rust : NES.orange);
-                p.set(a, y, NES.black);
-                p.set(b, y, NES.black);
-            }
-            p.rect(l, top - 1, r - l, 1, NES.black);
-        }
-
-        // The Parthenon: steps, eight columns, the frieze, the pediment
-        function temple(p, f) {
-            const [cx, base, w] = LAYOUT.temple, l = cx - w / 2;
-            const colH = Math.round(w * 0.26), top = base - 6 - colH;
-            // shaded cella behind the colonnade
-            p.rect(l + 2, top, w - 4, colH, NES.olive);
-            for (let k = 0; k < 8; k++) {
-                const x = Math.round(l + 1 + k * (w - 8) / 7);
-                p.rect(x, top, 6, colH, NES.black);
-                p.rect(x + 1, top, 2, colH, NES.white);
-                p.rect(x + 3, top, 2, colH, NES.silver);
-                p.rect(x - 1, top - 2, 8, 2, NES.black);
-                p.rect(x, top - 2, 6, 1, NES.white);
-            }
-            // steps
-            [[0, NES.cream], [2, NES.peach], [4, NES.cream]].forEach(([d, c], i) => {
-                p.rect(l - 2 - i * 2, base - 6 + d, w + 4 + i * 4, 2, c);
-                p.rect(l - 2 - i * 2, base - 6 + d + 1, w + 4 + i * 4, 1, i === 2 ? NES.black : NES.olive);
-            });
-            // entablature and frieze with its triglyphs
-            const e = top - 9;
-            p.rect(l - 3, e, w + 6, 7, NES.black);
-            p.rect(l - 2, e + 1, w + 4, 2, NES.white);
-            p.rect(l - 2, e + 3, w + 4, 3, NES.cream);
-            for (let x = l; x < l + w; x += 5) p.rect(x, e + 3, 2, 3, NES.silver);
-            // pediment
-            const ph = Math.round(w * 0.14);
-            for (let j = 0; j <= ph; j++) {
-                const half = Math.round((w / 2 + 3) * j / ph);
-                p.rect(cx - half - 1, e - ph + j - 1, half * 2 + 2, 1, NES.black);
-                if (j > 0) p.rect(cx - half + 1, e - ph + j - 1, half * 2 - 2, 1, j > 2 && half > 6 ? NES.peach : NES.white);
-            }
-            if (f % 6 === 3) twinkle(p, cx - w / 2 + 6, e - 4, 2, NES.white);
-        }
-
-        // the city's ground, rising gently towards the Acropolis
-        function land(p) {
-            const [top, rise] = LAYOUT.land;
-            for (let x = 0; x < NW; x++) {
-                const y = Math.round(top - rise * x / NW);
-                p.rect(x, y, 1, LAYOUT.key - y, NES.peach);
-                p.set(x, y, NES.black);
-                p.set(x, y + 1, NES.cream);
-            }
-        }
-
-        // Italian cypress: a tall flame of foliage lit from the left, its edge
-        // bulging every few rows so it reads as clumps, on a short trunk
-        function cypress(p, x, base, h) {
-            const top = base - 4 - h, m = new Mask(15, h + 2), half = [];
-            for (let j = 0; j < h; j++) {
-                const t = j / h, body = t < 0.35 ? (t / 0.35) * 4 : t < 0.8 ? 4 : 4 - ((t - 0.8) / 0.2) * 2;
-                half.push(Math.max(0, Math.round(body)) + (j % 5 < 2 && t > 0.15 ? 1 : 0));
-                for (let dx = -half[j]; dx <= half[j]; dx++) m.set(7 + dx, j + 1);
-            }
-            p.rect(x - 1, base - 4, 3, 5, NES.black);
-            p.rect(x, base - 4, 1, 4, NES.olive);
-            p.mask(m.grow(false), NES.black, x - 7, top - 1);
-            p.mask(m, (mx, my) => {
-                const j = my - 1, dx = mx - 7, w = half[j];
-                if (w > 1 && dx >= w - 1) return NES.forest;
-                if (dx < 0 && (j * 2 + dx * 3) % 7 === 0) return NES.mint;
-                if (dx > 0 && (j + dx) % 6 === 0) return NES.forest;
-                return NES.green;
-            }, x - 7, top - 1);
-        }
-
-        // Greek key border along the bottom
-        function meander(p) {
-            const y0 = LAYOUT.key;
-            p.rect(0, y0, NW, NH - y0, NES.navy);
-            p.rect(0, y0, NW, 1, NES.gold);
-            const KEY = ['########', '.......#', '.#####.#', '.#...#.#', '.#.#.#.#', '.#.###.#', '.#.....#', '##.#####'];
-            for (let x = 0; x < NW; x += 8) p.sprite(KEY, { '#': NES.gold }, x, y0 + 3);
-        }
-
-        // olive-leaf laurel branch curling up beside the title; side is -1 or 1
-        function laurel(p, x, y, side, len) {
-            for (let i = 0; i < len; i++) {
-                const t = i / len, px = Math.round(x + side * 7 * Math.sin(t * 1.9)), py = y - i;
-                p.set(px, py, NES.olive);
-                if (i % 4 === 1) {
-                    p.sprite(['.##', '###', '##.'], { '#': NES.gold }, px - (side > 0 ? 0 : 2) + side * 2, py - 1, { flip: side < 0 });
-                    p.sprite(['##.', '###', '.##'], { '#': NES.yellow }, px - 1 - side * 3, py - 1, { flip: side < 0 });
+        function sun(p) {
+            const [sx, sy, r] = LAYOUT.sun;
+            for (let y = sy - r; y <= sy + r; y++) {
+                for (let x = sx - r; x <= sx + r; x++) {
+                    const d = Math.hypot(x - sx, y - sy);
+                    if (d > r) continue;
+                    p.set(x, y, d > r - 3 ? SUN[0] : d > r - 8 ? SUN[1] : SUN[2]);
                 }
             }
         }
 
-        function gull(p, f, x, y) {
-            const up = f % 4 < 2, bob = up ? 0 : 1;
-            p.sprite(up ? ['#.....#', '.#...#.', '..#.#..', '...#...'] : ['.......', '##...##', '..#.#..', '...#...'], { '#': NES.white }, x, y + bob);
+        // strings of cloud puffs, lit from underneath by the low sun
+        function clouds(p) {
+            LAYOUT.clouds.forEach(([x0, y0, w, h], ci) => {
+                const rand = rng(40 + ci), m = new Mask(w + 8, h * 3 + 6), base = h * 2 + 3;
+                for (let px = 4; px < w; px += 3 + Math.floor(rand() * 5)) {
+                    const r = h * (0.6 + rand() * 0.9) * Math.sin(Math.PI * Math.min(1, Math.max(0.15, (px - 4) / w))) + 1;
+                    const cx = px, cy = base - r * 0.5;
+                    for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if ((i - cx) ** 2 / 2.2 + (j - cy) ** 2 <= r * r && j <= base) m.set(i, j);
+                }
+                p.mask(m, (i, j) => {
+                    const d = base - j;
+                    if (d === 0) return RIM[2];
+                    if (d === 1) return RIM[1];
+                    if (d < 3) return '#e0708a';
+                    if (!m.get(i, j - 1)) return '#b8588a';
+                    return d > h * 1.6 ? '#6a2e68' : '#9a4078';
+                }, x0 - 4, y0 - base + h);
+            });
+        }
+
+        // ---- the sea: a dithered reflection of the sky, ripples, and the sun's
+        // glittering path, whose glints change every frame
+        function sea(p, f) {
+            const H = LAYOUT.horizon, [sx] = LAYOUT.sun, top = SEA.length - 1;
+            for (let y = H; y < SH; y++) {
+                const r = (y - H) / (SH - H), t = Math.pow(r, 0.75) * top, k = Math.floor(t);
+                for (let x = 0; x < SW; x++) p.set(x, y, t - k > bayer(x, y) && k < top ? SEA[k + 1] : SEA[k]);
+            }
+            p.rect(0, H, SW, 1, SKY[SKY.length - 1]);
+            const rand = rng(31);
+            for (let y = H + 2; y < SH; y += 2) {
+                const r = (y - H) / (SH - H);
+                // ripples across the whole sea
+                for (let i = 0; i < SW / (10 + r * 10); i++) {
+                    const x = Math.floor(rand() * SW), w = 2 + Math.floor(rand() * (3 + r * 9)), light = rand() < 0.5;
+                    p.rect(x, y, w, 1, light ? SEA[Math.max(0, Math.floor(Math.pow(r, 0.75) * top) - 1)] : SEA[Math.min(top, Math.floor(Math.pow(r, 0.75) * top) + 1)]);
+                }
+                // the sun path
+                const half = 5 + r * 26;
+                for (let i = 0; i < 3 + r * 5; i++) {
+                    const x = Math.round(sx + (rand() * 2 - 1) * half), w = 1 + Math.floor(rand() * (2 + r * 5)), ph = Math.floor(rand() * 4);
+                    if ((f + ph) % 4 === 3) continue;
+                    p.rect(x, y, w, 1, (f + ph) % 4 === 0 ? '#fff8dc' : (f + ph) % 4 === 1 ? '#ffe6a8' : RIM[1]);
+                }
+            }
+        }
+
+        // ---- the Acropolis: a craggy backlit rock with walls along its top
+        const CRACKS = (() => {
+            const set = new Set(), rand = rng(3);
+            for (let x = 0; x < SW + 20; x += 5 + Math.floor(rand() * 11)) set.add(x);
+            return set;
+        })();
+        function rock(p) {
+            const [a, b, c, d, top] = LAYOUT.rock, H = LAYOUT.horizon, [sx] = LAYOUT.sun, base = H + 12;
+            const edge = x => {
+                if (x < a || x > d) return null;
+                const crag = Math.round(2 * Math.sin(x * 0.9) + 1.5 * Math.sin(x * 0.31));
+                if (x < b) return Math.round(base - (base - top) * Math.pow((x - a) / (b - a), 0.6)) + crag;
+                if (x > c) return Math.round(base - (base - top) * Math.pow((d - x) / (d - c), 0.6)) + crag;
+                return top;
+            };
+            for (let x = Math.max(0, a); x <= Math.min(SW - 1, d); x++) {
+                const e = edge(x), wall = x >= b && x <= c;
+                for (let y = e; y < base + 3; y++) {
+                    const dy = y - e;
+                    // cracks running down the cliff, broken ledges, darker towards the water
+                    const wob = Math.round(2.5 * Math.sin(y * 0.23 + x * 0.11)), crack = CRACKS.has(x + wob) ? 0 : CRACKS.has(x + wob - 1) ? 1 : 2;
+                    const ledge = (dy % 12 === 11) && ((x * 5 + dy) % 17 < 11);
+                    let c0 = y > base ? SHADOW[0] : dy > (base - top) * 0.62 ? SHADOW[1] : SHADOW[2];
+                    if (crack === 0) c0 = SHADOW[3];
+                    else if (crack === 1) c0 = SHADOW[1];
+                    if (ledge) c0 = SHADOW[3];
+                    // the fortification wall along the brow of the rock
+                    if (wall && dy < 7) c0 = dy === 6 ? SHADOW[1] : (x % 7 === 0 ? SHADOW[2] : SHADOW[3]);
+                    p.set(x, y, c0);
+                }
+                const near = Math.max(0, 1 - Math.abs(x - sx) / 120);
+                p.set(x, e, near > 0.45 ? RIM[2] : near > 0.15 ? RIM[1] : RIM[0]);
+                if (near > 0.3) p.set(x, e + 1, RIM[0]);
+            }
+            // surf and the rock's dark reflection
+            for (let x = Math.max(0, a - 6); x <= Math.min(SW - 1, d + 6); x++) {
+                if ((x * 7) % 5 < 3) p.set(x, base + 2, '#ffd8a0');
+                for (let y = base + 3; y < base + 9 && y < SH; y++) if ((x + y) % 2 === 0 && (y - base) % 2 === 1 && x > a + (y - base) * 3 && x < d - (y - base) * 3) p.set(x, y, SHADOW[2]);
+            }
+        }
+
+        // The Parthenon: steps, eight columns, frieze and pediment, all
+        // silhouetted, with light glowing through the gaps and round every edge
+        function temple(p) {
+            const [cx, base, W] = LAYOUT.temple, l = cx - W / 2, m = new Mask(SW, SH);
+            const fill = (x, y, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) m.set(Math.round(x + i), Math.round(y + j)); };
+            // three steps
+            [[0, W + 12], [3, W + 8], [6, W + 4]].forEach(([dy, w]) => fill(cx - w / 2, base - dy - 3, w, 3));
+            const colTop = base - 9 - 24;
+            for (let k = 0; k < 8; k++) {
+                const x = Math.round(l + 3 + k * (W - 11) / 7);
+                fill(x, colTop + 2, 5, 24);          // shaft
+                fill(x - 1, colTop, 7, 2);            // capital
+                fill(x - 1, base - 11, 7, 2);         // base
+            }
+            // architrave, frieze, cornice
+            fill(l - 2, colTop - 5, W + 4, 5);
+            fill(l - 3, colTop - 9, W + 6, 4);
+            fill(l - 4, colTop - 11, W + 8, 2);
+            // pediment
+            const ph = 12;
+            for (let j = 0; j < ph; j++) {
+                const hw = (W / 2 + 4) * (j + 1) / ph;
+                fill(cx - hw, colTop - 11 - ph + j, hw * 2, 1);
+            }
+            const [sx, sy, r] = LAYOUT.sun;
+            p.mask(m, (x, y) => {
+                const open = !m.get(x, y - 1) || !m.get(x - 1, y) || !m.get(x + 1, y);
+                const glow = Math.hypot(x - sx, y - sy) < r + 18;
+                if (open) return glow ? RIM[2] : RIM[1];
+                // triglyphs in the frieze
+                if (y >= colTop - 9 && y < colTop - 5 && (x - l) % 6 < 2) return SHADOW[1];
+                return (x + y) % 11 === 0 ? SHADOW[3] : SHADOW[2];
+            });
+        }
+
+        function cypress(p, x, base, h) {
+            const [sx] = LAYOUT.sun;
+            for (let j = 0; j < h; j++) {
+                const t = j / h, w = Math.round(t < 0.3 ? t / 0.3 * 3 : t < 0.85 ? 3 : 3 - (t - 0.85) / 0.15 * 1.5);
+                for (let i = -w; i <= w; i++) p.set(x + i, base - h + j, SHADOW[1]);
+                // the side facing the sun catches the light
+                p.set(x + (sx > x ? w : -w), base - h + j, t < 0.2 ? RIM[1] : RIM[0]);
+            }
+            p.rect(x, base, 1, 3, SHADOW[0]);
+        }
+
+        // a trireme under sail, bobbing on the swell with its oars dipping
+        function ship(p, f, x, y, dir) {
+            const bob = [0, 0, 1, 1][f % 4], row = Math.floor(f / 2) % 2, c = SHADOW[1], lit = RIM[1];
+            const X = i => x + dir * i, Y = y + bob;
+            // hull: long and low, the ram at the bow, the stern curling up
+            for (let i = -22; i <= 22; i++) {
+                const t = (i + 22) / 44, depth = 3 + Math.round(2 * Math.sin(t * Math.PI));
+                const rise = i < -14 ? Math.round((-14 - i) * 0.7) : 0;
+                for (let j = -rise; j < depth; j++) p.set(X(i), Y + j, c);
+                p.set(X(i), Y - rise - 1, i < -18 ? c : lit);
+            }
+            for (let k = 0; k < 4; k++) p.set(X(-22 - k), Y - 8 - k, c);
+            [[24, 1], [25, 2], [26, 2]].forEach(([i, j]) => p.set(X(i), Y + j, c));
+            // oars
+            for (let k = 0; k < 7; k++) {
+                const ox = -12 + k * 5, lean = row ? 2 : -1;
+                p.line(X(ox), Y + 4, X(ox + lean), Y + 9, c);
+            }
+            // mast and a square sail, its edge catching the sun
+            p.rect(X(0), Y - 26, 1, 26, c);
+            for (let j = 0; j < 17; j++) {
+                const belly = Math.round(2 * Math.sin((j / 16) * Math.PI));
+                for (let i = -9; i <= 9; i++) p.set(X(i) + dir * belly, Y - 24 + j, c);
+                p.set(X(9) + dir * belly, Y - 24 + j, lit);
+            }
+            p.rect(Math.min(X(-10), X(10)), Y - 25, 21, 1, c);
+            // wake
+            for (let k = 1; k < 6; k++) p.rect(X(-24 - k * 4), Y + 5 + (k % 2), 2, 1, (f + k) % 3 ? '#ffd8a0' : SEA[2]);
+        }
+
+        // gulls wheeling near the sun, flapping in turn
+        function birds(p, f) {
+            LAYOUT.birds.forEach(([x, y, ph]) => {
+                const k = (f + ph) % 4, bob = [0, -1, 0, 1][k];
+                const rows = k < 2 ? ['#.....#', '.#...#.', '..#.#..'] : ['.......', '##...##', '..###..'];
+                p.sprite(rows, { '#': SHADOW[1] }, x - 3, y + bob);
+            });
+        }
+
+        // ---- the title: ICCA in classical gold capitals, drawn from strokes
+        function glyphI(h) {
+            const w = Math.round(h * 0.4), m = new Mask(w, h), s = Math.round(h * 0.16), c = (w - s) >> 1;
+            for (let y = 0; y < h; y++) {
+                const serif = y < 2 || y >= h - 2, bracket = y === 2 || y === h - 3;
+                const x0 = serif ? 0 : bracket ? Math.max(0, c - 2) : c, x1 = serif ? w : bracket ? Math.min(w, c + s + 2) : c + s;
+                for (let x = x0; x < x1; x++) m.set(x, y);
+            }
+            return m;
+        }
+
+        function glyphC(h) {
+            const w = Math.round(h * 0.82), m = new Mask(w, h), cx = w / 2, cy = h / 2;
+            const ro = [w / 2, h / 2], ri = [w / 2 - h * 0.15, h / 2 - h * 0.085], shift = h * 0.05;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const u = (x + 0.5 - cx) / ro[0], v = (y + 0.5 - cy) / ro[1];
+                    const ui = (x + 0.5 - cx - shift) / ri[0], vi = (y + 0.5 - cy) / ri[1];
+                    const a = Math.atan2(y + 0.5 - cy, x + 0.5 - cx);
+                    if (u * u + v * v > 1 || ui * ui + vi * vi < 1) continue;
+                    if (Math.abs(a) < 0.62) continue;
+                    m.set(x, y);
+                }
+            }
+            // the beaks where the curve ends
+            const bx = Math.round(cx + ro[0] * Math.cos(0.62)) - 2;
+            for (let j = 0; j < Math.round(h * 0.2); j++) {
+                m.set(bx, Math.round(cy - ro[1] * Math.sin(0.62)) + j - 1);
+                m.set(bx, Math.round(cy + ro[1] * Math.sin(0.62)) - j);
+            }
+            return m;
+        }
+
+        function glyphA(h) {
+            const w = Math.round(h * 1.0), m = new Mask(w, h), apex = w / 2;
+            const seg = (x, y, x0, y0, x1, y1) => {
+                const t = Math.max(0, Math.min(1, ((x - x0) * (x1 - x0) + (y - y0) * (y1 - y0)) / ((x1 - x0) ** 2 + (y1 - y0) ** 2)));
+                return Math.hypot(x - (x0 + (x1 - x0) * t), y - (y0 + (y1 - y0) * t));
+            };
+            const thin = h * 0.05, thick = h * 0.1, footL = w * 0.14, footR = w * 0.84;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const px = x + 0.5, py = y + 0.5;
+                    const left = seg(px, py, apex - 0.5, 0, footL, h - 2) <= thin;
+                    const right = seg(px, py, apex + 0.5, 0, footR, h - 2) <= thick;
+                    const bar = py > h * 0.6 && py < h * 0.6 + Math.max(2, h * 0.07) && px > footL + (apex - footL) * (1 - 0.6) && px < footR - (footR - apex) * (1 - 0.6) + 1;
+                    const feet = y >= h - 2 && (Math.abs(px - footL) < h * 0.2 || Math.abs(px - footR) < h * 0.22);
+                    if (left || right || bar || feet) m.set(x, y);
+                }
+            }
+            return m;
+        }
+
+        function goldWord(p, f, glyphs, cx, y, h, gap) {
+            const width = glyphs.reduce((s, g) => s + g.w, 0) + gap * (glyphs.length - 1), pad = 3;
+            const m = new Mask(width + pad * 2, h + pad * 2);
+            let gx = pad;
+            glyphs.forEach(g => { for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) if (g.get(i, j)) m.set(gx + i, pad + j); gx += g.w + gap; });
+            const ox = Math.round(cx - width / 2) - pad, oy = y - pad, edge = m.grow(true);
+            p.mask(edge, SKY[0], ox + 2, oy + 3);
+            p.mask(edge, GOLD[0], ox, oy);
+            // a shine sweeping across once a loop
+            const sweep = -20 + (f / 11) * (width + 40);
+            p.mask(m, (i, j) => {
+                const yy = j - pad, band = i - pad - sweep + yy * 0.6;
+                if (band > 0 && band < 3) return '#ffffff';
+                if (!m.get(i, j - 1) || !m.get(i - 1, j)) return GOLD[5];
+                if (!m.get(i, j + 1) || !m.get(i + 1, j)) return GOLD[2];
+                const t = yy / h;
+                return t < 0.3 ? GOLD[4] : t < 0.55 ? GOLD[3] : t < 0.8 ? GOLD[4] : GOLD[3];
+            }, ox, oy);
+            return { x: ox + pad, w: width };
+        }
+
+        // small capitals for REPORT, marble white
+        const SMALL = {
+            R: ['#######...', '.###..##..', '.###...##.', '.###...##.', '.###..##..', '.#####....', '.###.##...', '.###..##..', '.###...##.', '.###...##.', '#####..###'],
+            E: ['#########', '.###...##', '.###....#', '.###.....', '.###..#..', '.######..', '.###..#..', '.###.....', '.###....#', '.###...##', '#########'],
+            P: ['#######...', '.###..##..', '.###...##.', '.###...##.', '.###..##..', '.######...', '.###......', '.###......', '.###......', '.###......', '#####.....'],
+            O: ['...#####...', '.###...###.', '###.....###', '###.....###', '###.....###', '###.....###', '###.....###', '###.....###', '###.....###', '.###...###.', '...#####...'],
+            T: ['###########', '##..###..##', '#...###...#', '....###....', '....###....', '....###....', '....###....', '....###....', '....###....', '....###....', '..#######..'],
+        };
+
+        function marbleWord(p, str, cx, y, gap) {
+            const glyphs = [...str].map(ch => SMALL[ch]), width = glyphs.reduce((s, g) => s + g[0].length, 0) + gap * (glyphs.length - 1), pad = 2;
+            const m = new Mask(width + pad * 2, 11 + pad * 2);
+            let gx = pad;
+            glyphs.forEach(g => { g.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') m.set(gx + i, pad + j); })); gx += g[0].length + gap; });
+            const ox = Math.round(cx - width / 2) - pad, oy = y - pad;
+            p.mask(m.grow(true), SKY[0], ox + 1, oy + 2);
+            p.mask(m.grow(true), '#2a1430', ox, oy);
+            p.mask(m, (i, j) => (j - pad < 5 ? '#fffaf0' : j - pad < 9 ? '#f0e0d0' : '#d8c0b0'), ox, oy);
+        }
+
+        // laurel branches curving up either side of the title
+        function laurel(p, x, y, side, len) {
+            for (let s = 0; s < len; s++) {
+                const t = s / len, px = Math.round(x + side * Math.sin(t * 1.9) * 7), py = Math.round(y - s);
+                p.set(px, py, GOLD[1]);
+                if (s % 5 === 2 && s < len - 2) {
+                    // a pair of plump leaves, pointing up and out
+                    [[1, -1], [2, -1], [2, -2], [3, -2], [3, -3], [4, -3], [4, -4], [2, -3], [3, -4]].forEach(([dx, dy]) => p.set(px + side * dx, py + dy, dx + dy === 0 ? GOLD[5] : GOLD[3]));
+                    [[-1, -1], [-2, -1], [-2, -2], [-3, -2], [-3, -3], [-4, -3], [-2, -3]].forEach(([dx, dy]) => p.set(px + side * dx, py + dy, GOLD[2]));
+                }
+            }
+            p.set(Math.round(x + side * Math.sin(1.9) * 7), y - len, GOLD[5]);
+        }
+
+        // a band of Greek key
+        function meander(p, cx, y, w) {
+            const KEY = ['######', '.....#', '.###.#', '.#...#', '.#####'], x0 = Math.round(cx - w / 2);
+            p.rect(x0, y - 2, w, 1, GOLD[3]);
+            p.rect(x0, y + 6, w, 1, GOLD[3]);
+            for (let x = x0; x + 6 <= x0 + w; x += 6) p.sprite(KEY, { '#': GOLD[4] }, x, y);
+        }
+
+        function title(p, f) {
+            const [tx, ty, h] = LAYOUT.title, gap = Math.round(h * 0.1);
+            const word = goldWord(p, f, [glyphI(h), glyphC(h), glyphC(h), glyphA(h)], tx, ty, h, gap);
+            laurel(p, word.x - 10, ty + h, -1, h);
+            laurel(p, word.x + word.w + 9, ty + h, 1, h);
+            marbleWord(p, 'REPORT', LAYOUT.report[0], LAYOUT.report[1], 4);
+            const [mx, my, mw] = LAYOUT.meander;
+            meander(p, mx, my, mw);
+            const [gx, gy] = LAYOUT.tagline;
+            ['SCIENCE FOR BETTER', 'HEALTHCARE MEETINGS'].forEach((line, i) => text(p, line, gx, gy + i * 10, { color: '#ffeedd', outline: '#2a1430', anchor: 'center' }));
+            if (f % 12 < 8) text(p, 'PRESS START', ...LAYOUT.start, { color: GOLD[4], outline: '#2a1430', anchor: 'center' });
         }
 
         function draw(p, f) {
-            sky(p);
+            sky(p, f);
+            sun(p);
+            clouds(p);
             sea(p, f);
             rock(p);
-            land(p);
-            temple(p, f);
-            LAYOUT.cypress.forEach(([x, base, h]) => cypress(p, x, base, h));
-            meander(p);
-            gull(p, f, ...LAYOUT.gull);
-
-            const [ix, iy] = LAYOUT.icca, [rx, ry] = LAYOUT.report;
-            nesLogo(p, 'ICCA', ix, iy, { scale: 4, anchor: 'center', top: NES.white, bottom: NES.ice, shine: NES.white, shadow: NES.navy, drop: 3 });
-            const { w: rw } = nesLogo(p, 'REPORT', rx, ry, { scale: 2, anchor: 'center', top: NES.yellow, bottom: NES.gold, shine: NES.cream, shadow: NES.brown });
-            laurel(p, rx - rw / 2 - 10, ry + 16, -1, TALL ? 18 : 24);
-            laurel(p, rx + rw / 2 + 9, ry + 16, 1, TALL ? 18 : 24);
-            const [tx, ty] = LAYOUT.tagline;
-            ['SCIENCE FOR BETTER', 'HEALTHCARE MEETINGS'].forEach((line, i) => nesText(p, line, tx, ty + i * 7, { micro: true, anchor: 'center', color: NES.white, outline: NES.navy }));
-            pushStart(p, f, ...LAYOUT.start);
+            temple(p);
+            LAYOUT.trees.forEach(([x, base, h]) => cypress(p, x, base, h));
+            birds(p, f);
+            ship(p, f, ...LAYOUT.ship);
+            title(p, f);
         }
 
-        runFrames(draw, { frames: 12, delay: 140, size: [NW, NH] });
+        runFrames(draw, { frames: 12, delay: 140, size: [SW, SH] });
     </script>
 </body>
 </html>
