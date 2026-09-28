@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CRediT Role Icon Website pixel art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script>
+        const INK = '#0b3140';
+        const COLORS = ['#ff5d8f', '#ffb020', '#27c3a4', '#4c8dff', '#9b6bff', '#ff7a45', '#17b3d6'];
+
+        // The 14 CRediT contributor roles, in the taxonomy's order
+        const ROLES = ['bulb', 'database', 'chart', 'dollar', 'magnifier', 'flask', 'checklist', 'cube', 'code', 'person', 'shield', 'pie', 'pencil', 'review'];
+        const HOVER = 11;
+
+        // Wii-style pointing hand
+        const HAND = [
+            '.....KK.........',
+            '....KWWK........',
+            '....KWWK........',
+            '....KWWK........',
+            '....KWWKKK......',
+            '....KWWKWWKKK...',
+            '....KWWKWWKWWKK.',
+            '.KK.KWWKWWKWWKLK',
+            'KWWKKWWWWWWWWKLK',
+            'KWWWKWWWWWWWWWLK',
+            '.KWWWWWWWWWWWWLK',
+            '..KWWWWWWWWWWWLK',
+            '..KWWWWWWWWWWLK.',
+            '...KWWWWWWWWWLK.',
+            '....KWWWWWWWLK..',
+            '.....KLLLLLLLK..',
+            '.....KKKKKKKKK..',
+        ];
+        const BIG_HAND = scale2x(HAND);
+
+        // Wallpaper of faint role icons drifting diagonally, a seamless loop
+        // every 12 frames: each diagonal of cells repeats the same icon
+        function wallpaper(p, f) {
+            const s = 24, off = f * 2;
+            for (let y = 0; y < PH; y++) {
+                for (let x = 0; x < PW; x++) {
+                    const odd = (Math.floor((x + s * 4 - off) / s) + Math.floor((y + s * 4 - off) / s)) & 1;
+                    p.set(x, y, odd ? '#1d9a90' : '#22a699');
+                }
+            }
+            for (let b = -1; b <= Math.ceil(PH / s); b++) {
+                for (let a = -1; a <= Math.ceil(PW / s); a++) {
+                    if ((a + b) & 1) continue;
+                    const name = ROLES[(((a - b) / 2) % ROLES.length + ROLES.length) % ROLES.length];
+                    icon(p, name, a * s + off + 7, b * s + off + 7, '#3bbcad');
+                }
+            }
+        }
+
+        function tile(p, name, x, y, color, hover) {
+            if (hover) {
+                p.frame(x - 1, y - 2, 26, 26, color, INK, 2);
+                p.rect(x + 2, y - 1, 20, 1, '#ffffff66');
+                icon(p, name, x + 2, y + 1, '#ffffff', 2);
+                return;
+            }
+            p.frame(x, y, 24, 24, '#ffffff', '#c5dde0', 2);
+            icon(p, name, x + 2, y + 2, color, 2);
+        }
+
+        function browser(p, f) {
+            const X = 170, Y = 14, W = 142, H = 146;
+            p.frame(X, Y, W, H, '#f7fbfb', INK, 2);
+            p.panel(X + 2, Y + 2, W - 4, 12, '#2c6f7a', 1);
+            ['#ff6b6b', '#ffcf40', '#3ddc84'].forEach((c, i) => p.disc(X + 9 + i * 7, Y + 8, 2, c));
+            text(p, 'CREDIT ICONS', X + W - 8, Y + 5, { color: '#fff', anchor: 'right' });
+
+            // address bar
+            p.frame(X + 6, Y + 18, W - 12, 11, '#ffffff', '#b9d3d6', 1);
+            icon(p, 'magnifier', X + 9, Y + 19, '#7aa6ab');
+            [[X + 22, 26], [X + 50, 18], [X + 70, 30]].forEach(([x, w]) => p.rect(x, Y + 23, w, 2, '#cfe2e4'));
+
+            const gx = X + 7, gy = Y + 36;
+            ROLES.forEach((name, i) => {
+                if (i === HOVER) return;
+                tile(p, name, gx + (i % 5) * 26, gy + Math.floor(i / 5) * 26, COLORS[i % COLORS.length], false);
+            });
+            const hx = gx + (HOVER % 5) * 26, hy = gy + Math.floor(HOVER / 5) * 26;
+            tile(p, ROLES[HOVER], hx, hy, COLORS[HOVER % COLORS.length], true);
+
+            // role name and download button, pressed on the click frames
+            text(p, 'VISUALIZATION', X + 8, Y + 118, { color: INK });
+            const press = f % 6 === 4 ? 1 : 0;
+            const bx = X + 8, by = Y + 128 + press, bw = 78;
+            p.frame(bx, by, bw, 13, press ? '#e8612e' : '#ff7a45', INK, 1);
+            if (!press) p.rect(bx + 2, by + 1, bw - 4, 1, '#ffb08a');
+            // glint sweeping across the button
+            const gxp = bx - 8 + (f % 12) * 8;
+            for (let j = 0; j < 11; j++) {
+                const sx = gxp + (10 - j);
+                if (sx > bx && sx < bx + bw - 2) p.set(sx, by + 1 + j, '#ffffff66');
+            }
+            text(p, 'DOWNLOAD', bx + 6, by + 3, { color: '#fff' });
+            p.sprite(['..#..', '..#..', '#####', '.###.', '..#..'], { '#': '#fff' }, bx + bw - 13, by + 4);
+            return [bx + bw - 12, by + 7];
+        }
+
+        // A few big role badges bobbing in a wave
+        function badges(p, f) {
+            ['bulb', 'database', 'code', 'pencil'].forEach((name, i) => {
+                const x = 14 + i * 34, y = 110 + Math.round(Math.sin(((f + i * 3) / 12) * Math.PI * 2) * 2);
+                const c = ['#ff5d8f', '#ffb020', '#4c8dff', '#ff7a45'][i];
+                p.rect(x + 2, 136 + 2, 24, 2, '#0b314055');
+                p.frame(x, y, 28, 28, c, INK, 2);
+                p.rect(x + 3, y + 1, 22, 1, '#ffffff66');
+                icon(p, name, x + 4, y + 4, '#ffffff', 2);
+            });
+        }
+
+        function draw(p, f) {
+            wallpaper(p, f);
+            text(p, 'CASE STUDY', 12, 16, { color: '#fff', outline: INK });
+            logo(p, 'CRediT Role Icon', {
+                x: 10, y: 28, size: 19, outlineWidth: 2, dotGap: 2,
+                bands: ['#ffffff', '#f4eeff', '#e3d6ff', '#cdb8ff'], light: '#ffffff', dark: '#b39ce8',
+                outline: INK, rim: '#ffffff', shadow: '#06242e99',
+            });
+            logo(p, 'Website', {
+                x: 10, y: 48, size: 40, outlineWidth: 2,
+                bands: ['#fff0c2', '#ffd07a', '#ff9f4a', '#f0702a'], light: '#fffbe8', dark: '#c04a10',
+                outline: INK, rim: '#ffffff', shadow: '#06242e99',
+            });
+
+            badges(p, f);
+            const [cx, cy] = browser(p, f);
+            // fingertip on the button: hovers, then taps it every six frames
+            const tap = [0, 0, 1, 2, 3, 1][f % 6];
+            p.sprite(BIG_HAND, { K: INK, W: '#ffffff', L: '#b8e4f2' }, cx - 11, cy - 5 + tap - 2);
+            if (f % 6 === 4) { p.ring(cx, cy + 1, 5, '#ffffff'); p.ring(cx, cy + 1, 7, '#ffd23f'); }
+            [[160, 20, 0], [158, 150, 2], [306, 164, 1], [150, 100, 3], [22, 152, 1]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
+        }
+
+        runFrames(draw, { frames: 12, delay: 140 });
+    </script>
+</body>
+</html>

@@ -57,10 +57,10 @@ export function SplashScreen({ onComplete }) {
         const backgroundLoad = () => {
             const channelArtImages = [
                 '/channelart/credit-survey/channel.webp',
-                '/channelart/credit-website/channel.jpg',
+                '/channelart/credit-website/channel.webp',
                 '/channelart/research-agent/channel.webp',
                 '/channelart/resume/channel.webp',
-                '/channelart/tuftes-razor/channel.jpg',
+                '/channelart/tuftes-razor/channel.webp',
                 '/channelart/overtone/channel.webp',
                 '/channelart/betterposter/channel.webp',
                 '/channelart/icca-report/channel.webp',
