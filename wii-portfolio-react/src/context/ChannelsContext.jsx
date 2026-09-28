@@ -44,7 +44,7 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: 'https://medium.com/@akirauxr/cat-videos-a-panicked-discord-message-and-14-icons-a4cc5a2c4e6c',
-        videoformat: 'png'
+        videoformat: 'webp'
     },
     {
         id: 'tuftes-razor',
@@ -53,7 +53,7 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://tuftesrazor.scienceux.org/',
         embed: 'https://tuftesrazor.scienceux.org/',
-        videoformat: 'jpg'
+        videoformat: 'webp'
     },
     {
         id: 'github',

@@ -29,7 +29,7 @@ PUBLIC = HERE.parent / 'public'
 OUT = HERE / 'out'
 EDGE = Path(r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe')
 SCENES = ['overtone', 'betterposter', 'icca-report']
-PIXEL_SCENES = ['resume', 'research-agent', 'credit-survey']
+PIXEL_SCENES = ['resume', 'research-agent', 'credit-survey', 'credit-website', 'tuftes-razor']
 SIZES = {'expanded': (1920, 1080), 'tile': (1280, 720)}
 EDGE_FLAGS = ['--headless=new', '--disable-gpu', '--allow-file-access-from-files']
 

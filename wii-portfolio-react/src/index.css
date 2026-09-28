@@ -1018,19 +1018,14 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     filter: contrast(1.05) saturate(1.05);
 }
 
-/* Credit Website art (1536x1024) has its title text near the bottom — stay
-   anchored low so the crop eats sky, not the title, but off the very
-   bottom edge so the art reads a little lower in frame */
-.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo {
-    object-position: center 80%;
-}
-
 /* DS pixel-art channels: keep each art pixel a hard-edged square at any
-   size, and crop evenly so the title up top and the dialogue box or UI
-   along the bottom both stay in frame */
+   size, and crop evenly so the title up top and the UI along the bottom
+   both stay in frame */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo {
+.ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo {
     object-position: center;
     image-rendering: pixelated;
 }
@@ -1112,10 +1107,12 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     pointer-events: none;
 }
 
-/* Case Study Under Progress notification */
+/* Case Study Under Progress notification — anchored to the foot of the art
+   (the logo container stops 15vh above the bottom), clear of the title the
+   pixel art puts in its top-left corner */
 .ch-progress-notification {
     position: absolute;
-    top: 3vh;
+    bottom: calc(15vh + 2vh);
     left: 50%;
     transform: translateX(-50%);
     background: linear-gradient(to bottom, #f0f0f0, #d0d0d0);
