@@ -39,7 +39,7 @@ Everything from the cursor to the startup sound to the warning screen is faithfu
 - **Howler.js** for all audio (SFX, channel previews, background music)
 - **CSS** only — no UI library
 - Custom Wii fonts (FOT-Rodin, Continuum)
-- Deployed on **Vercel** with aggressive caching for assets, audio, and fonts
+- Deployed on **Vercel** with aggressive caching for assets, audio, and fonts, and on **Firebase Hosting** (the `akiraux` site)
 
 ---
 
@@ -122,3 +122,5 @@ Channel state is persisted to `localStorage` under the key `adifolio-channels-v1
 ## CI
 
 GitHub Actions runs ESLint on every push and PR to `main` via `.github/workflows/lint.yml`. Vercel deploys automatically on merge to `main`.
+
+`.github/workflows/firebase-hosting.yml` builds the site and deploys it to Firebase Hosting on every push to `main` (it can also be run by hand from the Actions tab). It needs a repository secret named `FIREBASE_SERVICE_ACCOUNT` holding the JSON key of a service account that can deploy to the `wii-portfolio-adi` project; without it the deploy is skipped.
