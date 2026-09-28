@@ -112,17 +112,6 @@
             });
         }
 
-        function dialog(p, f) {
-            const X = 8, Y = 122, W = 304, H = 42;
-            p.frame(X, Y, W, H, '#5aa0f0', INK, 2);
-            p.frame(X + 3, Y + 3, W - 6, H - 6, '#fbfbf7', '#2f6fc0', 1);
-            p.frame(X + 10, Y - 9, 42, 12, '#2f86e0', INK, 1);
-            text(p, 'AGENT', X + 31, Y - 6, { color: '#fff', anchor: 'center' });
-            text(p, 'I CAN DO THE RESEARCH, BUT I HAVE', X + 12, Y + 10, { color: '#383838', shadow: '#d4d4d4' });
-            text(p, 'NO FRONT END. CAN YOU DESIGN ONE?', X + 12, Y + 23, { color: '#383838', shadow: '#d4d4d4' });
-            text(p, '▼', X + W - 18, Y + H - 12 + (f % 6 < 3 ? 0 : 1), { color: '#e2413b' });
-        }
-
         const BIG_ROBOT = scale2x(ROBOT);
 
         function draw(p, f) {
@@ -146,7 +135,6 @@
             logo(p, 'Research', { ...blue, x: 10, y: 28 });
             logo(p, 'Agent', { ...blue, x: 10, y: 56 });
 
-            dialog(p, f);
             [[160, 40, 0], [306, 10, 2], [246, 104, 1], [170, 96, 3]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
         }
 
