@@ -39,7 +39,7 @@ Everything from the cursor to the startup sound to the warning screen is faithfu
 - **Howler.js** for all audio (SFX, channel previews, background music)
 - **CSS** only — no UI library
 - Custom Wii fonts (FOT-Rodin, Continuum)
-- Deployed on **Vercel** with aggressive caching for assets, audio, and fonts, and on **Firebase Hosting** (the `akiraux` site)
+- Deployed on **Vercel** and on **Firebase Hosting** (the `akiraux` site), both with aggressive caching for assets, audio, and fonts and none for the page itself
 
 ---
 
