@@ -5,10 +5,10 @@
     python art-src/render.py --publish    # also write into public/
 
 Most scenes are pixel art (pixel.js): the page paints each frame at its
-native size (320x180 for the DS scenes, 240x135 for the 8-bit ones, 480x270
-for the 16-bit BetterPoster) and this scales the frames up by a whole number
-with nearest-neighbour, to at least the width below, into looping lossless
-animated WebP:
+native size (320x180 for the DS scenes, 240x135 for the 8-bit ones, 384x216
+for BetterPoster, the Mega Drive's own pixel size) and this scales the
+frames up by a whole number with nearest-neighbour, to at least the width
+below, into looping lossless animated WebP:
     tile     -> public/channelart/<id>/channel.webp               (1280 wide)
     expanded -> public/assets/channels/<id>/video.webp            (1920 wide)
     mobile   -> public/assets/channels/<id>/video-mobile.webp     (1080 wide)
