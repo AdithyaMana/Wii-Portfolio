@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 import { useChannels } from '../context/ChannelsContext';
+import { previewSrc } from '../channelArt';
 
 export function SplashScreen({ onComplete }) {
     const [showWarning, setShowWarning] = useState(true);
@@ -81,7 +82,7 @@ export function SplashScreen({ onComplete }) {
             channels.forEach(channel => {
                 // Channel preview video
                 const format = channel.videoformat || 'gif';
-                const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
+                const videoSrc = previewSrc(channel);
                 if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
                     const v = document.createElement('video');
                     v.preload = 'auto'; v.muted = true; v.src = videoSrc; v.load();

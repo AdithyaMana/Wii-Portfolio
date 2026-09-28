@@ -37,6 +37,15 @@
         ];
         const BIG_HAND = scale2x(HAND);
 
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            title: [12, 26], browser: [19, 100], badges: [25, 266],
+            twinkles: [[160, 30, 0], [8, 100, 2], [170, 256, 1], [12, 300, 3], [150, 96, 1]],
+        } : {
+            title: [12, 16], browser: [170, 14], badges: [14, 110],
+            twinkles: [[160, 20, 0], [158, 150, 2], [306, 164, 1], [150, 100, 3], [22, 152, 1]],
+        };
+
         // Wallpaper of faint role icons drifting diagonally, a seamless loop
         // every 12 frames: each diagonal of cells repeats the same icon
         function wallpaper(p, f) {
@@ -68,7 +77,7 @@
         }
 
         function browser(p, f) {
-            const X = 170, Y = 14, W = 142, H = 146;
+            const [X, Y] = LAYOUT.browser, W = 142, H = 146;
             p.frame(X, Y, W, H, '#f7fbfb', INK, 2);
             p.panel(X + 2, Y + 2, W - 4, 12, '#2c6f7a', 1);
             ['#ff6b6b', '#ffcf40', '#3ddc84'].forEach((c, i) => p.disc(X + 9 + i * 7, Y + 8, 2, c));
@@ -106,10 +115,11 @@
 
         // A few big role badges bobbing in a wave
         function badges(p, f) {
+            const [x0, y0] = LAYOUT.badges;
             ['bulb', 'database', 'code', 'pencil'].forEach((name, i) => {
-                const x = 14 + i * 34, y = 110 + Math.round(Math.sin(((f + i * 3) / 12) * Math.PI * 2) * 2);
+                const x = x0 + i * 34, y = y0 + Math.round(Math.sin(((f + i * 3) / 12) * Math.PI * 2) * 2);
                 const c = ['#ff5d8f', '#ffb020', '#4c8dff', '#ff7a45'][i];
-                p.rect(x + 2, 136 + 2, 24, 2, '#0b314055');
+                p.rect(x + 2, y0 + 28, 24, 2, '#0b314055');
                 p.frame(x, y, 28, 28, c, INK, 2);
                 p.rect(x + 3, y + 1, 22, 1, '#ffffff66');
                 icon(p, name, x + 4, y + 4, '#ffffff', 2);
@@ -118,14 +128,15 @@
 
         function draw(p, f) {
             wallpaper(p, f);
-            text(p, 'CASE STUDY', 12, 16, { color: '#fff', outline: INK });
+            const [tx, ty] = LAYOUT.title;
+            text(p, 'CASE STUDY', tx, ty, { color: '#fff', outline: INK });
             logo(p, 'CRediT Role Icon', {
-                x: 10, y: 28, size: 19, outlineWidth: 2, dotGap: 2,
+                x: tx - 2, y: ty + 12, size: 19, outlineWidth: 2, dotGap: 2,
                 bands: ['#ffffff', '#f4eeff', '#e3d6ff', '#cdb8ff'], light: '#ffffff', dark: '#b39ce8',
                 outline: INK, rim: '#ffffff', shadow: '#06242e99',
             });
             logo(p, 'Website', {
-                x: 10, y: 48, size: 40, outlineWidth: 2,
+                x: tx - 2, y: ty + 32, size: 40, outlineWidth: 2,
                 bands: ['#fff0c2', '#ffd07a', '#ff9f4a', '#f0702a'], light: '#fffbe8', dark: '#c04a10',
                 outline: INK, rim: '#ffffff', shadow: '#06242e99',
             });
@@ -136,7 +147,7 @@
             const tap = [0, 0, 1, 2, 3, 1][f % 6];
             p.sprite(BIG_HAND, { K: INK, W: '#ffffff', L: '#b8e4f2' }, cx - 11, cy - 5 + tap - 2);
             if (f % 6 === 4) { p.ring(cx, cy + 1, 5, '#ffffff'); p.ring(cx, cy + 1, 7, '#ffd23f'); }
-            [[160, 20, 0], [158, 150, 2], [306, 164, 1], [150, 100, 3], [22, 152, 1]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
         }
 
         runFrames(draw, { frames: 12, delay: 140 });

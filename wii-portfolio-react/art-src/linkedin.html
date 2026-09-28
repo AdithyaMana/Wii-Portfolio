@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LinkedIn pixel art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script src="mii-faces.js"></script>
+    <script>
+        const INK = '#062a52';
+        const BLUE = '#0a66c2';
+
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            title: [15, 30, 36], url: [90, 70], button: [45, 272], hub: [90, 178, 60, 60],
+            twinkles: [[160, 16, 0], [12, 100, 2], [168, 250, 1], [14, 300, 3]],
+        } : {
+            title: [12, 38, 40], url: [14, 80], button: [14, 104], hub: [247, 92, 56, 54],
+            twinkles: [[180, 20, 0], [306, 164, 2], [150, 150, 1], [110, 10, 3]],
+        };
+
+        // Wii-style pointing hand
+        const HAND = scale2x([
+            '.....KK.........',
+            '....KWWK........',
+            '....KWWK........',
+            '....KWWK........',
+            '....KWWKKK......',
+            '....KWWKWWKKK...',
+            '....KWWKWWKWWKK.',
+            '.KK.KWWKWWKWWKLK',
+            'KWWKKWWWWWWWWKLK',
+            'KWWWKWWWWWWWWWLK',
+            '.KWWWWWWWWWWWWLK',
+            '..KWWWWWWWWWWWLK',
+            '..KWWWWWWWWWWLK.',
+            '...KWWWWWWWWWLK.',
+            '....KWWWWWWWLK..',
+            '.....KLLLLLLLK..',
+            '.....KKKKKKKKK..',
+        ]);
+
+        function backdrop(p) {
+            p.vgrad(0, 0, PW, PH, ['#07335f', '#0a4a8a', BLUE, '#2f86dc']);
+            // faint far-off network for texture
+            const rand = rng(3), dots = [];
+            for (let i = 0; i < 26; i++) dots.push([Math.floor(rand() * PW), Math.floor(rand() * PH)]);
+            dots.forEach(([x, y], i) => {
+                const [nx, ny] = dots[(i * 7 + 3) % dots.length];
+                if (Math.hypot(nx - x, ny - y) < 90) p.line(x, y, nx, ny, '#ffffff12');
+            });
+            dots.forEach(([x, y]) => p.disc(x, y, 1, '#ffffff30'));
+        }
+
+        // Draw into a scratch canvas, then keep only what falls inside the circle
+        function inCircle(p, cx, cy, r, paint) {
+            const t = new Pix(PW, PH);
+            paint(t);
+            for (let y = cy - r; y <= cy + r; y++) {
+                for (let x = cx - r; x <= cx + r; x++) {
+                    const i = (y * PW + x) * 4;
+                    if (x < 0 || y < 0 || x >= PW || y >= PH || !t.d[i + 3] || (x - cx) ** 2 + (y - cy) ** 2 > r * r + r * 0.8) continue;
+                    p.set(x, y, [t.d[i], t.d[i + 1], t.d[i + 2], t.d[i + 3]]);
+                }
+            }
+        }
+
+        function node(p, x, y, r, bg, paint) {
+            p.disc(x, y + 2, r + 2, '#03182f55');
+            p.disc(x, y, r + 2, INK);
+            p.disc(x, y, r + 1, '#ffffff');
+            p.disc(x, y, r - 1, bg);
+            inCircle(p, x, y, r - 1, paint);
+        }
+
+        const PEOPLE = (() => {
+            const rand = rng(29), bgs = ['#dcebfa', '#fde7c8', '#e3f5dc', '#f7dff0', '#e6e0fb', '#d9f3f5', '#fbe0da'];
+            return [-155, -105, -52, 0, 52, 105, 155].map((deg, k) => ({ deg, look: randomLook(rand), bg: bgs[k] }));
+        })();
+
+        function network(p, f) {
+            const [cx, cy, rx, ry] = LAYOUT.hub;
+            const spots = PEOPLE.map(({ deg }) => [Math.round(cx + rx * Math.cos(deg * Math.PI / 180)), Math.round(cy + ry * Math.sin(deg * Math.PI / 180))]);
+            // links: everyone to the hub, and a few friends of friends
+            spots.forEach(([x, y]) => { p.line(cx, cy, x, y, '#ffffff66'); p.line(cx + 1, cy, x + 1, y, '#ffffff22'); });
+            [[0, 1], [2, 3], [3, 4], [5, 6], [6, 0]].forEach(([a, b]) => p.line(...spots[a], ...spots[b], '#ffffff40'));
+            // messages travelling in to the hub, staggered round the ring
+            spots.forEach(([x, y], k) => {
+                const t = ((f + k * 5) % 12) / 12, px = Math.round(x + (cx - x) * t), py = Math.round(y + (cy - y) * t);
+                p.disc(px, py, 2, '#ffffff55');
+                p.rect(px - 1, py - 1, 2, 2, '#ffffff');
+            });
+            spots.forEach(([x, y], k) => {
+                const { look, bg } = PEOPLE[k];
+                const bob = Math.round(Math.sin(((f + k * 3) / 12) * Math.PI * 2));
+                node(p, x, y + bob, 11, bg, t => miiHead(t, x - 7, y + bob - 7, 14, look, { blink: (f + k) % 12 === 0 }));
+            });
+            // Adi in the middle, with a ring that pulses as the messages land
+            const pulse = f % 6 === 5;
+            if (pulse) p.ring(cx, cy, 28, '#ffffff88');
+            node(p, cx, cy, 22, '#bfe3ff', t => {
+                t.sprite(ADI_MII, ADI_MII_PAL, cx - 14, cy - 17);
+                if (f === 9) [7, 16].forEach(c => { t.rect(cx - 14 + c, cy - 17 + 19, 5, 1, ADI_MII_PAL.S); t.rect(cx - 14 + c, cy - 17 + 20, 5, 1, ADI_MII_PAL.K); });
+            });
+            p.disc(cx + 16, cy + 16, 5, INK);
+            p.disc(cx + 16, cy + 16, 4, '#57c26b');
+            p.sprite(['....#', '...#.', '#.#..', '.#...'], { '#': '#fff' }, cx + 14, cy + 14);
+        }
+
+        function title(p) {
+            const [tx, ty, size] = LAYOUT.title;
+            const { w, h } = logo(p, 'Linked', {
+                x: tx, y: ty, size, outlineWidth: 2,
+                bands: ['#ffffff', '#f2f7fc', '#dbe9f7', '#bcd6f0'], light: '#ffffff', dark: '#9cc0e6',
+                outline: INK, rim: '#ffffff', shadow: '#03182f88',
+            });
+            // the "in" badge, the same height as the word
+            const bx = tx + w + 6, by = ty - 1, bs = h + 3;
+            p.frame(bx - 1, by + 2, bs + 2, bs + 2, '#03182f88', '#03182f88', 2);
+            p.frame(bx - 3, by - 3, bs + 6, bs + 6, INK, '#ffffff', 2);
+            p.frame(bx - 1, by - 1, bs + 2, bs + 2, '#ffffff', INK, 2);
+            const m = logoMask('in', { size: Math.round(size * 0.72) }).box;
+            logo(p, 'in', {
+                x: bx + Math.round((bs - m.w) / 2), y: by + Math.round((bs - m.h) / 2) + 1, size: Math.round(size * 0.72),
+                bands: [BLUE, BLUE, '#0957a8', '#084b91'], light: '#2f86dc', outline: '#ffffff00',
+            });
+        }
+
+        function connect(p, f) {
+            const [bx, by] = LAYOUT.button, press = f % 6 === 4 ? 1 : 0, bw = 90;
+            p.frame(bx, by + press, bw, 15, press ? '#e8f1fb' : '#ffffff', INK, 2);
+            if (!press) p.rect(bx + 3, by + 13, bw - 6, 1, '#bcd6f0');
+            p.disc(bx + 11, by + 7 + press, 4, BLUE);
+            p.sprite(['..#..', '..#..', '#####', '..#..', '..#..'], { '#': '#fff' }, bx + 9, by + 5 + press);
+            text(p, 'CONNECT', bx + 20, by + 4 + press, { color: BLUE });
+            const tap = [0, 0, 1, 2, 3, 1][f % 6], cx = bx + bw - 14, cy = by + 8;
+            p.sprite(HAND, { K: INK, W: '#ffffff', L: '#b8e4f2' }, cx - 11, cy - 7 + tap);
+            if (f % 6 === 4) { p.ring(cx, cy + 1, 5, '#ffffff'); p.ring(cx, cy + 1, 7, '#ffd23f'); }
+        }
+
+        function draw(p, f) {
+            backdrop(p);
+            network(p, f);
+            title(p);
+            const [ux, uy] = LAYOUT.url;
+            text(p, 'LINKEDIN.COM/IN/AKIRAUX', ux, uy, { color: '#ffffff', outline: INK, anchor: TALL ? 'center' : 'left' });
+            connect(p, f);
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#ffffff'));
+        }
+
+        runFrames(draw, { frames: 12, delay: 140 });
+    </script>
+</body>
+</html>
