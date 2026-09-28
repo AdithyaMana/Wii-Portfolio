@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
 import { useChannels } from '../context/ChannelsContext';
+import { artUrl, previewSrc } from '../channelArt';
 
 export function SplashScreen({ onComplete }) {
     const [showWarning, setShowWarning] = useState(true);
@@ -57,10 +58,10 @@ export function SplashScreen({ onComplete }) {
         const backgroundLoad = () => {
             const channelArtImages = [
                 '/channelart/credit-survey/channel.webp',
-                '/channelart/credit-website/channel.jpg',
+                '/channelart/credit-website/channel.webp',
                 '/channelart/research-agent/channel.webp',
                 '/channelart/resume/channel.webp',
-                '/channelart/tuftes-razor/channel.jpg',
+                '/channelart/tuftes-razor/channel.webp',
                 '/channelart/overtone/channel.webp',
                 '/channelart/betterposter/channel.webp',
                 '/channelart/icca-report/channel.webp',
@@ -72,7 +73,8 @@ export function SplashScreen({ onComplete }) {
                 '/channelart/linkedin/Linkedin Icon.webm',
             ];
 
-            channelArtImages.forEach(src => { const i = new Image(); i.src = src; });
+            // the tiles' channel.html pages ask for their art with the version on
+            channelArtImages.forEach(src => { const i = new Image(); i.src = src.endsWith('.webp') ? artUrl(src) : src; });
             channelArtVideos.forEach(src => {
                 const v = document.createElement('video');
                 v.preload = 'auto'; v.muted = true; v.src = src; v.load();
@@ -81,7 +83,7 @@ export function SplashScreen({ onComplete }) {
             channels.forEach(channel => {
                 // Channel preview video
                 const format = channel.videoformat || 'gif';
-                const videoSrc = `/${channel.assets}${channel.id}/video.${format}`;
+                const videoSrc = previewSrc(channel);
                 if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
                     const v = document.createElement('video');
                     v.preload = 'auto'; v.muted = true; v.src = videoSrc; v.load();
@@ -97,7 +99,7 @@ export function SplashScreen({ onComplete }) {
                 a.load();
 
                 // Channel HTML prefetch
-                fetch(`/${channel.channelart}${channel.id}/channel.html`).catch(() => {});
+                fetch(artUrl(`/${channel.channelart}${channel.id}/channel.html`)).catch(() => {});
             });
         };
 

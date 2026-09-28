@@ -18,7 +18,8 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: '',
-        action: 'open-paper'
+        action: 'open-paper',
+        mobileart: true
     },
     {
         id: 'research-agent',
@@ -27,7 +28,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://www.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&viewport=-159%2C-34%2C0.73&t=XHJPjZQl2nXOeLnm-1&scaling=min-zoom&content-scaling=fixed&page-id=0%3A1',
         embed: 'https://embed.figma.com/deck/rDEzRouqrAVKzxeQXkJtZo/Case-Study-1?node-id=1-9&scaling=min-zoom&content-scaling=fixed&embed-host=wii-portfolio',
-        videoformat: 'webp'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'credit-survey',
@@ -36,7 +38,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://www.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&t=bAE08gPrxq7fiShM-1',
         embed: 'https://embed.figma.com/deck/vldYentYW7Fovy9SfKACVn/Case-Study-2?node-id=5-9&scaling=min-zoom&content-scaling=fixed&embed-host=wii-portfolio',
-        videoformat: 'webp'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'credit-website',
@@ -44,7 +47,8 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: 'https://medium.com/@akirauxr/cat-videos-a-panicked-discord-message-and-14-icons-a4cc5a2c4e6c',
-        videoformat: 'png'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'tuftes-razor',
@@ -53,7 +57,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://tuftesrazor.scienceux.org/',
         embed: 'https://tuftesrazor.scienceux.org/',
-        videoformat: 'jpg'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'github',
@@ -61,7 +66,8 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: 'https://github.com/AdithyaMana',
-        videoformat: 'mp4'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'linkedin',
@@ -69,7 +75,8 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: 'https://www.linkedin.com/in/akiraux/',
-        videoformat: 'mp4'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'resume',
@@ -78,7 +85,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/view?usp=sharing',
         embed: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/preview',
-        videoformat: 'webp'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'overtone',
@@ -87,7 +95,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://playovertone.web.app/',
         embed: 'https://playovertone.web.app/',
-        videoformat: 'jpg'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'betterposter',
@@ -96,7 +105,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://betterposter.scienceux.org/',
         embed: 'https://betterposter.scienceux.org/',
-        videoformat: 'jpg'
+        videoformat: 'webp',
+        mobileart: true
     },
     {
         id: 'icca-report',
@@ -105,7 +115,8 @@ const DEFAULT_CHANNELS = [
         channelart: 'channelart/',
         target: 'https://iccaworld.aflip.in/wavelength_report.html',
         embed: 'https://iccaworld.aflip.in/wavelength_report.html',
-        videoformat: 'jpg'
+        videoformat: 'webp',
+        mobileart: true
     },
 ];
 

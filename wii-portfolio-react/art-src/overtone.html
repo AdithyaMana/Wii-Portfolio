@@ -2,174 +2,356 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Overtone art</title>
-    <style>
-        @font-face { font-family: 'Rodin'; src: url('../public/fonts/FOT-Rodin%20Pro%20B.otf'); }
-        html, body { margin: 0; background: transparent; overflow: hidden; }
-        svg { display: block; }
-    </style>
+    <title>Overtone Balatro-style art</title>
 </head>
 <body>
-    <svg id="art" xmlns="http://www.w3.org/2000/svg"></svg>
-    <script src="lib.js"></script>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script src="nes.js"></script>
     <script>
+        // Overtone dealt as a hand of Balatro: the swirling paint background, a
+        // fan of word cards, chips x mult and the Play Hand / Discard buttons.
+        // Unlike the pixel scenes this one is painted at full size (1920x1080,
+        // or 1080x1920 with ?v=tall): sprites are drawn on a texel grid, then
+        // blown up 3x and turned smoothly, under a soft CRT finish.
+        const S = TALL ? 4 : 3, TW = TALL ? 270 : 640, TH = TALL ? 480 : 360;
+        const INK = '#1f2230', CARD = '#f6f2e9', CARD_EDGE = '#d8d1c2';
+        const BLUE = '#009dff', RED = '#fe5f55', PANEL = '#34474b', PANEL_DARK = '#1c2729', PANEL_LINE = '#56686c';
+
         const CARDS = [
-            { word: 'VINE', color: '#35d05a', icons: '✿▲➤', tags: ['PLANT', 'NATURE', 'MOTION'], n: 21 },
-            { word: 'ECHO', color: '#6fcaf2', icons: '◉✺❄', tags: ['MIND', 'ABSTRACT', 'COLD'], n: 21 },
-            { word: 'OMEN', color: '#8c2459', icons: '◉✺☾', tags: ['DANGER', 'MIND', 'ABSTRACT'], n: 31 },
-            { word: 'DELTA', color: '#1fb3a6', icons: '▲●➤', tags: ['NATURE', 'WET', 'MOTION'], n: 21 },
-            { word: 'FOSSIL', color: '#f2a73b', icons: '◷❄▲', tags: ['TIME', 'COLD', 'NATURE'], n: 21 },
+            { word: 'VINE', color: '#2f9e5b', draw: vine },
+            { word: 'ECHO', color: '#3a63d8', draw: echo },
+            { word: 'OMEN', color: '#e03a4f', draw: omen },
+            { word: 'DELTA', color: '#f07b1e', draw: delta },
+            { word: 'FOSSIL', color: '#8a52c9', draw: fossil },
         ];
+        const PICKED = 2;
 
-        function card(parent, c, { x, y, angle, scale, raised, shadow, glow }) {
-            const g = el('g', { transform: `translate(${x} ${y}) rotate(${angle}) scale(${scale})` }, parent);
-            const w = 250, h = 350, l = -w / 2, t = -h / 2;
-            if (raised) el('rect', { x: l - 10, y: t - 10, width: w + 20, height: h + 20, rx: 28, fill: '#ffd23f', filter: glow }, g);
-            el('rect', { x: l, y: t, width: w, height: h, rx: 20, fill: '#f7f1df', filter: shadow }, g);
-            // coloured header band, squared off at the bottom
-            el('rect', { x: l, y: t, width: w, height: 118, rx: 20, fill: c.color }, g);
-            el('rect', { x: l, y: t + 70, width: w, height: 48, fill: c.color }, g);
-            el('rect', { x: l, y: t + 6, width: w, height: 30, rx: 14, fill: '#fff', opacity: 0.18 }, g);
-            el('line', { x1: l, y1: t + 118, x2: l + w, y2: t + 118, stroke: '#10161c', 'stroke-width': 5 }, g);
-            el('rect', { x: l, y: t, width: w, height: h, rx: 20, fill: 'none', stroke: '#10161c', 'stroke-width': 7 }, g);
-            el('text', {
-                x: 0, y: t + 72, 'text-anchor': 'middle', 'font-family': 'Segoe UI Symbol', 'font-size': 38,
-                fill: '#fff', 'letter-spacing': 16, text: c.icons,
-            }, g);
-            el('text', { x: l + 22, y: t + 176, 'font-family': 'Rubik', 'font-weight': 700, 'font-size': 42, fill: '#141a20', text: c.word }, g);
-            c.tags.forEach((tag, i) => {
-                const danger = tag === 'DANGER';
-                const ty = t + 200 + i * 40;
-                const txt = el('text', {
-                    x: l + 34, y: ty + 16, 'font-family': 'Rodin', 'font-size': 17, 'letter-spacing': 2,
-                    fill: danger ? '#fff' : '#3b4c5d', 'dominant-baseline': 'central', text: tag,
-                }, g);
-                const r = el('rect', {
-                    x: l + 22, y: ty, width: txt.getComputedTextLength() + 26, height: 32, rx: 7,
-                    fill: danger ? '#ff8a2a' : '#e3e9ef', stroke: danger ? '#b9520e' : '#b7c3cf', 'stroke-width': 2.5,
-                }, g);
-                g.insertBefore(r, txt);
-            });
-            el('text', {
-                x: l + w - 20, y: t + h - 20, 'text-anchor': 'end', 'font-family': 'Rubik', 'font-weight': 700,
-                'font-size': 28, fill: '#141a20', text: c.n,
-            }, g);
-        }
+        // Where everything sits, in texels, on the wide canvas and the tall one.
+        // logo is the middle of the word and its letter size; buttons is the
+        // middle of the pair and each one's width.
+        const LAYOUT = TALL ? {
+            logo: [135, 54, 3], tagline: [135, 76, ['MEANING IS', 'THE PHYSICS']], panel: [37, 128, 196, 84],
+            hand: [135, 276, 40], buttons: [135, 336, 100, ['PLAY', 'DISCARD']], deck: null,
+        } : {
+            logo: [320, 52, 4], tagline: [320, 78, ['MEANING IS THE PHYSICS']], panel: [22, 112, 184, 84],
+            hand: [336, 236, 56], buttons: [336, 296, 124, ['PLAY HAND', 'DISCARD']], deck: [546, 196],
+        };
 
-        function hand(parent, defs, { cx, pivotY, radius, step, scale }) {
-            const shadow = shadowFilter(defs, 'cardShadow', { dy: 16, std: 14, opacity: 0.55 });
-            const glow = blurFilter(defs, 'cardGlow', 14);
-            CARDS.forEach((c, i) => {
-                const angle = (i - 2) * step;
-                const rad = angle * Math.PI / 180;
-                const raised = i === 2;
-                const r = radius + (raised ? 60 * scale : 0);
-                card(parent, c, {
-                    x: cx + Math.sin(rad) * r, y: pivotY - Math.cos(rad) * r,
-                    angle, scale, raised, shadow, glow,
-                });
-            });
-        }
-
-        function popup(parent, defs, { x, y, text, size, rotate, fill }) {
-            logo(parent, defs, {
-                x, y, size, rotate, spans: [{ text, fill }], outline: '#10161c', outlineW: size * 0.22,
-                rim: '#fff', rimW: size * 0.36, shadowDy: size * 0.09,
-            });
-        }
-
-        function multChip(parent, { x, y, text, size, rotate }) {
-            const g = el('g', { transform: `translate(${x} ${y}) rotate(${rotate})` }, parent);
-            const t = el('text', {
-                x: 0, y: 0, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-family': 'Rubik',
-                'font-weight': 700, 'font-size': size, fill: '#fff', text,
-            }, g);
-            const w = t.getComputedTextLength() + size * 0.9, h = size * 1.35;
-            el('rect', { x: -w / 2 - 6, y: -h / 2 + 8, width: w + 12, height: h + 12, rx: h * 0.3, fill: 'rgba(0,0,0,0.4)' }, g);
-            el('rect', { x: -w / 2 - 6, y: -h / 2 - 6, width: w + 12, height: h + 12, rx: h * 0.3 + 4, fill: '#fff' }, g);
-            el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: h * 0.3, fill: '#1c9c90', stroke: '#10161c', 'stroke-width': 6 }, g);
-            el('rect', { x: -w / 2 + 8, y: -h / 2 + 6, width: w - 16, height: h * 0.36, rx: h * 0.18, fill: '#fff', opacity: 0.25 }, g);
-            g.appendChild(t);
-        }
-
-        function lens(parent, { x, y, r }) {
-            const g = el('g', { transform: `translate(${x} ${y})` }, parent);
-            el('circle', { r: r + 10, cy: 8, fill: 'rgba(0,0,0,0.35)' }, g);
-            el('circle', { r: r + 9, fill: '#fff' }, g);
-            el('circle', { r, fill: 'url(#lensGlass)', stroke: '#10161c', 'stroke-width': 6 }, g);
-            el('circle', { r: r * 0.72, fill: 'none', stroke: '#ffd23f', 'stroke-width': r * 0.1, opacity: 0.9 }, g);
-            el('ellipse', { cx: -r * 0.3, cy: -r * 0.38, rx: r * 0.42, ry: r * 0.22, fill: '#fff', opacity: 0.55, transform: `rotate(-30 ${-r * 0.3} ${-r * 0.38})` }, g);
-            sparkle(g, r * 0.35, r * 0.28, r * 0.22, '#fff', 0.9);
-        }
-
-        function background(bg, defs) {
-            el('rect', { width: W, height: H, fill: radial(defs, 'bgGrad', [[0, '#274764'], [0.45, '#152a3d'], [1, '#081018']], { cx: '50%', cy: '48%', r: '75%' }) }, bg);
-            const rand = rng(7);
-            for (let i = 0; i < 220; i++) {
-                el('circle', { cx: rand() * W, cy: rand() * H, r: 0.8 + rand() * 2.2, fill: rand() > 0.7 ? '#ffd9a0' : '#cfe8ff', opacity: 0.15 + rand() * 0.5 }, bg);
-            }
-            // sound rings radiating from the hand of cards
-            for (let r = 140; r < 1300; r += 72) {
-                el('circle', { cx: W / 2, cy: 640, r, fill: 'none', stroke: '#7fd3f7', 'stroke-width': 2, opacity: Math.max(0.03, 0.2 - r / 7000) }, bg);
-            }
-            el('ellipse', { cx: W / 2, cy: 300, rx: 820, ry: 300, fill: radial(defs, 'warm', [[0, '#ff8a3d', 0.35], [1, '#ff8a3d', 0]]) }, bg);
-            // standing-wave harmonics: the fundamental and its overtones
-            const glow = blurFilter(defs, 'waveGlow', 7);
-            const colors = ['#ff7a2f', '#ffc93c', '#7fd3f7', '#b48cff', '#5fe08a'];
-            colors.forEach((color, k) => {
-                const n = k + 1, amp = 150 / Math.sqrt(n), cy = 640;
-                [1, -1].forEach(sign => {
-                    let d = '';
-                    for (let x = 0; x <= W; x += 8) {
-                        const yv = cy + sign * amp * Math.sin(n * Math.PI * x / W);
-                        d += (x ? 'L' : 'M') + x + ',' + yv.toFixed(1);
+        // ---- background: a port of Balatro's paint shader. Its clock is
+        // swapped for a point going round a circle so the 12 frames loop.
+        const PAINT = [[0.871, 0.267, 0.231], [0.0, 0.42, 0.706], [0.086, 0.137, 0.145]];
+        function swirl(f) {
+            const img = new ImageData(TW, TH), d = img.data, diag = Math.hypot(TW, TH);
+            const a = 2 * Math.PI * f / 12, t1 = 0.45 * Math.cos(a), t2 = 0.45 * Math.sin(a);
+            const spin = 0.25, contrast = 3.5, lighting = 0.4, mod = 0.25 * contrast + 0.5 * spin + 1.2;
+            for (let y = 0; y < TH; y++) {
+                for (let x = 0; x < TW; x++) {
+                    let ux = (x - TW / 2) / diag, uy = (y - TH / 2) / diag;
+                    const len = Math.hypot(ux, uy), ang = Math.atan2(uy, ux) + 301.8 - 20 * (spin * len + 1 - spin);
+                    ux = len * Math.cos(ang) * 30; uy = len * Math.sin(ang) * 30;
+                    let vx = ux + uy, vy = ux + uy;
+                    for (let i = 0; i < 5; i++) {
+                        const m = Math.sin(Math.max(ux, uy));
+                        vx += m + ux; vy += m + uy;
+                        ux += 0.5 * Math.cos(5.1123314 + 0.353 * vy + t1);
+                        uy += 0.5 * Math.sin(vx - t2);
+                        const k = Math.cos(ux + uy) - Math.sin(ux * 0.711 - uy);
+                        ux -= k; uy -= k;
                     }
-                    const op = sign === 1 ? 0.55 : 0.18;
-                    el('path', { d, fill: 'none', stroke: color, 'stroke-width': 10, opacity: op * 0.6, filter: glow }, bg);
-                    el('path', { d, fill: 'none', stroke: color, 'stroke-width': 3, opacity: op }, bg);
-                });
+                    const res = Math.min(2, Math.max(0, Math.hypot(ux, uy) * 0.035 * mod));
+                    const c1 = Math.max(0, 1 - mod * Math.abs(1 - res)), c2 = Math.max(0, 1 - mod * Math.abs(res)), c3 = 1 - Math.min(1, c1 + c2);
+                    const light = (lighting - 0.2) * Math.max(c1 * 5 - 4, 0) + lighting * Math.max(c2 * 5 - 4, 0);
+                    const o = (y * TW + x) * 4;
+                    for (let ch = 0; ch < 3; ch++) {
+                        const v = (0.3 / contrast) * PAINT[0][ch] + (1 - 0.3 / contrast) * (PAINT[0][ch] * c1 + PAINT[1][ch] * c2 + PAINT[2][ch] * c3) + light;
+                        d[o + ch] = Math.max(0, Math.min(255, Math.round(v * 255)));
+                    }
+                    d[o + 3] = 255;
+                }
+            }
+            const c = document.createElement('canvas');
+            c.width = TW; c.height = TH;
+            c.getContext('2d').putImageData(img, 0, 0);
+            return c;
+        }
+
+        // ---- sprite helpers
+        function canvasOf(pix) {
+            const c = document.createElement('canvas');
+            c.width = pix.w; c.height = pix.h;
+            c.getContext('2d').putImageData(new ImageData(pix.d, pix.w, pix.h), 0, 0);
+            return c;
+        }
+
+        // draws a texel sprite with its pivot at texel (x, y), turned by angle
+        function place(ctx, img, x, y, { angle = 0, pivot = [img.width / 2, img.height / 2], alpha = 1 } = {}) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.translate(x * S, y * S);
+            ctx.rotate(angle);
+            ctx.scale(S, S);
+            ctx.drawImage(img, -pivot[0], -pivot[1]);
+            ctx.restore();
+        }
+
+        // rounded rectangle, with room round the edge for an outline
+        function roundMask(w, h, r, pad = 1) {
+            const m = new Mask(w + pad * 2, h + pad * 2);
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const dx = Math.max(0, r - x - 0.5, x + 0.5 - (w - r)), dy = Math.max(0, r - y - 0.5, y + 0.5 - (h - r));
+                    if (dx * dx + dy * dy <= r * r) m.set(x + pad, y + pad);
+                }
+            }
+            return m;
+        }
+
+        function inTriangle(px, py, [ax, ay], [bx, by], [cx, cy]) {
+            const s = (x0, y0, x1, y1) => (px - x1) * (y0 - y1) - (x0 - x1) * (py - y1);
+            const d1 = s(ax, ay, bx, by), d2 = s(bx, by, cx, cy), d3 = s(cx, cy, ax, ay);
+            return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+        }
+
+        // ---- the pictures in the middle of each card, drawn round (cx, cy)
+        function vine(p, cx, cy, c) {
+            const dark = shade(c, 0.62);
+            let prev = null;
+            for (let t = 0; t <= 1; t += 0.02) {
+                const x = Math.round(cx - 9 + 18 * t + 4 * Math.sin(t * Math.PI * 2)), y = Math.round(cy + 13 - 26 * t);
+                if (prev) p.thick(prev[0], prev[1], x, y, 2, dark);
+                prev = [x, y];
+            }
+            p.ring(prev[0] - 2, prev[1] + 1, 3, dark);
+            [[0.2, 1], [0.45, -1], [0.7, 1]].forEach(([t, side]) => {
+                const x = Math.round(cx - 9 + 18 * t + 4 * Math.sin(t * Math.PI * 2)), y = Math.round(cy + 13 - 26 * t);
+                const lx = x + side * 6, ly = y - 2;
+                p.disc(lx, ly, 4, dark);
+                p.disc(lx, ly, 3, c);
+                p.disc(lx + side * 3, ly - 3, 2, dark);
+                p.disc(lx + side * 3, ly - 3, 1, c);
+                p.line(x, y, lx, ly, dark);
+                p.set(lx - side, ly - 1, shade(c, 1.6));
             });
-            el('rect', { width: W, height: H, fill: radial(defs, 'vignette', [[0.55, '#000', 0], [1, '#000', 0.55]], { cx: '50%', cy: '50%', r: '72%' }) }, bg);
+        }
+
+        function echo(p, cx, cy, c) {
+            const ox = cx - 9, dark = shade(c, 0.6);
+            p.disc(ox, cy, 4, dark);
+            p.disc(ox, cy, 3, c);
+            p.set(ox - 1, cy - 1, shade(c, 1.7));
+            [8, 13, 18].forEach((r, i) => {
+                for (let y = -r - 1; y <= r + 1; y++) {
+                    for (let x = 0; x <= r + 1; x++) {
+                        const d = Math.hypot(x, y);
+                        if (d > r - 1.2 && d <= r + 0.8 && Math.abs(Math.atan2(y, x)) < 0.95) p.set(ox + x, cy + y, i === 1 ? shade(c, 1.3) : c);
+                    }
+                }
+            });
+        }
+
+        function omen(p, cx, cy, c) {
+            const dark = shade(c, 0.55);
+            for (let y = -9; y <= 9; y++) {
+                for (let x = -15; x <= 15; x++) {
+                    const inside = Math.hypot(x, y - 11) < 16 && Math.hypot(x, y + 11) < 16;
+                    const edge = Math.hypot(x, y - 11) < 17.3 && Math.hypot(x, y + 11) < 17.3;
+                    if (inside) p.set(cx + x, cy + y, '#ffffff');
+                    else if (edge) p.set(cx + x, cy + y, dark);
+                }
+            }
+            p.disc(cx, cy, 6, c);
+            p.ring(cx, cy, 6, dark);
+            p.disc(cx, cy, 3, INK);
+            p.rect(cx - 3, cy - 3, 2, 2, '#ffffff');
+            [[-9, -8, -11, -12], [0, -10, 0, -14], [9, -8, 11, -12]].forEach(([x0, y0, x1, y1]) => p.thick(cx + x0, cy + y0, cx + x1, cy + y1, 2, dark));
+        }
+
+        function delta(p, cx, cy, c) {
+            const A = [cx, cy - 13], B = [cx - 14, cy + 12], C = [cx + 14, cy + 12];
+            const a = [cx, cy - 3], b = [cx - 6, cy + 8], cc = [cx + 6, cy + 8];
+            for (let y = cy - 14; y <= cy + 13; y++) {
+                for (let x = cx - 15; x <= cx + 15; x++) {
+                    if (!inTriangle(x + 0.5, y + 0.5, A, B, C)) continue;
+                    const hole = inTriangle(x + 0.5, y + 0.5, a, b, cc);
+                    p.set(x, y, hole ? CARD : x < cx - (y - cy) * 0.1 ? shade(c, 1.25) : c);
+                }
+            }
+            p.line(...A, ...B, shade(c, 0.6));
+            p.line(...A, ...C, shade(c, 0.6));
+            p.line(...B, ...C, shade(c, 0.6));
+        }
+
+        function fossil(p, cx, cy, c) {
+            const dark = shade(c, 0.55);
+            p.disc(cx, cy, 14, dark);
+            p.disc(cx, cy, 13, shade(c, 1.45));
+            let prev = null;
+            for (let th = 0; th < Math.PI * 5.2; th += 0.08) {
+                const r = 1 + th * 0.78, x = Math.round(cx + r * Math.cos(th)), y = Math.round(cy + r * Math.sin(th));
+                if (prev) p.thick(prev[0], prev[1], x, y, 2, c);
+                prev = [x, y];
+            }
+            for (let k = 0; k < 14; k++) {
+                const th = (k / 14) * Math.PI * 2;
+                p.line(Math.round(cx + 10 * Math.cos(th)), Math.round(cy + 10 * Math.sin(th)), Math.round(cx + 13 * Math.cos(th)), Math.round(cy + 13 * Math.sin(th)), dark);
+            }
+            p.set(cx, cy, dark);
+        }
+
+        // ---- cards
+        const CW = 58, CH = 80;
+        const CARD_MASK = roundMask(CW, CH, 5), CARD_EDGE_MASK = CARD_MASK.grow(false);
+
+        // copies a small Pix onto p, optionally turned upside down
+        function stamp(p, src, x, y, flip = false) {
+            for (let j = 0; j < src.h; j++) {
+                for (let i = 0; i < src.w; i++) {
+                    const o = ((flip ? src.h - 1 - j : j) * src.w + (flip ? src.w - 1 - i : i)) * 4;
+                    if (src.d[o + 3]) p.set(x + i, y + j, [src.d[o], src.d[o + 1], src.d[o + 2], src.d[o + 3]]);
+                }
+            }
+        }
+
+        function pip(p, x, y, c) {
+            p.sprite(['..#..', '.###.', '#####', '.###.', '..#..'], { '#': c }, x, y);
+        }
+
+        function cardSprite(card) {
+            const p = new Pix(CW + 2, CH + 2), c = card.color;
+            p.mask(CARD_EDGE_MASK, INK);
+            p.mask(CARD_MASK, (x, y) => (!CARD_MASK.get(x + 1, y) || !CARD_MASK.get(x, y + 1) ? CARD_EDGE : CARD));
+            // corner index: the word's first letter over a pip, and again upside down
+            const corner = new Pix(7, 15);
+            text(corner, card.word[0], 1, 0, { color: c });
+            pip(corner, 1, 9, c);
+            stamp(p, corner, 5, 5);
+            stamp(p, corner, CW - 11, CH - 19, true);
+            card.draw(p, CW / 2 + 1, 35, c);
+            text(p, card.word, CW / 2 + 1, 58, { color: shade(c, 0.7), anchor: 'center' });
+            return canvasOf(p);
+        }
+        const SPRITES = CARDS.map(cardSprite);
+        const SHADOW = (() => { const p = new Pix(CW + 2, CH + 2); p.mask(CARD_EDGE_MASK, '#000000'); return canvasOf(p); })();
+
+        function hand(ctx, f) {
+            const [cx, cy, step] = LAYOUT.hand, a = 2 * Math.PI * f / 12;
+            const order = [0, 1, 3, 4, 2];
+            order.forEach(i => {
+                const k = i - 2, sway = 0.025 * Math.sin(a + i * 1.3);
+                const angle = k * 0.09 + sway, lift = i === PICKED ? 16 + Math.round(2 * Math.sin(a)) : 0;
+                const x = cx + k * step, y = cy + k * k * 3 - lift;
+                place(ctx, SHADOW, x + 3, y + 5, { angle, alpha: 0.35 });
+                place(ctx, SPRITES[i], x, y, { angle });
+            });
+        }
+
+        // ---- the logo: chunky letters that bob one after another
+        const LETTERS = [...'OVERTONE'].map(ch => {
+            const { m } = glyphMask(NES_FONT, ch, LAYOUT.logo[2], 3);
+            const p = new Pix(m.w, m.h + 5), line = m.grow(true).grow(false);
+            p.mask(line, '#7a1b24', 0, 5);
+            p.mask(line, '#b3242f', 0, 3);
+            p.mask(line, INK, 0, 0);
+            p.mask(m, (x, y) => (y < m.h * 0.55 ? '#fffaf0' : '#ffd6c4'), 0, 0);
+            return canvasOf(p);
+        });
+
+        function logo(ctx, f) {
+            const [lx, ly, size] = LAYOUT.logo, a = 2 * Math.PI * f / 12, adv = size * 8;
+            const x0 = lx - ((LETTERS.length - 1) * adv) / 2;
+            LETTERS.forEach((img, i) => {
+                const bob = 2.5 * Math.sin(a - i * 0.7), tilt = 0.05 * Math.sin(a - i * 0.7 + 1);
+                place(ctx, img, x0 + i * adv, ly + bob, { angle: tilt });
+            });
+        }
+
+        // ---- flat UI, painted once per frame on a texel layer
+        function button(p, x, y, w, label, fill) {
+            p.panel(x, y + 3, w, 24, shade(fill, 0.6), 2);
+            p.panel(x, y, w, 24, fill, 2);
+            p.rect(x + 3, y + 1, w - 6, 1, shade(fill, 1.35));
+            text(p, label, x + w / 2, y + 5, { color: '#ffffff', shadow: shade(fill, 0.55), scale: 2, anchor: 'center' });
+        }
+
+        function ui(f) {
+            const p = new Pix(TW, TH);
+            // tagline
+            const [gx, gy, lines] = LAYOUT.tagline, gw = Math.max(...lines.map(l => textWidth(l, 2))) + 20, gh = lines.length * 18 + 8;
+            p.panel(gx - gw / 2, gy + 2, gw, gh, PANEL_DARK, 2);
+            p.frame(gx - gw / 2, gy, gw, gh, PANEL, PANEL_LINE, 2);
+            lines.forEach((line, i) => text(p, line, gx, gy + 6 + i * 18, { color: '#ffffff', shadow: PANEL_DARK, scale: 2, anchor: 'center' }));
+
+            // hand type with chips x mult, like Balatro's scoring box
+            const [px, py, pw, ph] = LAYOUT.panel;
+            p.panel(px, py + 3, pw, ph, PANEL_DARK, 2);
+            p.frame(px, py, pw, ph, PANEL, PANEL_LINE, 2);
+            text(p, 'HARMONY', px + pw / 2 - 16, py + 9, { color: '#ffffff', shadow: PANEL_DARK, scale: 2, anchor: 'center' });
+            text(p, 'LVL.3', px + pw / 2 + 50, py + 13, { color: '#9fd8ff', anchor: 'center' });
+            const bw = Math.round((pw - 40) / 2), by = py + 36;
+            [[px + 10, BLUE, '55'], [px + pw - 10 - bw, RED, '2.5']].forEach(([bx, fill, label], i) => {
+                const pop = f % 12 === 4 + i * 2 ? -2 : 0;
+                p.panel(bx, by + 3, bw, 40, shade(fill, 0.55), 2);
+                p.panel(bx, by + pop, bw, 40, fill, 2);
+                p.rect(bx + 3, by + pop + 1, bw - 6, 1, shade(fill, 1.4));
+                text(p, label, bx + bw / 2, by + pop + 10, { color: '#ffffff', shadow: shade(fill, 0.5), scale: 3, anchor: 'center' });
+            });
+            text(p, 'X', px + pw / 2, by + 13, { color: RED, shadow: PANEL_DARK, scale: 2, anchor: 'center' });
+
+            // Play Hand and Discard
+            const [ux, uy, uw, [play, discard]] = LAYOUT.buttons;
+            button(p, ux - uw - 4, uy, uw, play, BLUE);
+            button(p, ux + 4, uy, uw, discard, RED);
+
+            // the deck, face down, with what is left of it
+            if (LAYOUT.deck) {
+                const [dx, dy] = LAYOUT.deck;
+                for (let k = 3; k >= 0; k--) {
+                    const x = dx + k, y = dy - k * 2;
+                    p.mask(CARD_EDGE_MASK, INK, x, y);
+                    p.mask(CARD_MASK, (mx, my) => {
+                        if (mx < 5 || my < 5 || mx > CW - 4 || my > CH - 4) return '#f2ede4';
+                        return (mx + my) % 8 < 4 !== (mx - my + 80) % 8 < 4 ? '#c8323c' : '#e0484f';
+                    }, x, y);
+                }
+                text(p, '39/52', dx + CW / 2 + 1, dy + CH + 8, { color: '#ffffff', shadow: PANEL_DARK, scale: 2, anchor: 'center' });
+            }
+            return canvasOf(p);
+        }
+
+        // ---- soft CRT: darker corners (no scanlines: they turn to moire when
+        // the art is scaled down, and cost a lot in the WebP)
+        function crt(ctx) {
+            const W = TW * S, H = TH * S;
+            const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.hypot(W, H) * 0.56);
+            g.addColorStop(0, 'rgba(0,0,0,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.55)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        function frame(f) {
+            const c = document.createElement('canvas');
+            c.width = TW * S; c.height = TH * S;
+            const ctx = c.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(swirl(f), 0, 0, c.width, c.height);
+            logo(ctx, f);
+            ctx.drawImage(ui(f), 0, 0, c.width, c.height);
+            hand(ctx, f);
+            crt(ctx);
+            return c.toDataURL('image/png');
         }
 
         (async () => {
-            await ready();
-            const { defs, bg, fg } = setupSvg();
-            radial(defs, 'lensGlass', [[0, '#d9f4ff'], [0.55, '#5fb8e6'], [1, '#1c5d8c']], { cx: '40%', cy: '35%', r: '70%' });
-            const over = linear(defs, 'overFill', [[0, '#ffc36b'], [0.55, '#ff7a2f'], [1, '#e2401b']]);
-            const tone = linear(defs, 'toneFill', [[0, '#fff29a'], [0.5, '#ffc93c'], [1, '#ff9a1c']]);
-            const popFill = linear(defs, 'popFill', [[0, '#fff29a'], [1, '#ff9a1c']]);
-
-            if (!TILE) background(bg, defs);
-
-            if (TILE) {
-                hand(fg, defs, { cx: 640, pivotY: 1480, radius: 880, step: 11, scale: 0.86 });
-                lens(fg, { x: 150, y: 470, r: 50 });
-                lens(fg, { x: 1135, y: 440, r: 42 });
-                popup(fg, defs, { x: 150, y: 600, text: '+55', size: 70, rotate: -10, fill: popFill });
-                multChip(fg, { x: 1095, y: 610, text: '×2.5', size: 56, rotate: 8 });
-                logo(fg, defs, {
-                    x: 640, y: 292, size: 206, outline: '#1a0e06', outlineW: 30, rimW: 50, shadowDy: 16,
-                    spans: [{ text: 'OVER', fill: over }, { text: 'TONE', fill: tone }],
-                });
-                [[118, 120, 22], [1170, 150, 26], [360, 380, 14], [930, 385, 16], [1225, 300, 12], [60, 280, 12]]
-                    .forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff6d8', 0.95));
-            } else {
-                hand(fg, defs, { cx: 960, pivotY: 1690, radius: 900, step: 12.5, scale: 1 });
-                lens(fg, { x: 300, y: 700, r: 70 });
-                lens(fg, { x: 1640, y: 760, r: 58 });
-                popup(fg, defs, { x: 420, y: 560, text: '+55', size: 92, rotate: -10, fill: popFill });
-                popup(fg, defs, { x: 1690, y: 610, text: '+120', size: 64, rotate: 9, fill: popFill });
-                multChip(fg, { x: 1470, y: 520, text: '×2.5', size: 64, rotate: 8 });
-                logo(fg, defs, {
-                    x: 960, y: 355, size: 240, outline: '#1a0e06', outlineW: 32, rimW: 54, shadowDy: 18,
-                    spans: [{ text: 'OVER', fill: over }, { text: 'TONE', fill: tone }],
-                });
-                pill(fg, { x: 960, y: 446, text: 'MEANING IS THE PHYSICS', size: 30, spacing: 9, fill: 'rgba(8,16,24,0.75)', stroke: '#7fd3f7', color: '#dff2ff' });
-                [[250, 190, 26], [1680, 210, 30], [560, 470, 16], [1350, 460, 18], [1820, 420, 14], [120, 450, 14], [1500, 330, 12], [410, 320, 12]]
-                    .forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff6d8', 0.95));
+            const out = document.getElementById('out');
+            try {
+                const frames = [];
+                for (let f = 0; f < 12; f++) frames.push(frame(f));
+                out.textContent = JSON.stringify({ frames, delay: 140 });
+            } catch (e) {
+                out.textContent = JSON.stringify({ error: String(e && e.stack || e) });
             }
-            document.body.dataset.done = '1';
         })();
     </script>
 </body>

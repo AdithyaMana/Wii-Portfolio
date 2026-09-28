@@ -1,10 +1,12 @@
 // Pixel-art toolkit for the Nintendo DS style channel art. Scenes paint
 // every frame at a native 320x180 into an RGBA buffer; render.py reads the
 // frames back and scales them up with nearest-neighbour, so each art pixel
-// stays a crisp square.
+// stays a crisp square. Loaded with ?v=tall, scenes lay themselves out on a
+// 180x320 portrait canvas instead, for phones.
 
-const PW = 320;
-const PH = 180;
+const TALL = new URLSearchParams(location.search).get('v') === 'tall';
+const PW = TALL ? 180 : 320;
+const PH = TALL ? 320 : 180;
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const bayer = (x, y) => (BAYER[y & 3][x & 3] + 0.5) / 16;
@@ -253,6 +255,7 @@ const FONT = {
     '&': ['.##..', '#..#.', '#.#..', '.#...', '#.#.#', '#..#.', '.##.#'],
     '+': ['.....', '..#..', '..#..', '#####', '..#..', '..#..', '.....'],
     '#': ['.#.#.', '.#.#.', '#####', '.#.#.', '#####', '.#.#.', '.#.#.'],
+    '@': ['.###.', '#...#', '#.###', '#.#.#', '#.###', '#....', '.####'],
     '▶': ['#...', '##..', '###.', '####', '###.', '##..', '#...'],
     '▼': ['.......', '.......', '#######', '.#####.', '..###..', '...#...', '.......'],
 };
@@ -388,14 +391,15 @@ function twinkle(p, x, y, phase, c = '#fff') {
     for (let i = 1; i <= r; i++) { p.set(x - i, y, c); p.set(x + i, y, c); p.set(x, y - i, c); p.set(x, y + i, c); }
 }
 
-// Draws each frame and leaves them in <pre id="out"> for render.py
-async function runFrames(draw, { frames = 1, delay = 150 } = {}) {
+// Draws each frame and leaves them in <pre id="out"> for render.py. size
+// overrides the canvas for scenes drawn at another native resolution.
+async function runFrames(draw, { frames = 1, delay = 150, size = [PW, PH], fonts = [] } = {}) {
     const out = document.getElementById('out');
     try {
-        await Promise.all([document.fonts.load('700 30px Rubik'), document.fonts.load('900 30px "Segoe UI"')]);
+        await Promise.all(['700 30px Rubik', '900 30px "Segoe UI"', ...fonts].map(f => document.fonts.load(f)));
         const list = [];
         for (let f = 0; f < frames; f++) {
-            const p = new Pix();
+            const p = new Pix(size[0], size[1]);
             draw(p, f);
             list.push(p.toDataURL());
         }

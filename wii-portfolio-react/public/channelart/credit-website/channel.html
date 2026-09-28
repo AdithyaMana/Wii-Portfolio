@@ -17,7 +17,7 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: #0a1a2a;
+            background: #1d9a90;
         }
 
         .channel-container {
@@ -41,174 +41,24 @@
             }
         }
 
-        .channel-bg {
-            width: 100%;
-            height: 100%;
-            background-image: url('channel.jpg');
-            background-size: 102%;
-            background-position: center;
-            background-repeat: no-repeat;
-            animation: wii-float 12s ease-in-out infinite;
-        }
-
-        @keyframes wii-float {
-
-            0%,
-            100% {
-                background-size: 102%;
-                background-position: center;
-            }
-
-            50% {
-                background-size: 105%;
-                background-position: 49% 51%;
-            }
-        }
-
-        /* BRIGHT cloud/wisp particles */
-        .cloud {
-            position: absolute;
-            width: 80px;
-            height: 30px;
-            background: radial-gradient(ellipse, rgba(255, 255, 255, 0.8) 0%, rgba(200, 230, 255, 0.5) 50%, transparent 100%);
-            border-radius: 50px;
-            filter: blur(2px);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 0 0 40px rgba(135, 206, 235, 0.4);
-            animation: cloud-drift 10s linear infinite;
-        }
-
-        .cloud.small {
-            width: 50px;
-            height: 20px;
-        }
-
-        .cloud.medium {
-            width: 80px;
-            height: 30px;
-        }
-
-        .cloud.large {
-            width: 120px;
-            height: 40px;
-        }
-
-        .cloud:nth-child(2) {
-            top: 5%;
-            animation-delay: 1s;
-            animation-duration: 14s;
-        }
-
-        .cloud:nth-child(3) {
-            top: 8%;
-            animation-delay: 3s;
-            animation-duration: 11s;
-        }
-
-        .cloud:nth-child(4) {
-            top: 12%;
-            animation-delay: 0s;
-            animation-duration: 13s;
-        }
-
-        .cloud:nth-child(5) {
-            top: 85%;
-            animation-delay: 5s;
-            animation-duration: 10s;
-        }
-
-        .cloud:nth-child(6) {
-            top: 88%;
-            animation-delay: 2s;
-            animation-duration: 15s;
-        }
-
-        .cloud:nth-child(7) {
-            top: 92%;
-            animation-delay: 4s;
-            animation-duration: 12s;
-        }
-
-        .cloud:nth-child(8) {
-            top: 3%;
-            animation-delay: 6s;
-            animation-duration: 11s;
-        }
-
-        .cloud:nth-child(9) {
-            top: 90%;
-            animation-delay: 7s;
-            animation-duration: 13s;
-        }
-
-        .cloud:nth-child(10) {
-            top: 6%;
-            animation-delay: 8s;
-            animation-duration: 12s;
-        }
-
-        .cloud:nth-child(11) {
-            top: 95%;
-            animation-delay: 9s;
-            animation-duration: 14s;
-        }
-
-        @keyframes cloud-drift {
-            0% {
-                left: -15%;
-                opacity: 0;
-            }
-
-            15% {
-                opacity: 0.9;
-            }
-
-            85% {
-                opacity: 0.9;
-            }
-
-            100% {
-                left: 115%;
-                opacity: 0;
-            }
-        }
-
-        /* INTENSE sky glow overlay */
-        .glow-overlay {
+        /* The channel art; the WebP carries its own looping animation */
+        .channel-art {
             position: absolute;
             inset: 0;
-            background: radial-gradient(ellipse at 50% 30%, rgba(135, 206, 235, 0.25) 0%, transparent 55%);
-            animation: glow-pulse 3s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes glow-pulse {
-
-            0%,
-            100% {
-                opacity: 0.5;
-            }
-
-            50% {
-                opacity: 1;
-            }
+            background: center / cover no-repeat;
         }
     </style>
 </head>
 
 <body>
     <div class="channel-container">
-        <div class="channel-bg"></div>
-        <div class="glow-overlay"></div>
-        <div class="cloud small"></div>
-        <div class="cloud large"></div>
-        <div class="cloud medium"></div>
-        <div class="cloud small"></div>
-        <div class="cloud large"></div>
-        <div class="cloud medium"></div>
-        <div class="cloud small"></div>
-        <div class="cloud large"></div>
-        <div class="cloud medium"></div>
-        <div class="cloud small"></div>
+        <div class="channel-art"></div>
+        <script>
+            // The page's ?v= version is passed on to the art so that new art
+            // isn't hidden behind the year-long cache the host gives it
+            const v = new URLSearchParams(location.search).get('v');
+            document.querySelector('.channel-art').style.backgroundImage = `url('channel.webp${v ? `?v=${encodeURIComponent(v)}` : ''}')`;
+        </script>
     </div>
 </body>
 

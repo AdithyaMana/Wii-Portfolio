@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CRediT Role Icon Website pixel art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script src="credit-icons.js"></script>
+    <script>
+        const INK = '#0b3140';
+        const WAX = ['#ffe28a', '#ffd059', '#ffbd3a', '#f5a524'], CELL_LINE = '#c9780c';
+
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            title: [90, 22, 'center'], browser: [17, 98, 146, 150], tagline: [90, 258, 'center'],
+            twinkles: [[166, 18, 0], [10, 90, 2], [168, 240, 1], [20, 296, 3], [160, 292, 1]],
+        } : {
+            title: [14, 30, 'left'], browser: [174, 12, 134, 158], tagline: [16, 124, 'left'],
+            twinkles: [[160, 20, 0], [150, 158, 2], [316, 150, 1], [140, 104, 3], [24, 164, 1]],
+        };
+
+        // A pointy-top hexagon whose roofs climb one pixel for every two across
+        function hexMask(w, h) {
+            const m = new Mask(w, h), c = w / 2;
+            for (let y = 0; y < h; y++) {
+                const hw = Math.min(c, 2 * Math.min(y, h - 1 - y) + 1);
+                for (let x = c - hw; x < c + hw; x++) m.set(x, y);
+            }
+            return m;
+        }
+
+        // The honeycomb: the 14 roles as cells in rows of 2-3-4-3-2, which
+        // together make one big hexagon. Cells are 22px, 26px apart.
+        const CELL = hexMask(22, 22), STEP = 26, ROW = 20, ROWS = [2, 3, 4, 3, 2];
+        const CELLS = [];
+        ROWS.forEach((n, r) => {
+            for (let i = 0; i < n; i++) CELLS.push({ role: CELLS.length, x: 39 + (i - (n - 1) / 2) * STEP, y: r * ROW });
+        });
+        const COMB_W = 3 * STEP + 22, COMB_H = (ROWS.length - 1) * ROW + 22, PAD = 5;
+
+        // wax fills the walls between cells and follows their outline outside
+        const WAX_MASK = (() => {
+            let m = new Mask(COMB_W + PAD * 2, COMB_H + PAD * 2);
+            CELLS.forEach(c => { for (let y = 0; y < 22; y++) for (let x = 0; x < 22; x++) if (CELL.get(x, y)) m.set(PAD + c.x + x, PAD + c.y + y); });
+            for (let k = 0; k < 3; k++) m = m.grow(true);
+            return m;
+        })();
+        const WAX_EDGE = WAX_MASK.grow(false), CELL_EDGE = CELL.grow(false);
+
+        // Honey fills one cell after another round the middle of the comb
+        const HONEY_ROUTE = [3, 8, 10, 5];
+        const honeyCell = f => HONEY_ROUTE[Math.floor(f / 3)];
+
+        function comb(p, f, X, Y) {
+            const ox = X - PAD, oy = Y - PAD, landed = honeyCell(f);
+            p.mask(WAX_EDGE, INK, ox - 1, oy - 1);
+            p.mask(WAX_MASK, (mx, my) => {
+                const t = my / WAX_MASK.h, k = Math.min(WAX.length - 1, Math.floor(t * WAX.length));
+                return !WAX_MASK.get(mx, my - 1) ? '#fff2c2' : WAX[k];
+            }, ox, oy);
+            CELLS.forEach(c => {
+                const x = X + c.x, y = Y + c.y, honey = c.role === landed;
+                p.mask(CELL_EDGE, CELL_LINE, x - 1, y - 1);
+                p.mask(CELL, (mx, my) => {
+                    if (honey) return my < 8 ? '#ffe690' : my < 15 ? '#ffd45c' : '#ffc23a';
+                    return !CELL.get(mx, my + 1) || !CELL.get(mx + 1, my + 1) ? '#f6dca4' : '#fff8e6';
+                }, x, y);
+                if (honey) p.rect(x + 5, y + 5, 3, 1, '#ffffff');
+                roleIcon(p, c.role, x + 4, y + 4 - (honey ? 1 : 0), { ink: INK });
+            });
+        }
+
+        const BEE = {
+            up: [
+                '....LLL.LLL....',
+                '...LWWWLWWWL...',
+                '...LWWWLWWWL...',
+                '....LLLKLLL.K..',
+                '...KKKKKKKKKK..',
+                '..KYYKYYKYKKKK.',
+                'KKYYYKYYKYKKWKK',
+                '..KYYKYYKYKKKK.',
+                '...KKKKKKKKKK..',
+            ],
+            down: [
+                '...............',
+                '...............',
+                '...........K...',
+                '....KKKKKKK.K..',
+                '..LLLKYYKKKKKK.',
+                '.LWWWLYYKYKKWKK',
+                'KLWWWLYYKYKKKK.',
+                '..LLLKYYKYKKKK.',
+                '...KKKKKKKKKK..',
+            ],
+        };
+        // a bee perched in the notch between the two top cells
+        function bee(p, f, X, Y) {
+            const bob = [0, 0, -1, -1][f % 4], x = X + 39 - 7, y = Y - 6 + bob;
+            p.sprite(f % 2 ? BEE.down : BEE.up, { K: INK, Y: '#ffd23f', W: '#ffffff', L: '#9fdcf5' }, x, y);
+        }
+
+        // Faint honeycomb on the wallpaper, sliding left three pixels a frame
+        function wallpaper(p, f) {
+            p.rect(0, 0, PW, PH, '#22a699');
+            const W = 36, H = 36, cell = hexMask(W, H), edge = new Mask(W, H);
+            for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+                if (cell.get(x, y) && (!cell.get(x - 1, y) || !cell.get(x, y - 1) || !cell.get(x + 1, y) || !cell.get(x, y + 1))) edge.set(x, y);
+            }
+            const off = (f * 3) % W;
+            for (let r = -1; r * 27 < PH; r++) {
+                for (let c = -2; c * W < PW + W; c++) p.mask(edge, '#1d9a90', c * W + (r & 1 ? W / 2 : 0) - off, r * 27);
+            }
+        }
+
+        function browser(p, f) {
+            const [X, Y, W, H] = LAYOUT.browser;
+            p.frame(X, Y, W, H, '#f7fbfb', INK, 2);
+            p.panel(X + 2, Y + 2, W - 4, 12, '#2c6f7a', 1);
+            ['#ff6b6b', '#ffcf40', '#3ddc84'].forEach((c, i) => p.disc(X + 9 + i * 7, Y + 8, 2, c));
+            text(p, 'CREDIT ICONS', X + W - 8, Y + 5, { color: '#fff', anchor: 'right' });
+
+            // address bar
+            p.frame(X + 6, Y + 18, W - 12, 11, '#ffffff', '#b9d3d6', 1);
+            icon(p, 'magnifier', X + 9, Y + 19, '#7aa6ab');
+            [[X + 22, 26], [X + 50, 18], [X + 70, 30]].forEach(([x, w]) => p.rect(x, Y + 23, w, 2, '#cfe2e4'));
+
+            const cx = Math.round(X + (W - COMB_W) / 2), cy = Math.round(Y + 30 + (H - 30 - COMB_H) / 2);
+            comb(p, f, cx, cy);
+            bee(p, f, cx, cy);
+        }
+
+        function draw(p, f) {
+            wallpaper(p, f);
+            const [tx, ty, anchor] = LAYOUT.title;
+            text(p, 'CASE STUDY', tx + (anchor === 'left' ? 2 : 0), ty, { color: '#fff', outline: INK, anchor });
+            logo(p, 'CRediT Role Icon', {
+                x: tx, y: ty + 12, anchor, size: 19, outlineWidth: 2, dotGap: 2,
+                bands: ['#ffffff', '#f4eeff', '#e3d6ff', '#cdb8ff'], light: '#ffffff', dark: '#b39ce8',
+                outline: INK, rim: '#ffffff', shadow: '#06242e99',
+            });
+            logo(p, 'Website', {
+                x: tx, y: ty + 32, anchor, size: 40, outlineWidth: 2,
+                bands: ['#fff0c2', '#ffd07a', '#ff9f4a', '#f0702a'], light: '#fffbe8', dark: '#c04a10',
+                outline: INK, rim: '#ffffff', shadow: '#06242e99',
+            });
+            const [gx, gy, ga] = LAYOUT.tagline;
+            text(p, '14 CONTRIBUTOR ROLES', gx, gy, { color: '#fff', outline: INK, anchor: ga });
+            text(p, 'ONE ICON FOR EACH', gx, gy + 11, { color: '#ffe28a', outline: INK, anchor: ga });
+
+            browser(p, f);
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
+        }
+
+        runFrames(draw, { frames: 12, delay: 140 });
+    </script>
+</body>
+</html>

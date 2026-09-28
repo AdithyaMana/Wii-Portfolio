@@ -4,6 +4,7 @@ import { BottomBar } from './BottomBar';
 import { useChannels } from '../context/ChannelsContext';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
+import { previewSrc } from '../channelArt';
 
 export function MainMenu({
     onChannelSelect,
@@ -108,8 +109,8 @@ export function MainMenu({
 
         preloadedRef.current.add(channel.id);
         const format = channel.videoformat || 'gif';
-        // Construct path matching ChannelSelection logic
-        const src = `/${channel.assets}${channel.id}/video.${format}`;
+        // the same preview ChannelSelection will show on this screen
+        const src = previewSrc(channel);
 
         if (['mp4', 'webm', 'ogg', 'mov'].includes(format)) {
             const vid = document.createElement('video');

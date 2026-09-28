@@ -41,11 +41,11 @@
             }
         }
 
-        /* DS-style pixel art; the WebP carries its own looping animation */
+        /* The channel art; the WebP carries its own looping animation */
         .channel-art {
             position: absolute;
             inset: 0;
-            background: url('channel.webp') center / cover no-repeat;
+            background: center / cover no-repeat;
         }
     </style>
 </head>
@@ -53,6 +53,12 @@
 <body>
     <div class="channel-container">
         <div class="channel-art"></div>
+        <script>
+            // The page's ?v= version is passed on to the art so that new art
+            // isn't hidden behind the year-long cache the host gives it
+            const v = new URLSearchParams(location.search).get('v');
+            document.querySelector('.channel-art').style.backgroundImage = `url('channel.webp${v ? `?v=${encodeURIComponent(v)}` : ''}')`;
+        </script>
     </div>
 </body>
 

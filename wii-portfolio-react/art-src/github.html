@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GitHub pixel art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script>
+        const INK = '#010409';
+        // GitHub's contribution greens, from an empty day to a busy one
+        const GREENS = ['#1f2630', '#0e4429', '#006d32', '#26a641', '#39d353'];
+
+        // Where everything sits on the wide canvas and on the tall phone one.
+        // weeks is how long the skyline runs; origin is where its first day sits.
+        const LAYOUT = TALL ? {
+            title: [12, 28], weeks: 14, origin: [20, 182], legend: [14, 268],
+            twinkles: [[150, 20, 0], [120, 104, 2], [20, 120, 1], [166, 150, 3], [150, 296, 1]],
+        } : {
+            title: [12, 20], weeks: 22, origin: [126, 78], legend: [14, 138],
+            twinkles: [[180, 14, 0], [300, 30, 2], [240, 10, 1], [110, 60, 3], [96, 118, 1]],
+        };
+        // 12px isometric tiles: S across and Q down per grid step
+        const TW = 12, S = TW / 2, Q = TW / 4;
+        const HEIGHTS = [1, 4, 8, 13, 19].map(h => Math.round(h * TW / 8));
+
+        // A year of made-up but plausible activity: busy stretches, quiet
+        // weekends, the odd big day
+        function contributions(weeks) {
+            const rand = rng(1337), grid = [];
+            for (let i = 0; i < weeks; i++) {
+                const season = 0.55 + 0.45 * Math.sin(i / 4.3 + 1.2);
+                grid.push([0, 1, 2, 3, 4, 5, 6].map(j => {
+                    const weekend = j === 0 || j === 6 ? 0.5 : 1;
+                    const v = rand() * (0.3 + 0.7 * season) * weekend * 5.4 + 0.35;
+                    return Math.max(0, Math.min(4, Math.floor(v)));
+                }));
+            }
+            return grid;
+        }
+        const GRID = contributions(LAYOUT.weeks);
+
+        // Isometric helpers: cell (i, j) covers [i, i+1] x [j, j+1] in grid
+        // units; weeks run down-right and days up-right, at the 2:1 pixel slope.
+        // UP and DN are the top face's upper and lower edge in each column.
+        const [OX, OY] = LAYOUT.origin;
+        const iso = (u, v) => [OX + S * (u + v), OY + Q * (u - v) + Q];
+        const UP = [...Array(TW)].map((_, k) => Q - Math.ceil(Math.min(k, TW - 1 - k) / 2)), DN = UP.map(u => 2 * Q - u);
+
+        function block(p, i, j, h, c, lit) {
+            const X = OX + S * (i + j), Y = OY + Q * (i - j) - h;
+            for (let k = 0; k < TW; k++) {
+                const x = X + k;
+                for (let y = Y + DN[k] + 1; y <= Y + DN[k] + h; y++) p.set(x, y, k < S ? c : shade(c, 0.6));
+                if (h > 1) p.set(x, Y + DN[k] + h, shade(c, k < S ? 0.75 : 0.45));
+                // top face, with a faint seam along its front edges so neighbouring
+                // days of the same level still read as separate cells
+                for (let y = Y + UP[k]; y <= Y + DN[k]; y++) p.set(x, y, lit ? shade(c, 1.7) : y === Y + DN[k] ? shade(c, 1.1) : shade(c, 1.28));
+            }
+        }
+
+        // The skyline sits on a slab like a GitHub Skyline print, with the
+        // handle engraved along its long front face
+        function plinth(p) {
+            const C = LAYOUT.weeks, T = Math.round(10 * TW / 8);
+            const [lx] = iso(-1, -1), [rx] = iso(C + 1, 8);
+            for (let x = lx; x <= rx; x++) {
+                for (let y = OY - 10 * Q; y < OY + Q * (C + 10); y++) {
+                    const a = (x - OX) / S, b = (y - OY - Q) / Q, u = (a + b) / 2, v = (a - b) / 2;
+                    if (u >= -1 && u <= C + 1 && v >= -1 && v <= 8) p.set(x, y, '#161b22');
+                }
+            }
+            // front-left face along the weeks, front-right face along the days
+            const [ax, ay] = iso(-1, -1), [bx, by] = iso(C + 1, -1), [cx, cy] = iso(C + 1, 8);
+            for (let x = ax; x <= bx; x++) {
+                const top = Math.round(ay + (by - ay) * (x - ax) / (bx - ax));
+                for (let y = top + 1; y <= top + T; y++) p.set(x, y, y === top + 1 ? '#30363d' : '#0d1117');
+            }
+            for (let x = bx; x <= cx; x++) {
+                const top = Math.round(by + (cy - by) * (x - bx) / (cx - bx));
+                for (let y = top + 1; y <= top + T; y++) p.set(x, y, y === top + 1 ? '#21262d' : '#07090d');
+            }
+            // engraved handle, sheared to run down the face at the same slope
+            const { m, pad } = textMask('@ADITHYAMANA');
+            const tx = ax + 12;
+            for (let my = 0; my < m.h; my++) {
+                for (let mx = 0; mx < m.w; mx++) {
+                    if (!m.get(mx, my)) continue;
+                    const x = tx + mx - pad, top = Math.round(ay + (by - ay) * (x - ax) / (bx - ax));
+                    p.set(x, top + 4 + my - pad, '#8b949e');
+                }
+            }
+        }
+
+        function skyline(p, f) {
+            const C = LAYOUT.weeks, cells = [];
+            for (let i = 0; i < C; i++) for (let j = 0; j < 7; j++) cells.push([i, j]);
+            // back to front: cells further down the screen are nearer
+            cells.sort((a, b) => (a[0] - a[1]) - (b[0] - b[1]) || a[0] - b[0]);
+            // a light sweeps along the weeks once per loop
+            const sweep = Math.floor((f / 12) * (C + 6)) - 3;
+            cells.forEach(([i, j]) => {
+                const lv = GRID[i][j];
+                block(p, i, j, HEIGHTS[lv], GREENS[lv], lv > 0 && Math.abs(i - sweep) < 1);
+            });
+        }
+
+        // Mona the Octocat, standing on the tallest tower
+        const OCTO = [
+            '.KK.........KK.',
+            'KBBK.......KBBK',
+            'KBBBKKKKKKKBBBK',
+            'KBBBBBBBBBBBBBK',
+            'KBBSSSSSSSSSBBK',
+            'KBSSSSSSSSSSSBK',
+            'KBSSEsSSSEsSSBK',
+            'KBSSEESSSEESSBK',
+            'KBSSSSSPSSSSSBK',
+            '.KBSSSSSSSSSBK.',
+            '..KBBBBBBBBBK..',
+            '.KBBBBBBBBBBBK.',
+            'KBBKBBKBKBBKBBK',
+            'KBK.KBK.KBK.KBK',
+            '.K...K...K...K.',
+        ];
+        const OCTO_PAL = { K: INK, B: '#2d333b', S: '#f5c7a9', E: '#24292f', s: '#ffffff', P: '#e27d8f' };
+
+        function mona(p, f) {
+            let best = [0, 0], top = -1;
+            GRID.forEach((w, i) => w.forEach((lv, j) => { if (lv > top || (lv === top && i > best[0] && i < LAYOUT.weeks * 0.6)) { top = lv; best = [i, j]; } }));
+            const [i, j] = best, h = HEIGHTS[top];
+            const x = OX + S * (i + j) + S - 7, y = OY + Q * (i - j) - h + Q - 14;
+            const bob = [0, 0, -1, -1, 0, 0][f % 6];
+            p.sprite(OCTO, OCTO_PAL, x, y + bob);
+            if (f % 12 === 5) [6, 10].forEach(c => p.rect(x + c - 2, y + bob + 6, 2, 2, OCTO_PAL.S));
+        }
+
+        // "+1" floating up from a day during the first half of the loop
+        function plusOne(p, f) {
+            if (f > 7) return;
+            const i = Math.floor(LAYOUT.weeks * 0.78), j = 3, lv = GRID[i][j];
+            const x = OX + S * (i + j) + S - 5, y = OY + Q * (i - j) - HEIGHTS[lv] - 8 - f * 2;
+            text(p, '+1', x, y, { color: f > 5 ? '#39d35388' : '#39d353', outline: INK });
+        }
+
+        function draw(p, f) {
+            p.vgrad(0, 0, PW, PH, ['#05070c', '#0d1117', '#101a2a', '#132640']);
+            const rand = rng(8);
+            for (let s = 0; s < (TALL ? 60 : 70); s++) {
+                const x = Math.floor(rand() * PW), y = Math.floor(rand() * PH), c = rand() > 0.8 ? '#8b949e' : '#30363d';
+                p.set(x, y, c);
+            }
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#c9d1d9'));
+
+            plinth(p);
+            skyline(p, f);
+            mona(p, f);
+            plusOne(p, f);
+
+            const [tx, ty] = LAYOUT.title;
+            logo(p, 'GitHub', {
+                x: tx, y: ty, size: 44, outlineWidth: 2,
+                bands: ['#ffffff', '#eef2f6', '#d0d7de', '#aeb8c4'], light: '#ffffff', dark: '#8c959f',
+                outline: INK, rim: '#ffffff', shadow: '#000000aa',
+            });
+            text(p, '@ADITHYAMANA', tx + 2, ty + 46, { color: '#39d353', outline: INK });
+
+            const [gx, gy] = LAYOUT.legend;
+            text(p, 'CONTRIBUTIONS', gx, gy, { color: '#c9d1d9', outline: INK });
+            text(p, 'LESS', gx, gy + 13, { color: '#8b949e' });
+            GREENS.forEach((c, k) => { p.rect(gx + 27 + k * 9, gy + 12, 8, 8, INK); p.rect(gx + 28 + k * 9, gy + 13, 6, 6, c); });
+            text(p, 'MORE', gx + 75, gy + 13, { color: '#8b949e' });
+        }
+
+        runFrames(draw, { frames: 12, delay: 140 });
+    </script>
+</body>
+</html>

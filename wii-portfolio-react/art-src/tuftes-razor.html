@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tufte's Razor pixel art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script>
+        const INK = '#1c0f2e';
+        const PAPER = '#fbf7ee';
+        const DATA = [30, 48, 40, 66, 54, 82];
+        const JUNK = ['#e2413b', '#ffb020', '#3ddc84', '#2f86e0', '#9b6bff', '#ff5d8f'];
+
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            win: [23, 112, 134, 132], sun: [90, 266], rack: [20, 306], ridges: [264, 278, 292], ground: 306,
+            skyH: 290, stars: [[12, 8, 0], [150, 12, 2], [60, 4, 1], [110, 96, 3], [170, 40, 1]],
+            clouds: [[8, 96, 30], [120, 100, 44], [20, 236, 40], [100, 244, 60], [4, 252, 24]],
+        } : {
+            win: [176, 18, 134, 132], sun: [92, 124], rack: [14, 168], ridges: [130, 142, 156], ground: 168,
+            skyH: 134, stars: [[12, 8, 0], [150, 12, 2], [60, 4, 1], [110, 22, 3], [170, 4, 1]],
+            clouds: [[8, 58, 44], [30, 64, 26], [120, 44, 36], [44, 104, 70], [84, 112, 52], [132, 96, 30], [2, 118, 30]],
+        };
+
+        // The chart window, cut corner to corner from bottom-left to top-right
+        const [WX, WY, WW, WH] = LAYOUT.win;
+        const above = (x, y) => (y - (WY + WH)) * WW + (x - WX) * WH < 0;
+        // the cut-off half slips down along the cut and away from it
+        const LIFT = [-5, 1];
+
+        function sky(p) {
+            const [sx, sy] = LAYOUT.sun;
+            p.vgrad(0, 0, PW, LAYOUT.skyH, ['#241447', '#3f1d5f', '#6e2566', '#a83460', '#dd5a4a', '#f7913f', '#ffc35c']);
+            [[46, '#ffc35c18'], [40, '#ffd27a22'], [35, '#ffe08a30']].forEach(([r, c]) => p.disc(sx, sy, r, c));
+            p.disc(sx, sy, 30, '#ffe7a0');
+            p.disc(sx, sy, 27, '#fff3c8');
+            // thin clouds drawn across the sky and the sun
+            LAYOUT.clouds.forEach(([x, y, w]) => {
+                p.rect(x, y, w, 2, '#c9486a');
+                p.rect(x + 4, y + 2, w - 8, 1, '#a8345f');
+            });
+        }
+
+        function ridge(p, base, amp, f1, f2, ph, color) {
+            for (let x = 0; x < PW; x++) {
+                const y = Math.round(base + amp * Math.sin(x / f1 + ph) + amp * 0.5 * Math.sin(x / f2 + ph * 2));
+                p.rect(x, y, 1, PH - y, color);
+            }
+        }
+
+        function land(p) {
+            const [a, b, c] = LAYOUT.ridges;
+            ridge(p, a, 7, 31, 11, 1, '#8a3569');
+            ridge(p, b, 6, 23, 9, 2.4, '#5a2257');
+            ridge(p, c, 4, 37, 13, 0.7, '#35143c');
+            p.rect(0, LAYOUT.ground, PW, PH - LAYOUT.ground, '#1f0c27');
+        }
+
+        // Susuki grass swaying in the evening wind
+        function grass(p, f) {
+            const rand = rng(11), base = PH - 4;
+            for (let i = 0; i < (TALL ? 12 : 18); i++) {
+                const bx = 2 + Math.floor(rand() * (PW - 4)), h = 16 + Math.floor(rand() * 14), ph = rand() * Math.PI * 2;
+                const sway = Math.round(Math.sin((f / 12) * Math.PI * 2 + ph) * 2);
+                const tx = bx + 3 + sway, ty = base - h;
+                p.line(bx, base, tx, ty + 3, '#4a1f45');
+                [[0, 0, '#fff0c8'], [1, 0, '#f0c890'], [1, 1, '#f0c890'], [2, 1, '#e0a878'], [2, 2, '#f0c890'], [3, 3, '#d99870'], [0, 1, '#e0a878'], [1, 2, '#d99870'], [0, 2, '#b8785a'], [0, 3, '#8a4a52']]
+                    .forEach(([dx, dy, c]) => p.set(tx + dx, ty + dy, c));
+            }
+        }
+
+        // Katana and its saya resting edge-up on a black lacquer stand. Both
+        // are drawn column by column along a shallow arc, the sword's sori.
+        const SWORD = 140;
+        const sori = s => Math.round(3 * (1 - ((s - SWORD / 2) / (SWORD / 2)) ** 2));
+
+        function column(p, x, y, r0, r1, colorAt) {
+            for (let r = r0; r <= r1; r++) p.set(x, y + r, colorAt(r));
+        }
+
+        // (x, y) is the pommel end of the sword's centre line
+        function katana(p, f, x, y) {
+            for (let s = 0; s <= SWORD; s++) {
+                const cx = x + s, cy = y - sori(s);
+                if (s < 3) {
+                    // kashira, the pommel cap
+                    const h = s === 0 ? 3 : 4;
+                    column(p, cx, cy, -h, h, r => Math.abs(r) === h ? INK : s === 2 ? '#d9a441' : r < -1 ? '#4a3f5c' : '#2b2433');
+                } else if (s < 34) {
+                    // silk-wrapped grip: white ray-skin diamonds between the crossed ito
+                    const d = (s - 3) % 7;
+                    column(p, cx, cy, -4, 4, r => {
+                        if (Math.abs(r) === 4) return INK;
+                        if (Math.abs(r) + Math.abs(d - 3) <= 2) return r < 0 ? '#fff8e8' : '#e8dcc0';
+                        return r === -3 ? '#3d3354' : '#231c33';
+                    });
+                } else if (s < 36) {
+                    column(p, cx, cy, -4, 4, r => Math.abs(r) === 4 ? INK : r < -1 ? '#fff0a0' : '#d9a441');
+                } else if (s < 41) {
+                    // tsuba seen edge-on, between two thin seppa washers
+                    if (s === 36 || s === 40) column(p, cx, cy, -5, 5, r => Math.abs(r) === 5 ? INK : '#f0c860');
+                    else {
+                        const h = s === 38 ? 8 : 7;
+                        column(p, cx, cy, -h, h, r => Math.abs(r) === h ? INK : Math.abs(r) === h - 1 ? '#d9a441' : s === 37 && r < -2 ? '#5a4d70' : '#2b2433');
+                    }
+                } else if (s < 45) {
+                    // habaki collar
+                    column(p, cx, cy, -4, 3, r => r === -4 || r === 3 ? INK : r === -3 ? '#fff0a0' : r === 2 ? '#a8741c' : '#e0b040');
+                } else {
+                    // the blade, edge up: cutting edge, wavy hamon, flat, ridge line, spine.
+                    // Over the last 12 columns the edge sweeps down into the tip.
+                    const k = s - (SWORD - 12), top = k < 0 ? -3 : -3 + Math.round((k / 12) ** 2 * 5);
+                    const wave = [0, 0, 1, 1, 1, 0, 0, 1][s % 8];
+                    column(p, cx, cy, top, 3, r => {
+                        if (r === top || r === 3) return INK;
+                        if (k === 0) return '#ffffff';
+                        if (r === top + 1) return '#f4f8fc';
+                        if (r === -1) return wave ? '#ffffff' : '#dce6f1';
+                        if (r === 0) return '#c3cedb';
+                        if (r === 1) return '#eef3f8';
+                        return '#6f7b90';
+                    });
+                }
+            }
+            // a glint runs up the edge during the first half of the loop
+            if (f < 6) {
+                const s = 52 + f * 16;
+                twinkle(p, x + s, y - sori(s) - 3, f % 2 ? 1 : 2, '#ffffff');
+            }
+        }
+
+        // the scabbard only holds the blade, from the habaki to past the tip
+        function saya(p, f, x, y) {
+            for (let s = 40; s <= SWORD + 3; s++) {
+                const cx = x + s, cy = y - sori(Math.min(s, SWORD));
+                if (s < 44) column(p, cx, cy, -4, 4, r => Math.abs(r) === 4 ? INK : r < -1 ? '#ffffff' : '#e8dcc0');
+                else if (s > SWORD - 2) {
+                    const h = s === SWORD + 3 ? 2 : 3;
+                    column(p, cx, cy, -h, h, r => Math.abs(r) === h ? INK : r < 0 ? '#f0c860' : '#b8862a');
+                } else column(p, cx, cy, -3, 3, r => Math.abs(r) === 3 ? INK : r === -2 ? '#6a5a80' : r === -1 ? '#2c2238' : '#16101c');
+            }
+            // red sageo cord wound round the saya, knotted below with a tassel
+            // that sways
+            const cy = y - sori(52), sway = Math.round(Math.sin((f / 12) * Math.PI * 2) * 1.5);
+            [51, 52, 53].forEach(s => column(p, x + s, cy, -4, 4, r => Math.abs(r) === 4 ? '#7a1622' : r < -1 ? '#ff7a7a' : '#c8323c'));
+            p.line(x + 51, cy + 5, x + 52 + sway, cy + 9, '#c8323c');
+            p.line(x + 53, cy + 5, x + 53 + sway, cy + 9, '#a82632');
+            p.rect(x + 51 + sway, cy + 9, 3, 2, '#e8414b');
+            column(p, x + 51 + sway, cy + 11, 0, 3, () => '#c8323c');
+            column(p, x + 52 + sway, cy + 11, 0, 4, () => '#e8414b');
+            column(p, x + 53 + sway, cy + 11, 0, 3, () => '#a82632');
+        }
+
+        // two-tier katanakake: (x, y) is the left end of its base on the ground
+        function stand(p, x, y) {
+            const LAC = '#150d12', HI = '#46303e';
+            [48, 116].forEach(s => {
+                const ux = x + s, top = y - 30 - sori(s);
+                p.rect(ux - 2, top, 5, y - 4 - top, LAC);
+                p.rect(ux - 2, top, 1, y - 4 - top, HI);
+                // red-lined cradles under the sword and under the saya
+                [top, y - 13 - sori(s)].forEach(cy => {
+                    p.rect(ux - 5, cy, 11, 3, LAC);
+                    p.rect(ux - 4, cy, 9, 1, '#b8323b');
+                });
+            });
+            p.rect(x + 36, y - 5, 92, 3, LAC);
+            p.rect(x + 36, y - 5, 92, 1, HI);
+            [48, 116].forEach(s => { p.rect(x + s - 9, y - 3, 19, 3, LAC); p.rect(x + s - 9, y - 3, 19, 1, HI); });
+        }
+
+        function swordRack(p, f) {
+            const [x, y] = LAYOUT.rack;
+            stand(p, x, y);
+            saya(p, f, x, y - 17);
+            katana(p, f, x, y - 34);
+        }
+
+        function petals(p, f) {
+            const rand = rng(21);
+            for (let i = 0; i < (TALL ? 14 : 12); i++) {
+                const x0 = Math.floor(rand() * (PW - 20)), y0 = Math.floor(rand() * (PH - 24)), k = Math.floor(rand() * 12);
+                const t = (f + k) % 12, a = t === 0 || t === 11 ? '88' : '';
+                const x = Math.round(x0 + t * 2 + Math.sin((t / 12) * Math.PI * 2) * 2), y = Math.round(y0 + t * 1.5);
+                p.sprite(t % 4 < 2 ? ['#.', '##'] : ['##', '.#'], { '#': '#ffc2d4' + a }, x, y);
+                p.set(x + (t % 4 < 2 ? 0 : 1), y + 1, '#ff8fb1' + a);
+            }
+        }
+
+        // The same chart twice: smothered in chartjunk, and pared down to the data
+        function chartWindow(junk) {
+            const p = new Pix();
+            p.frame(WX, WY, WW, WH, PAPER, INK, 2);
+            p.panel(WX + 2, WY + 2, WW - 4, 11, '#b8323b', 1);
+            ['#ffffff', '#ffd9a0', '#ffb08a'].forEach((c, i) => p.disc(WX + 8 + i * 7, WY + 7, 2, c));
+            const cx = WX + 6, cy = WY + 17, cw = WW - 12, ch = WH - 23, base = WY + WH - 12;
+            if (junk) {
+                p.vgrad(cx, cy, cw, ch, ['#dfe6ef', '#b9c5d6']);
+                for (let y = cy; y < cy + ch; y++) for (let x = cx; x < cx + cw; x++) if ((x + y) % 5 === 0) p.set(x, y, '#a9b6c9');
+                for (let y = base; y > cy + 2; y -= 12) p.rect(cx, y, cw, 1, '#6d7b93');
+                p.box(cx, cy, cw, ch, '#2e3a50');
+                p.box(cx + 1, cy + 1, cw - 2, ch - 2, '#2e3a50');
+                // legend nobody needs
+                p.frame(cx + 5, cy + 5, 34, 24, '#ffffff', '#2e3a50', 1);
+                JUNK.slice(0, 3).forEach((c, i) => { p.rect(cx + 9, cy + 9 + i * 6, 4, 4, c); p.rect(cx + 16, cy + 10 + i * 6, 18, 2, '#9aa6b8'); });
+            } else {
+                p.rect(cx + 2, base, cw - 4, 1, '#8a8494');
+            }
+            DATA.forEach((v, k) => {
+                const x = WX + 14 + k * 19, top = base - v;
+                if (junk) {
+                    const c = JUNK[k];
+                    p.rect(x + 4, top + 2, 12, v - 2, '#1c0f2e40');
+                    for (let d = 1; d <= 4; d++) {
+                        p.rect(x + d, top - d, 12, 1, shade(c, 1.4));
+                        p.rect(x + 11 + d, top - d + 1, 1, v, shade(c, 0.62));
+                    }
+                    p.rect(x, top, 12, v, c);
+                    p.rect(x, top, 1, v, shade(c, 1.25));
+                } else {
+                    p.rect(x, top, 12, v, k === 5 ? '#d8413a' : '#4a4458');
+                    // Tufte's white grid: only where it crosses the bars
+                    for (let y = base - 12; y > top; y -= 12) p.rect(x, y, 12, 1, PAPER);
+                    // label only the bars whose value clears the cut
+                    if (!above(x - 1, top - 10)) text(p, String(v), x + 6, top - 9, { color: k === 5 ? '#d8413a' : '#8a8494', anchor: 'center' });
+                }
+            });
+            return p;
+        }
+
+        const PIECES = [chartWindow(true), chartWindow(false)];
+
+        // Copy the part of a window piece that keep() selects; with tint,
+        // stamp its silhouette in that colour instead (for drop shadows)
+        function blit(p, src, keep, dx, dy, tint) {
+            const d = src.d;
+            for (let y = WY - 1; y < WY + WH + 1; y++) {
+                for (let x = WX - 1; x < WX + WW + 1; x++) {
+                    const i = (y * PW + x) * 4;
+                    if (d[i + 3] && keep(x, y)) p.set(x + dx, y + dy, tint || [d[i], d[i + 1], d[i + 2], d[i + 3]]);
+                }
+            }
+        }
+
+        function sliced(p, f) {
+            const [junk, clean] = PIECES, below = (x, y) => !above(x, y);
+            blit(p, clean, below, 2, 3, '#12071f66');
+            blit(p, junk, above, LIFT[0] + 2, LIFT[1] + 3, '#12071f66');
+            blit(p, clean, below, 0, 0);
+            blit(p, junk, above, LIFT[0], LIFT[1]);
+
+            slash(p, f);
+        }
+
+        // Tapered sword streak down the middle of the gap, fat in the middle
+        // and thin at the ends, with a bright band running along it
+        function slash(p, f) {
+            const ax = WX - 18 + LIFT[0] / 2, ay = WY + WH + 18 + LIFT[1] / 2;
+            const bx = WX + WW + 16 + LIFT[0] / 2, by = WY - 16 + LIFT[1] / 2;
+            const len = Math.hypot(bx - ax, by - ay), nx = (ay - by) / len, ny = (bx - ax) / len;
+            const band = ((f % 12) + 0.5) / 12;
+            for (let s = 0; s <= len; s += 0.5) {
+                const t = s / len, w = 3.2 * Math.sin(Math.PI * t), hot = Math.abs(t - band) < 0.07;
+                const cx = ax + (bx - ax) * t, cy = ay + (by - ay) * t;
+                for (let o = -w; o <= w; o += 0.5) {
+                    const r = Math.abs(o) / Math.max(w, 0.01);
+                    const c = r < (hot ? 0.6 : 0.35) ? '#ffffff' : r < 0.7 ? '#ffe7b0' : '#ffb86a88';
+                    p.set(Math.round(cx + nx * o), Math.round(cy + ny * o), c);
+                }
+            }
+        }
+
+        function razorGlint(p, f, lx, ly) {
+            if (f > 5) return;
+            const m = logoMask('Razor', { size: 48 }), bb = m.box;
+            const ox = lx - bb.x0, oy = ly - bb.y0, pos = bb.x0 + bb.y0 - 16 + f * 34;
+            for (let y = 0; y < m.h; y++) {
+                for (let x = 0; x < m.w; x++) {
+                    const k = x + y - pos;
+                    if (m.get(x, y) && k >= 0 && k < 4) p.set(ox + x, oy + y, k === 1 || k === 2 ? '#ffffff' : '#ffffffaa');
+                }
+            }
+        }
+
+        function draw(p, f) {
+            sky(p);
+            LAYOUT.stars.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
+            land(p);
+            swordRack(p, f);
+            grass(p, f);
+
+            const ty = TALL ? 26 : 16;
+            logo(p, 'Tufte’s', {
+                x: 12, y: ty, size: 40, outlineWidth: 2,
+                bands: ['#ffffff', '#fff6e0', '#ffe6b8', '#ffd08a'], light: '#ffffff', dark: '#e0a860',
+                outline: INK, rim: '#ffffff', shadow: '#12071f99',
+            });
+            logo(p, 'Razor', {
+                x: 12, y: ty + 44, size: 48, outlineWidth: 2,
+                bands: ['#ffffff', '#e4ebf2', '#b9c6d4', '#8497ad'], light: '#ffffff', dark: '#5d6f86',
+                outline: INK, rim: '#ffffff', shadow: '#12071f99',
+            });
+            razorGlint(p, f, 12, ty + 44);
+
+            sliced(p, f);
+            petals(p, f);
+        }
+
+        runFrames(draw, { frames: 12, delay: 140 });
+    </script>
+</body>
+</html>
