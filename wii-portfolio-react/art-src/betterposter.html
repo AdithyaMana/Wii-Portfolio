@@ -37,15 +37,15 @@
         const LAYOUT = TALL ? {
             clouds: [[-10, 2, 1.2], [120, 10, 1], [40, 60, 0.7], [160, 70, 0.6]], peaks: 146, bank: [180, 198], lake: 198,
             falls: [[34, 7], [112, 9], [178, 6]], ground: x => (x >= 72 && x < 122 ? null : 262), bridge: [72, 122, 262],
-            palm: [26, 262, 72], loop: [174, 218, 44], monitor: [174, 262], rock: null,
-            sunflowers: [[54, 262]], flowers: [],
+            palms: [[26, 262, 72], [182, 262, 66]], monitor: [150, 262], rock: null,
+            sunflowers: [[54, 262]], flowers: [[129, 262]],
             rings: [[80, 238], [97, 230], [114, 238]],
             hud: [24, 28], title: [108, 96], zone: [44, 118], act: [150, 126],
         } : {
             clouds: [[-20, 2, 1.4], [150, 0, 1.2], [300, 6, 1.1], [96, 40, 0.7], [236, 46, 0.6]], peaks: 56, bank: [96, 114], lake: 114,
-            falls: [[62, 8], [178, 10], [262, 7], [346, 8]], ground: x => eased(x, 64, 112, 150, 174),
-            palm: [36, 150, 76], loop: [322, 130, 44], monitor: [236, 174], rock: [152, 174],
-            sunflowers: [[84, 150], [262, 174]], flowers: [[120, 174], [204, 174]],
+            falls: [[62, 8], [178, 10], [262, 7], [346, 8]], ground: x => (x < 272 ? eased(x, 64, 112, 150, 174) : eased(x, 272, 316, 174, 150)),
+            palms: [[36, 150, 76], [350, 150, 64]], monitor: [236, 174], rock: [152, 174],
+            sunflowers: [[84, 150], [258, 174]], flowers: [[120, 174], [204, 174], [326, 150]],
             rings: [[150, 148], [166, 140], [182, 136], [198, 140], [214, 148]],
             hud: [18, 26], title: [192, 68], zone: [206, 90], act: [290, 98],
         };
@@ -193,27 +193,6 @@
                     else if (j === 0) c = SOIL[4];
                     else if (j === 1 || k === 1) c = SOIL[3];
                     p.set(x, top + j, c);
-                }
-            }
-        }
-
-        // the loop: a ring of the same soil, with grass on its inside track
-        function loop(p) {
-            const [cx, cy, R] = LAYOUT.loop, T = 12, n = 20;
-            for (let y = cy - R - 1; y <= cy + R + 1; y++) {
-                for (let x = cx - R - 1; x <= cx + R + 1; x++) {
-                    const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
-                    if (d > R + 0.5 || d < R - T - 5) continue;
-                    if (d > R - 0.5) { p.set(x, y, SOIL[1]); continue; }
-                    if (d < R - T) {
-                        const g = R - T - d;
-                        p.set(x, y, g > 4 ? GRASS[3] : g > 2 ? GRASS[2] : GRASS[1]);
-                        continue;
-                    }
-                    const a = (Math.atan2(y + 0.5 - cy, x + 0.5 - cx) + Math.PI) / (2 * Math.PI) * n;
-                    const ring = d > R - T / 2 ? 1 : 0, cell = (Math.floor(a) + ring) & 1;
-                    const edge = a % 1 < 0.08 || Math.abs(d - (R - T / 2)) < 0.5;
-                    p.set(x, y, edge ? SOIL[1] : cell ? SOIL[3] : SOIL[2]);
                 }
             }
         }
@@ -371,22 +350,20 @@
         // ---- HUD, in the 8-bit font with Sonic's colouring: yellow labels,
         // white numbers, RINGS flashing red at zero
         const HUD_FONT = { ...NES_FONT, 0: NES_FONT.O };
-        function hudText(p, str, x, y, top, bottom) {
-            const { m, pad } = glyphMask(HUD_FONT, str, 1, 2);
-            p.mask(m.grow(true), INK, x - pad + 1, y - pad + 1);
-            p.mask(m.grow(true), INK, x - pad, y - pad);
-            p.mask(m, (i, j) => (j - pad < 4 ? top : bottom), x - pad, y - pad);
-            return m.w - pad * 2;
+        function hudText(p, str, x, y, top, bottom, anchor = 'left') {
+            const { m, pad } = glyphMask(HUD_FONT, str, 1, 2), w = m.w - pad * 2, ox = (anchor === 'right' ? x - w : x) - pad;
+            p.mask(m.grow(true), INK, ox + 1, y - pad + 1);
+            p.mask(m.grow(true), INK, ox, y - pad);
+            p.mask(m, (i, j) => (j - pad < 4 ? top : bottom), ox, y - pad);
+            return w;
         }
 
         function hud(p, f) {
-            const [x, y] = LAYOUT.hud, white = ['#fcfcfc', '#b4b4b4'], yellow = ['#fcfc00', YELLOW];
-            hudText(p, 'SCORE', x, y, ...yellow);
-            hudText(p, '0', x + 88, y, ...white);
-            hudText(p, 'TIME', x, y + 16, ...yellow);
-            hudText(p, '0:00', x + 40, y + 16, ...white);
-            hudText(p, 'RINGS', x, y + 32, ...(f % 4 < 2 ? [RED, '#b40000'] : yellow));
-            hudText(p, '0', x + 64, y + 32, ...white);
+            const [x, y] = LAYOUT.hud, right = x + 76, white = ['#fcfcfc', '#b4b4b4'], yellow = ['#fcfc00', YELLOW];
+            [['SCORE', '0', yellow], ['TIME', '0:00', yellow], ['RINGS', '0', f % 4 < 2 ? [RED, '#b40000'] : yellow]].forEach(([label, value, colours], i) => {
+                hudText(p, label, x, y + i * 16, ...colours);
+                hudText(p, value, right, y + i * 16, ...white, 'right');
+            });
         }
 
         // ---- the title card: the zone name in big blocky capitals, and the
@@ -424,25 +401,31 @@
             return w;
         }
 
-        const ONE = ['...#####.', '..######.', '.#######.', '####.###.', '###..###.', '.....###.', '.....###.', '.....###.', '.....###.', '.....###.', '.....###.', '.....###.', '.....###.', '..#######', '..#######'];
+        const ONE = ['..####..', '.#####..', '######..', '######..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '########', '########'];
 
         function actOval(p, x, y) {
-            const rx = 24, ry = 16;
-            for (let j = -ry - 2; j <= ry + 2; j++) {
-                for (let i = -rx - 2; i <= rx + 2; i++) {
-                    const d = (i / rx) ** 2 + (j / ry) ** 2, d2 = (i / (rx + 2)) ** 2 + (j / (ry + 2)) ** 2;
-                    if (d2 > 1) continue;
-                    let c = INK;
-                    if (d <= 1) c = d > 0.72 ? (i + j < 0 ? HAZE : SKY_DEEP) : SKY;
-                    if (d <= 1 && d > 0.55 && d <= 0.72 && i + j * 1.4 < -6) c = '#2490d8';
-                    p.set(x + i, y + j, c);
-                }
+            const rx = 25, ry = 15, m = new Mask(rx * 2 + 1, ry * 2 + 1);
+            for (let j = -ry; j <= ry; j++) {
+                const span = Math.round(rx * Math.sqrt(Math.max(0, 1 - (j / (ry + 0.5)) ** 2)));
+                for (let i = -span; i <= span; i++) m.set(rx + i, ry + j);
             }
-            text(p, 'ACT', x - 12, y - 8, { color: '#fcfcfc', outline: INK });
-            const m = new Mask(ONE[0].length + 4, ONE.length + 4);
-            ONE.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') m.set(i + 2, j + 2); }));
-            p.mask(m.grow(true), INK, x + 3 - 2, y - 8 - 2);
-            p.mask(m, (i, j) => (j < 9 ? '#fcfc00' : j < 13 ? YELLOW : ORANGE), x + 3 - 2, y - 8 - 2);
+            const ox = x - rx, oy = y - ry;
+            p.mask(m.grow(true), SKY_DEEP, ox + 2, oy + 2);
+            p.mask(m.grow(true), INK, ox, oy);
+            // glossy blue: a light cap, the royal blue body, a deeper base
+            p.mask(m, (i, j) => (j < 6 ? HAZE : j < ry * 2 - 7 ? SKY : SKY_DEEP), ox, oy);
+            for (let i = 10; i < rx * 2 - 12; i++) if (m.get(i, 2)) p.set(ox + i, oy + 3, CLOUD[2]);
+            // ACT, then a gap, then the number
+            const { m: act, pad } = glyphMask(NES_FONT, 'ACT', 1, 2);
+            const ax = x - 18, ay = y - 3;
+            p.mask(act.grow(true), INK, ax - pad, ay - pad);
+            p.mask(act, (i, j) => (j - pad < 4 ? '#fcfcfc' : CLOUD[1]), ax - pad, ay - pad);
+            const one = new Mask(ONE[0].length + 4, ONE.length + 4);
+            ONE.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') one.set(i + 2, j + 2); }));
+            const nx = x + 9, ny = y - 8;
+            p.mask(one.grow(true), INK, nx - 2 + 1, ny - 2 + 1);
+            p.mask(one.grow(true), INK, nx - 2, ny - 2);
+            p.mask(one, (i, j) => (j < 8 ? '#fcfc00' : j < 13 ? YELLOW : ORANGE), nx - 2, ny - 2);
         }
 
         function titleCard(p) {
@@ -458,8 +441,7 @@
             peaks(p);
             bank(p, f);
             lake(p, f);
-            loop(p);
-            palm(p, ...LAYOUT.palm);
+            LAYOUT.palms.forEach(([x, base, h]) => palm(p, x, base, h));
             ground(p);
             if (LAYOUT.bridge) bridge(p, ...LAYOUT.bridge);
             LAYOUT.sunflowers.forEach(([x, s]) => sunflower(p, f, x, s));
