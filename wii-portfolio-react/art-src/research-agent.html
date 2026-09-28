@@ -8,6 +8,11 @@
     <pre id="out"></pre>
     <script src="pixel.js"></script>
     <script>
+        // The research agent at work in a great library at night: a corridor of
+        // bookcases in true perspective, moonlight pouring through the tall
+        // window at the end with dust drifting in the beams, and the robot
+        // reading a floating book while what it finds streams up into the
+        // holographic front end it was missing.
         const INK = '#0b1d40';
 
         const ROBOT = [
@@ -41,110 +46,237 @@
             '.........KKKKKKKKKKKKKK.........',
         ];
         const ROBOT_PAL = { K: INK, W: '#ffffff', L: '#cfe6fa', B: '#8fcaf2', V: '#10305f', C: '#6fe3ff', c: '#3aa8d8', P: '#ff9fb8', Y: '#ffd23f' };
+        const BIG_ROBOT = scale2x(ROBOT);
 
-        const PAPER = [
-            'KKKKKKKK...',
-            'KWWWWWWKK..',
-            'KWBBBBWKLK.',
-            'KWWWWWWKKKK',
-            'KWGGGGGGGWK',
-            'KWWWWWWWWWK',
-            'KWGGGGGGWWK',
-            'KWWWWWWWWWK',
-            'KWGGGGGGGWK',
-            'KWWWWWWWWWK',
-            'KWGGGGWWWWK',
-            'KWWWWWWWWWK',
-            'KKKKKKKKKKK',
-        ];
+        const BOOKS = ['#9a3b46', '#3d5a9c', '#c09a42', '#3f7a55', '#6a4b9c', '#b0603a', '#d2c29e', '#4a8a9a', '#8a4a6e', '#5a6a2a'];
+        const FOG = [9, 11, 30], MOON = [196, 222, 255], CYAN = '#6fe3ff';
 
-        const BOOKS = ['#b04a4a', '#4a6ab0', '#c9a040', '#4a9a6a', '#7a4ab0', '#c07040', '#d8c8a0', '#5a8aa0', '#a05a80'];
-
-        // Where everything sits on the wide canvas and on the tall phone one
+        // Where everything sits on the wide canvas and on the tall phone one.
+        // vp is the vanishing point and focal length of the corridor.
         const LAYOUT = TALL ? {
-            shelves: [2, 38, 74, 110, 146, 182, 218, 254, 290], posts: [0, 88, 176], lamp: [80, 180],
-            robot: [26, 150], title: [12, 30], twinkles: [[150, 30, 0], [166, 116, 2], [20, 134, 1], [156, 240, 3]],
+            vp: [90, 124, 118], title: [90, 22, 'center'], panel: [20, 146, 80, 48], robot: [98, 162], book: [64, 236],
+            twinkles: [[164, 20, 0], [14, 150, 2], [170, 292, 1]],
         } : {
-            shelves: [2, 38, 74, 110, 146], posts: [0, 104, 212, 316], lamp: [226, 80],
-            robot: [178, 52], title: [12, 16], twinkles: [[160, 40, 0], [306, 12, 2], [246, 124, 1], [170, 116, 3], [40, 150, 2]],
+            vp: [150, 88, 150], title: [12, 22, 'left'], panel: [204, 22, 104, 48], robot: [240, 76], book: [198, 148],
+            twinkles: [[166, 16, 0], [306, 170, 2], [20, 150, 1]],
         };
 
-        function library(p) {
-            p.rect(0, 0, PW, PH, '#2a1a12');
-            LAYOUT.shelves.forEach((top, row) => {
-                const plank = top + 30, rand = rng(row * 31 + 5);
-                p.rect(0, top, PW, 30, '#3a2418');
-                for (let x = 0; x < PW;) {
-                    const w = 3 + Math.floor(rand() * 4), h = 17 + Math.floor(rand() * 11);
-                    if (rand() < 0.07) { x += 3 + Math.floor(rand() * 6); continue; }
-                    const c = BOOKS[Math.floor(rand() * BOOKS.length)], y = plank - h;
-                    p.rect(x, y, w, h, c);
-                    p.rect(x, y, 1, h, shade(c, 1.3));
-                    p.rect(x + w - 1, y, 1, h, shade(c, 0.7));
-                    p.rect(x, y + 3, w, 2, shade(c, 1.45));
-                    p.rect(x, y + h - 5, w, 1, shade(c, 0.75));
-                    x += w;
+        const mix = (a, b, t) => [0, 1, 2].map(i => Math.round(a[i] + (b[i] - a[i]) * t)).concat(255);
+        const hash = (a, b) => { let h = Math.imul(a * 374761393 + b * 668265263, 1274126177); h ^= h >>> 13; return ((h >>> 0) % 1000) / 1000; };
+
+        // ---- the corridor, found by casting a ray through every pixel
+        const W = 1.6, FLOOR = 1.1, CEIL = -1.8, FAR = 6.2, SHELF = 0.4;
+        // moonlight leaves the window heading down, towards us, a little left
+        const LIGHT = (() => { const v = [-0.14, 0.34, -1], n = Math.hypot(...v); return v.map(c => c / n); })();
+
+        function inWindow(X, Y) {
+            if (Math.abs(X) > 0.62 || Y > 0.55) return false;
+            if (Y < -0.78 && X * X + (Y + 0.78) ** 2 > 0.62 * 0.62) return false;
+            return true;
+        }
+        // the frame and glazing bars cast shadows in the light
+        function windowBar(X, Y) {
+            const edge = Math.abs(X) > 0.56 || Y > 0.49 || (Y < -0.78 && X * X + (Y + 0.78) ** 2 > 0.56 * 0.56);
+            return edge || Math.abs(X) < 0.03 || Math.abs(Y + 0.12) < 0.03 || Math.abs(Y + 0.78) < 0.025;
+        }
+        function lit(X, Y, Z) {
+            const s = (Z - FAR) / LIGHT[2];
+            if (s < 0) return false;
+            const wx = X - LIGHT[0] * s, wy = Y - LIGHT[1] * s;
+            return inWindow(wx, wy) && !windowBar(wx, wy);
+        }
+
+        function wall(Y, Z, side) {
+            if (Y > FLOOR - 0.07) return [40, 22, 16];                       // skirting
+            if (Y < CEIL + 0.25) return [34, 20, 18];                        // cornice
+            const post = (Z % 1.3) < 0.07;
+            if (post) return (Z % 1.3) < 0.035 ? [110, 66, 36] : [74, 42, 24];
+            const k = Math.floor((FLOOR - Y) / SHELF), shelfY = FLOOR - k * SHELF;
+            if (shelfY - Y < 0.035) return [96, 56, 30];                     // shelf board
+            const bw = 0.07, i = Math.floor(Z / bw), r = hash(i + (side > 0 ? 9000 : 0), k);
+            const top = shelfY - SHELF * (0.58 + 0.34 * hash(i, k + 50));
+            if (r < 0.07 || Y < top) return [22, 12, 10];                    // gap, or above the books
+            const c = rgba(BOOKS[Math.floor(r * 1000) % BOOKS.length]), band = (Y - top) / (shelfY - top);
+            const inBook = (Z % bw) / bw;
+            let k2 = inBook < 0.18 ? 1.18 : inBook > 0.85 ? 0.7 : 1;
+            if ((band > 0.16 && band < 0.22) || (band > 0.78 && band < 0.84)) k2 *= 1.35;
+            return [c[0] * k2, c[1] * k2, c[2] * k2].map(v => Math.min(255, v));
+        }
+
+        function floor(X, Z) {
+            if (Math.abs(X) < 0.5) {
+                if (Math.abs(X) > 0.43) return [176, 132, 60];               // carpet border
+                const diamond = Math.abs(((Z * 2) % 1) - 0.5) + Math.abs(X) * 1.2 < 0.3;
+                return diamond ? [124, 40, 56] : [96, 28, 44];
+            }
+            const plank = Math.floor(X / 0.22), seam = ((X % 0.22) + 0.22) % 0.22 < 0.014 || ((Z + plank * 0.37) % 1.1) < 0.02;
+            if (seam) return [36, 20, 14];
+            return (plank & 1) ? [92, 54, 30] : [80, 46, 26];
+        }
+
+        function ceiling(Z) {
+            return (Z % 1.0) < 0.12 ? [58, 34, 22] : [26, 16, 14];
+        }
+
+        function farWall(X, Y) {
+            if (inWindow(X, Y)) {
+                if (windowBar(X, Y)) return [44, 28, 22];
+                // the night outside, and the moon
+                const moon = Math.hypot(X - 0.24, Y + 0.95);
+                if (moon < 0.17) return moon > 0.145 ? [200, 220, 255] : [244, 248, 255];
+                if (moon < 0.3) return mix([30, 52, 110], [120, 150, 220], 1 - (moon - 0.17) / 0.13).slice(0, 3);
+                const t = (Y + 1.4) / 1.95;
+                return mix([14, 24, 70], [40, 66, 130], t).slice(0, 3);
+            }
+            // stone around the window, dark shelves either side
+            if (Math.abs(X) > 0.9) return wall(Y, (X + 5) * 3, 0);
+            const course = Math.floor((Y + 3) / 0.18), brick = Math.floor((X + 3 + (course & 1) * 0.12) / 0.24);
+            const mortar = ((Y + 3) % 0.18) < 0.02 || (((X + 3 + (course & 1) * 0.12) % 0.24) < 0.02);
+            return mortar ? [40, 36, 48] : hash(brick, course) < 0.5 ? [70, 64, 82] : [62, 56, 74];
+        }
+
+        function corridor() {
+            const p = new Pix(PW, PH), [vx, vy, fl] = LAYOUT.vp;
+            for (let y = 0; y < PH; y++) {
+                for (let x = 0; x < PW; x++) {
+                    const dx = (x + 0.5 - vx) / fl, dy = (y + 0.5 - vy) / fl;
+                    let z = FAR, surf = 'far';
+                    if (dx < 0 && -W / dx < z) { z = -W / dx; surf = 'left'; }
+                    if (dx > 0 && W / dx < z) { z = W / dx; surf = 'right'; }
+                    if (dy > 0 && FLOOR / dy < z) { z = FLOOR / dy; surf = 'floor'; }
+                    if (dy < 0 && CEIL / dy < z) { z = CEIL / dy; surf = 'ceil'; }
+                    const X = dx * z, Y = dy * z;
+                    let c = surf === 'far' ? farWall(X, Y) : surf === 'floor' ? floor(X, z) : surf === 'ceil' ? ceiling(z) : wall(Y, z, surf === 'left' ? -1 : 1);
+                    const glass = surf === 'far' && inWindow(X, Y) && !windowBar(X, Y);
+                    // pools of moonlight where the beams land
+                    const pool = !glass && lit(X, Y, z);
+                    if (pool) c = mix(c, MOON, 0.36).slice(0, 3);
+                    // the far end of the room fades into the dark, and so do the
+                    // edges of the view, leaving the window to glow
+                    const u = (x + 0.5) / PW - 0.5, v = (y + 0.5) / PH - 0.45;
+                    const vignette = Math.max(0, Math.hypot(u * 1.1, v * 1.3) - 0.3) * 1.3;
+                    const t = glass ? 0 : Math.min(0.82, Math.max(0, (z - 1.1) / (FAR - 1.1)) * 0.9 + (pool ? 0 : vignette));
+                    const q = Math.floor(t * 6 + bayer(x, y)) / 6;
+                    c = mix(c, FOG, q).slice(0, 3);
+                    // the beams themselves, hanging in the dusty air
+                    let beam = 0;
+                    for (let s = 0.6; s < z; s += 0.15) if (lit(dx * s, dy * s, s)) beam++;
+                    if (beam && !glass) {
+                        const b = Math.min(0.42, beam * 0.02), bq = Math.floor(b * 8 + bayer(x + 1, y)) / 8;
+                        c = mix(c, MOON, bq).slice(0, 3);
+                    }
+                    p.set(x, y, c.concat(255));
                 }
-                p.rect(0, plank, PW, 4, '#9a6232');
-                p.rect(0, plank, PW, 1, '#c98a4a');
-                p.rect(0, plank + 4, PW, 2, '#1e120c');
-            });
-            LAYOUT.posts.forEach(x => { p.rect(x, 0, 4, PH, '#7a4a24'); p.rect(x, 0, 1, PH, '#a86a36'); p.rect(x + 3, 0, 1, PH, '#4a2a14'); });
-            // DS-style dim so the characters pop, plus a warm pool of lamplight
-            p.rect(0, 0, PW, PH, '#10163088');
-            [[74, '#ffd98a14'], [56, '#ffd98a18'], [40, '#ffe7a820']].forEach(([r, c]) => p.disc(...LAYOUT.lamp, r, c));
+            }
+            return p;
+        }
+        let BG = null;
+
+        // specks of dust turning in the moonlight
+        function dust(p, f) {
+            const [vx, vy, fl] = LAYOUT.vp, rand = rng(77);
+            for (let i = 0; i < 70; i++) {
+                const X = rand() * 2.4 - 1.5, Y = rand() * 2.4 - 1.3, Z = 1.2 + rand() * 4, ph = rand() * Math.PI * 2;
+                if (!lit(X, Y, Z)) continue;
+                const a = ph + (f / 12) * Math.PI * 2, sx = Math.round(vx + fl * (X + 0.05 * Math.cos(a)) / Z), sy = Math.round(vy + fl * (Y + 0.05 * Math.sin(a)) / Z);
+                p.set(sx, sy, (i + f) % 4 === 0 ? '#ffffff' : '#cfe0ffaa');
+            }
+        }
+
+        // ---- the agent: robot, magnifier, a floating book, and the stream of
+        // what it reads flowing up into the holographic panel
+        function openBook(p, cx, cy) {
+            const w = 20;
+            for (let side = -1; side <= 1; side += 2) {
+                for (let i = 0; i < w; i++) {
+                    const x = cx + side * (i + 1), lift = Math.round(3 * Math.sin((i / w) * Math.PI * 0.5)) - (i > w - 3 ? 1 : 0);
+                    for (let j = 0; j < 16; j++) p.set(x, cy - 8 + j - lift + Math.round(i / 6), j === 0 || j === 15 ? '#8a6a48' : '#f4ead2');
+                    if (i > 2 && i < w - 3 && i % 1 === 0) for (let l = 0; l < 5; l++) if ((i + l * 3) % 7 !== 0) p.set(x, cy - 5 + l * 2 - lift + Math.round(i / 6), '#b0a088');
+                }
+            }
+            p.rect(cx, cy - 8, 1, 16, '#c8b89a');
+            // the cover showing underneath
+            for (let i = -w - 2; i <= w + 2; i++) p.set(cx + i, cy + 9 + Math.round(Math.abs(i) / 6), '#7a2a36');
         }
 
         function magnifier(p, lx, ly) {
-            p.thick(lx - 10, ly + 10, lx - 22, ly + 22, 7, INK);
-            p.thick(lx - 10, ly + 10, lx - 21, ly + 21, 4, '#c98a3a');
-            p.disc(lx - 23, ly + 23, 5, INK);
-            p.disc(lx - 23, ly + 23, 4, '#ffffff');
-            p.disc(lx, ly, 15, INK);
-            p.disc(lx, ly, 14, '#ffd23f');
-            p.ring(lx, ly, 14, '#ffe98a');
+            p.thick(lx + 9, ly - 9, lx + 17, ly - 17, 5, INK);
+            p.thick(lx + 9, ly - 9, lx + 16, ly - 16, 3, '#c98a3a');
             p.disc(lx, ly, 11, INK);
-            p.disc(lx, ly, 10, '#c9ecff');
-            p.sprite(PAPER, { K: INK, W: '#fff', B: '#2f86e0', G: '#9fb4cc', L: '#dcebf8' }, lx - 5, ly - 6);
-            p.disc(lx, ly, 10, '#c9ecff40');
-            [[-6, -7], [-7, -6], [-5, -8], [-8, -5], [-7, -7]].forEach(([dx, dy]) => p.set(lx + dx, ly + dy, '#fff'));
+            p.disc(lx, ly, 10, '#ffd23f');
+            p.disc(lx, ly, 8, INK);
+            p.disc(lx, ly, 7, '#c9ecff');
+            [[-4, -4], [-5, -3], [-3, -5]].forEach(([dx, dy]) => p.set(lx + dx, ly + dy, '#ffffff'));
         }
 
-        // Marching dots from the lens out to each paper it is reading
-        function links(p, from, targets, f) {
-            targets.forEach(([tx, ty]) => {
-                const n = Math.max(Math.abs(tx - from[0]), Math.abs(ty - from[1]));
-                for (let i = 0; i <= n; i++) {
-                    if ((i + f) % 4) continue;
-                    p.set(Math.round(from[0] + (tx - from[0]) * i / n), Math.round(from[1] + (ty - from[1]) * i / n), '#6fe3ff');
-                }
-            });
+        function panel(p, f) {
+            const [x, y, w, h] = LAYOUT.panel;
+            p.rect(x, y, w, h, '#0a2a4acc');
+            for (let j = y; j < y + h; j += 2) p.rect(x, j, w, 1, '#0e3a60aa');
+            p.box(x, y, w, h, CYAN);
+            p.box(x - 1, y - 1, w + 2, h + 2, '#6fe3ff55');
+            // title bar and search box
+            ['#ff6b6b', '#ffcf40', '#3ddc84'].forEach((c, i) => p.rect(x + 4 + i * 5, y + 3, 3, 3, c));
+            p.rect(x + 22, y + 4, w - 28, 1, '#3aa8d8');
+            p.box(x + 4, y + 9, w - 8, 9, CYAN);
+            p.ring(x + 9, y + 13, 2, CYAN);
+            p.set(x + 11, y + 15, CYAN);
+            p.rect(x + 15, y + 13, Math.round((w - 26) * 0.7), 1, '#bff4ff');
+            // results: a coloured source tag, a title, a line of summary
+            const tags = ['#ffb020', '#3ddc84', '#ff6b9a'];
+            const rows = Math.max(1, Math.floor((h - 22) / 10));
+            for (let i = 0; i < rows; i++) {
+                const ry = y + 21 + i * 10;
+                p.rect(x + 4, ry, 5, 5, tags[i % 3]);
+                p.rect(x + 12, ry, Math.round((w - 18) * (0.9 - (i % 2) * 0.2)), 1, '#dff8ff');
+                p.rect(x + 12, ry + 3, Math.round((w - 18) * (0.6 + (i % 3) * 0.1)), 1, '#3aa8d8');
+            }
+            // the answer typing itself out
+            const ly = y + h - 5, typed = Math.round(((f % 12) / 11) * (w - 24));
+            p.rect(x + 4, ly, typed, 1, '#bff4ff');
+            if (f % 2 === 0) p.rect(x + 4 + typed + 1, ly - 2, 2, 4, '#ffffff');
         }
 
-        const BIG_ROBOT = scale2x(ROBOT);
+        function stream(p, f, from, to) {
+            const glyphs = [['#.#', '.#.', '#.#'], ['###', '#.#', '###'], ['.#.', '###', '.#.'], ['##', '##']];
+            for (let k = 0; k < 9; k++) {
+                const t = ((f + k * 1.33) % 12) / 12, sway = Math.sin(t * Math.PI * 2 + k) * 4;
+                const x = Math.round(from[0] + (to[0] - from[0]) * t + sway), y = Math.round(from[1] + (to[1] - from[1]) * t - Math.sin(t * Math.PI) * 10);
+                p.sprite(glyphs[k % glyphs.length], { '#': t > 0.8 ? '#bff4ff' : CYAN }, x, y);
+            }
+        }
+
+        function agent(p, f) {
+            const [rx, ry0] = LAYOUT.robot, bob = Math.round(Math.sin((f / 12) * Math.PI * 2) * 2), ry = ry0 + bob;
+            const [bx, by0] = LAYOUT.book, by = by0 + Math.round(Math.sin((f / 12) * Math.PI * 2 + 2));
+            // a glow behind the robot so it stands off the shelves
+            [[40, '#6fe3ff10'], [30, '#6fe3ff14'], [20, '#6fe3ff18']].forEach(([r, c]) => p.disc(rx + 32, ry + 30, r, c));
+            // the scan: a cone of light from the lens down onto the pages
+            const lx = rx - 4, ly = ry + 46;
+            for (let j = 0; j <= by - 8 - ly; j++) {
+                const t = j / Math.max(1, by - 8 - ly), half = 3 + t * 16, cx = lx + (bx - lx) * t;
+                for (let i = Math.round(cx - half); i <= Math.round(cx + half); i++) p.set(i, ly + j, (ly + j + f) % 4 === 0 ? '#6fe3ff40' : '#6fe3ff1c');
+            }
+            openBook(p, bx, by);
+            const [px, py, pw, ph] = LAYOUT.panel;
+            stream(p, f, [bx, by - 12], [px + pw / 2, py + ph + 2]);
+            panel(p, f);
+            p.sprite(BIG_ROBOT, ROBOT_PAL, rx, ry);
+            if (f === 7) [22, 36].forEach(c => { p.rect(rx + c, ry + 28, 6, 8, '#10305f'); p.rect(rx + c, ry + 32, 6, 2, CYAN); });
+            magnifier(p, lx, ly);
+        }
 
         function draw(p, f) {
-            library(p);
-            const bob = Math.round(Math.sin((f / 12) * Math.PI * 2) * 2);
-            const [rx, ry0] = LAYOUT.robot, ry = ry0 + bob;
-            const papers = [[98, -20, '#2f86e0', 0], [116, 18, '#22b573', 4], [88, 58, '#9b6bff', 8]]
-                .map(([x, y, c, ph]) => [rx + x, ry0 + y + Math.round(Math.sin(((f + ph) / 12) * Math.PI * 2)), c]);
-            const lens = [rx + 90, ry + 24];
-            links(p, lens, papers.map(([x, y]) => [x + 5, y + 6]), f);
-            papers.forEach(([x, y, c]) => p.sprite(PAPER, { K: INK, W: '#fff', B: c, G: '#9fb4cc', L: '#dcebf8' }, x, y));
+            if (!BG) BG = corridor();
+            p.d.set(BG.d);
+            dust(p, f);
+            agent(p, f);
 
-            p.sprite(BIG_ROBOT, ROBOT_PAL, rx, ry);
-            if (f === 7) {
-                [22, 36].forEach(c => { p.rect(rx + c, ry + 28, 6, 8, '#10305f'); p.rect(rx + c, ry + 32, 6, 2, '#6fe3ff'); });
-            }
-            magnifier(p, lens[0], lens[1]);
-
-            const [tx, ty] = LAYOUT.title;
-            text(p, 'CASE STUDY', tx, ty, { color: '#fff', outline: INK });
-            const blue = { size: 30, outlineWidth: 2, bands: ['#e6f6ff', '#9fd8ff', '#5ab4f5', '#2f86e0'], light: '#ffffff', dark: '#1b5fb5', outline: INK, rim: '#ffffff', shadow: '#00000088' };
-            logo(p, 'Research', { ...blue, x: tx - 2, y: ty + 12 });
-            logo(p, 'Agent', { ...blue, x: tx - 2, y: ty + 40 });
-
+            const [tx, ty, anchor] = LAYOUT.title;
+            text(p, 'CASE STUDY', tx, ty, { color: '#fff', outline: INK, anchor });
+            const blue = { size: 30, outlineWidth: 2, bands: ['#e6f6ff', '#9fd8ff', '#5ab4f5', '#2f86e0'], light: '#ffffff', dark: '#1b5fb5', outline: INK, rim: '#ffffff', shadow: '#00000088', anchor };
+            logo(p, 'Research', { ...blue, x: anchor === 'left' ? tx - 2 : tx, y: ty + 12 });
+            logo(p, 'Agent', { ...blue, x: anchor === 'left' ? tx - 2 : tx, y: ty + 40 });
             LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
         }
 
