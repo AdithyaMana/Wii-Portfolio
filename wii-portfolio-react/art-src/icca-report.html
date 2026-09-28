@@ -2,228 +2,187 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ICCA Report art</title>
-    <style>
-        @font-face { font-family: 'Rodin'; src: url('../public/fonts/FOT-Rodin%20Pro%20B.otf'); }
-        html, body { margin: 0; background: transparent; overflow: hidden; }
-        svg { display: block; }
-    </style>
+    <title>ICCA Report 8-bit art</title>
 </head>
 <body>
-    <svg id="art" xmlns="http://www.w3.org/2000/svg"></svg>
-    <script src="lib.js"></script>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script src="nes.js"></script>
     <script>
-        const STONE_INK = '#6b4a2a';
-        const NAVY = '#0d3470';
+        // Where everything sits on the wide canvas and on the tall phone one.
+        // rock: the Acropolis plateau [left, right, top]; sea: its top edge
+        const LAYOUT = TALL ? {
+            icca: [67, 22], report: [67, 58], tagline: [67, 80], start: [67, 98],
+            temple: [67, 150, 80], rock: [14, 121, 150], sea: 174, key: 224, sun: [110, 116], land: [190, 4],
+            clouds: [[4, 4, 0.8]], cypress: [[10, 212, 26], [126, 214, 22]], houses: [0, 198, 135, 222], gull: [30, 112],
+        } : {
+            icca: [72, 15], report: [72, 48], tagline: [72, 67], start: [72, 84],
+            temple: [182, 78, 80], rock: [128, 236, 78], sea: 94, key: 122, sun: [220, 20], land: [106, 6],
+            clouds: [[118, 6, 0.8]], cypress: [[8, 120, 26], [232, 120, 24]], houses: [0, 110, 128, 121], gull: [118, 40],
+        };
 
-        function cloud(parent, x, y, s, id) {
-            const clip = el('clipPath', { id }, parent.ownerSVGElement.querySelector('defs'));
-            el('rect', { x: x - 200 * s, y: y - 200 * s, width: 500 * s, height: 238 * s }, clip);
-            const g = el('g', { 'clip-path': `url(#${id})` }, parent);
-            const puffs = [[0, 0, 60], [70, -28, 76], [150, -4, 58], [-58, 14, 42], [205, 16, 38]];
-            puffs.forEach(([dx, dy, r]) => el('circle', { cx: x + dx * s, cy: y + dy * s + 10 * s, r: r * s, fill: '#d6e6f6' }, g));
-            puffs.forEach(([dx, dy, r]) => el('circle', { cx: x + dx * s, cy: y + dy * s, r: r * s, fill: '#fff' }, g));
+        function sky(p) {
+            const sea = LAYOUT.sea;
+            p.rect(0, 0, NW, sea, NES.sky);
+            p.rect(0, sea - 14, NW, 14, NES.ice);
+            const [sx, sy] = LAYOUT.sun;
+            p.disc(sx, sy, 9, NES.yellow);
+            p.disc(sx, sy, 7, NES.cream);
+            LAYOUT.clouds.forEach(([x, y, s]) => nesCloud(p, x, y, s));
         }
 
-        function sky(bg, defs) {
-            el('rect', { width: W, height: H, fill: linear(defs, 'sky', [[0, '#1d5bb0'], [0.36, '#4d93d8'], [0.58, '#a8cdea'], [0.7, '#ffe2ab'], [0.8, '#ffc47a']]) }, bg);
-            el('circle', { cx: 1360, cy: 520, r: 760, fill: radial(defs, 'sunGlow', [[0, '#fff8dc', 0.95], [0.25, '#ffe29a', 0.55], [1, '#ffd27a', 0]]) }, bg);
-            const cx = 1360, cy = 520, n = 18;
-            for (let i = 0; i < n; i++) {
-                const a1 = (i / n) * Math.PI * 2, a2 = a1 + Math.PI / n * 0.6, R = 1800;
-                el('path', { d: `M${cx},${cy} L${cx + Math.cos(a1) * R},${cy + Math.sin(a1) * R} L${cx + Math.cos(a2) * R},${cy + Math.sin(a2) * R}Z`, fill: '#fff', opacity: 0.07 }, bg);
+        function sea(p, f) {
+            const y0 = LAYOUT.sea;
+            p.rect(0, y0, NW, NH - y0, NES.royal);
+            p.rect(0, y0, NW, 1, NES.white);
+            const rand = rng(6);
+            for (let i = 0; i < 24; i++) {
+                const x = Math.floor(rand() * NW), y = y0 + 3 + Math.floor(rand() * 12), k = Math.floor(rand() * 4);
+                if ((f + k) % 4 < 2) p.rect(x, y, 3, 1, NES.blue);
+                else p.rect(x + 1, y, 2, 1, NES.white);
             }
-            el('circle', { cx: 1360, cy: 520, r: 110, fill: '#fff6d2' }, bg);
-            cloud(bg, 170, 200, 1.15, 'c1');
-            cloud(bg, 860, 140, 0.75, 'c2');
-            cloud(bg, 1640, 190, 1.2, 'c3');
-            cloud(bg, 1230, 96, 0.5, 'c4');
         }
 
-        function landscape(parent, defs) {
-            const g = el('g', {}, parent);
-            // hazy mountains, sea, the city
-            el('path', { d: 'M0,742 C140,700 280,690 420,716 C520,734 610,698 730,688 C860,678 980,716 1120,728 C1300,740 1500,700 1920,720 L1920,790 L0,790Z', fill: '#a9b8dc' }, g);
-            el('path', { d: 'M0,760 C200,740 360,752 520,744 C700,736 880,758 1100,752 L1100,790 L0,790Z', fill: '#91a6d2' }, g);
-            el('rect', { x: 0, y: 772, width: 1920, height: 120, fill: linear(defs, 'sea', [[0, '#5aa6de'], [1, '#2f7cc0']]) }, g);
-            const rand = rng(11);
-            for (let i = 0; i < 40; i++) {
-                const x = rand() * 1100, y = 782 + rand() * 70;
-                el('rect', { x, y, width: 14 + rand() * 40, height: 3, rx: 1.5, fill: '#fff', opacity: 0.35 + rand() * 0.35 }, g);
+        // the Acropolis: a flat-topped rock falling away to the sea
+        function rock(p) {
+            const [l, r, top] = LAYOUT.rock, sea = LAYOUT.sea + 10;
+            for (let y = top; y < sea; y++) {
+                const t = (y - top) / (sea - top), ease = t * t;
+                const a = Math.round(l - ease * 26), b = Math.round(r + ease * 16);
+                p.rect(a, y, b - a, 1, y < top + 2 ? NES.cream : (y - top) % 9 < 2 ? NES.rust : NES.orange);
+                p.set(a, y, NES.black);
+                p.set(b, y, NES.black);
             }
-            el('path', { d: 'M0,860 C220,842 480,850 700,862 C820,868 900,880 960,900 L960,1080 L0,1080Z', fill: linear(defs, 'land', [[0, '#d8bf8c'], [1, '#b8955f']]) }, g);
-            // white Athens houses spilling down to the water
-            for (let row = 0; row < 3; row++) {
-                for (let i = 0; i < 26 - row * 4; i++) {
-                    const w = 22 + rand() * 26 - row * 3, h = 14 + rand() * 18, x = rand() * 900, y = 856 + row * 40 + rand() * 20;
-                    el('rect', { x, y: y - h, width: w, height: h, fill: rand() > 0.3 ? '#f6f0e3' : '#ecdcc0', stroke: '#a88d62', 'stroke-width': 1.5 }, g);
-                    if (rand() > 0.5) el('rect', { x: x - 2, y: y - h - 5, width: w + 4, height: 6, fill: '#d4744a', stroke: '#8f4426', 'stroke-width': 1.5 }, g);
-                    el('rect', { x: x + w * 0.3, y: y - h * 0.6, width: w * 0.2, height: h * 0.3, fill: '#5a7fa8', opacity: 0.6 }, g);
+            p.rect(l, top - 1, r - l, 1, NES.black);
+            // scrub clinging to the slopes
+            const rand = rng(9);
+            for (let i = 0; i < 9; i++) {
+                const y = top + 6 + Math.floor(rand() * (sea - top - 10)), t = (y - top) / (sea - top);
+                const x = rand() < 0.5 ? Math.round(l - t * t * 26 + 2 + rand() * 8) : Math.round(r + t * t * 16 - 10 + rand() * 6);
+                p.disc(x, y, 2, NES.black);
+                p.disc(x, y, 1, NES.green);
+            }
+        }
+
+        // The Parthenon: steps, eight columns, the frieze, the pediment
+        function temple(p, f) {
+            const [cx, base, w] = LAYOUT.temple, l = cx - w / 2;
+            const colH = Math.round(w * 0.26), top = base - 6 - colH;
+            // shaded cella behind the colonnade
+            p.rect(l + 2, top, w - 4, colH, NES.olive);
+            for (let k = 0; k < 8; k++) {
+                const x = Math.round(l + 1 + k * (w - 8) / 7);
+                p.rect(x, top, 6, colH, NES.black);
+                p.rect(x + 1, top, 2, colH, NES.white);
+                p.rect(x + 3, top, 2, colH, NES.silver);
+                p.rect(x - 1, top - 2, 8, 2, NES.black);
+                p.rect(x, top - 2, 6, 1, NES.white);
+            }
+            // steps
+            [[0, NES.cream], [2, NES.peach], [4, NES.cream]].forEach(([d, c], i) => {
+                p.rect(l - 2 - i * 2, base - 6 + d, w + 4 + i * 4, 2, c);
+                p.rect(l - 2 - i * 2, base - 6 + d + 1, w + 4 + i * 4, 1, i === 2 ? NES.black : NES.olive);
+            });
+            // entablature and frieze with its triglyphs
+            const e = top - 9;
+            p.rect(l - 3, e, w + 6, 7, NES.black);
+            p.rect(l - 2, e + 1, w + 4, 2, NES.white);
+            p.rect(l - 2, e + 3, w + 4, 3, NES.cream);
+            for (let x = l; x < l + w; x += 5) p.rect(x, e + 3, 2, 3, NES.silver);
+            // pediment
+            const ph = Math.round(w * 0.14);
+            for (let j = 0; j <= ph; j++) {
+                const half = Math.round((w / 2 + 3) * j / ph);
+                p.rect(cx - half - 1, e - ph + j - 1, half * 2 + 2, 1, NES.black);
+                if (j > 0) p.rect(cx - half + 1, e - ph + j - 1, half * 2 - 2, 1, j > 2 && half > 6 ? NES.peach : NES.white);
+            }
+            if (f % 6 === 3) twinkle(p, cx - w / 2 + 6, e - 4, 2, NES.white);
+        }
+
+        // the city's ground, rising gently towards the Acropolis
+        function land(p) {
+            const [top, rise] = LAYOUT.land;
+            for (let x = 0; x < NW; x++) {
+                const y = Math.round(top - rise * x / NW);
+                p.rect(x, y, 1, LAYOUT.key - y, NES.peach);
+                p.set(x, y, NES.black);
+                p.set(x, y + 1, NES.cream);
+            }
+        }
+
+        function houses(p) {
+            const [x0, y0, x1, y1] = LAYOUT.houses, rand = rng(11);
+            for (let i = 0; i < 26; i++) {
+                const w = 6 + Math.floor(rand() * 6), h = 5 + Math.floor(rand() * 4);
+                const x = x0 + Math.floor(rand() * (x1 - x0 - w)), y = y0 + Math.floor(rand() * (y1 - y0));
+                p.rect(x - 1, y - h - 1, w + 2, h + 2, NES.black);
+                p.rect(x, y - h, w, h, NES.white);
+                p.rect(x, y - h, w, 1, rand() < 0.5 ? NES.rust : NES.cream);
+                p.set(x + 2, y - h + 3, NES.blue);
+                if (w > 8) p.set(x + w - 3, y - h + 3, NES.blue);
+            }
+        }
+
+        function cypress(p, x, base, h) {
+            for (let y = 0; y < h; y++) {
+                const half = Math.round(3.5 * Math.sin(Math.PI * Math.min(1, (y + 2) / h)) + 0.5);
+                p.rect(x - half - 1, base - y, half * 2 + 3, 1, NES.black);
+            }
+            for (let y = 1; y < h - 1; y++) {
+                const half = Math.round(3.5 * Math.sin(Math.PI * Math.min(1, (y + 2) / h)) + 0.5);
+                p.rect(x - half, base - y, half * 2 + 1, 1, NES.forest);
+                if (y % 4 < 2) p.rect(x - half + 1, base - y, 1, 1, NES.green);
+            }
+        }
+
+        // Greek key border along the bottom
+        function meander(p) {
+            const y0 = LAYOUT.key;
+            p.rect(0, y0, NW, NH - y0, NES.navy);
+            p.rect(0, y0, NW, 1, NES.gold);
+            const KEY = ['########', '.......#', '.#####.#', '.#...#.#', '.#.#.#.#', '.#.###.#', '.#.....#', '##.#####'];
+            for (let x = 0; x < NW; x += 8) p.sprite(KEY, { '#': NES.gold }, x, y0 + 3);
+        }
+
+        // olive-leaf laurel branch curling up beside the title; side is -1 or 1
+        function laurel(p, x, y, side, len) {
+            for (let i = 0; i < len; i++) {
+                const t = i / len, px = Math.round(x + side * 7 * Math.sin(t * 1.9)), py = y - i;
+                p.set(px, py, NES.olive);
+                if (i % 4 === 1) {
+                    p.sprite(['.##', '###', '##.'], { '#': NES.gold }, px - (side > 0 ? 0 : 2) + side * 2, py - 1, { flip: side < 0 });
+                    p.sprite(['##.', '###', '.##'], { '#': NES.yellow }, px - 1 - side * 3, py - 1, { flip: side < 0 });
                 }
             }
-
-            // the Acropolis rock
-            el('path', {
-                d: 'M640,1080 L700,930 C740,880 800,860 862,840 C930,812 962,762 1000,720 L1030,672 L1700,662 C1740,690 1772,700 1820,720 C1870,740 1900,758 1920,768 L1920,1080Z',
-                fill: linear(defs, 'rock', [[0, '#eac18a'], [0.35, '#c98f57'], [1, '#8d5c33']], 0, 660, 0, 1080, { gradientUnits: 'userSpaceOnUse' }),
-                stroke: STONE_INK, 'stroke-width': 4, 'stroke-linejoin': 'round',
-            }, g);
-            el('path', { d: 'M1014,712 L1712,700 C1740,716 1760,724 1790,736 C1600,760 1300,752 1000,770 C990,750 1000,730 1014,712Z', fill: '#8d5c33', opacity: 0.35 }, g);
-            [['M880,860 C960,836 1040,842 1120,830', 5], ['M1180,812 C1300,796 1420,808 1520,796', 4], ['M1580,790 C1660,780 1740,790 1800,776', 4],
-                ['M760,960 C860,930 980,936 1080,918', 5], ['M1240,900 C1380,880 1520,892 1680,872', 4]]
-                .forEach(([d, w]) => el('path', { d, fill: 'none', stroke: '#8d5c33', 'stroke-width': w, 'stroke-linecap': 'round', opacity: 0.55 }, g));
-            el('path', { d: 'M1022,672 L1702,662 L1712,700 L1014,712Z', fill: '#efd29b', stroke: STONE_INK, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }, g);
-            for (let x = 1060; x < 1700; x += 46) el('line', { x1: x, y1: 671 - (x - 1022) / 68, x2: x - 2, y2: 710 - (x - 1022) / 70, stroke: '#c9a36c', 'stroke-width': 2 }, g);
-            // scrub on the slopes
-            const scrub = [[720, 930, 34], [770, 900, 28], [830, 880, 30], [900, 850, 24], [760, 980, 40], [860, 960, 36], [960, 930, 30],
-                [1780, 760, 26], [1840, 790, 34], [1890, 820, 30], [1760, 840, 30], [1150, 880, 26], [1300, 900, 22], [1560, 860, 28]];
-            scrub.forEach(([x, y, r]) => {
-                el('circle', { cx: x, cy: y + 4, r: r + 3, fill: '#2d4a22' }, g);
-                el('circle', { cx: x, cy: y, r, fill: '#5d8a3a' }, g);
-                el('circle', { cx: x - r * 0.3, cy: y - r * 0.35, r: r * 0.45, fill: '#86b04f' }, g);
-            });
-
-            parthenon(g, defs, 1360, 662);
-
-            // cypresses
-            [[96, 1010, 320, 58], [196, 1020, 250, 46], [1856, 1030, 260, 50]].forEach(([x, base, h, w]) => {
-                el('path', { d: `M${x},${base} C${x - w},${base - h * 0.35} ${x - w * 0.55},${base - h * 0.8} ${x},${base - h} C${x + w * 0.55},${base - h * 0.8} ${x + w},${base - h * 0.35} ${x},${base}Z`, fill: 'url(#cypress)', stroke: '#16301b', 'stroke-width': 4 }, g);
-                el('path', { d: `M${x - w * 0.2},${base - h * 0.3} C${x - w * 0.45},${base - h * 0.5} ${x - w * 0.3},${base - h * 0.75} ${x - w * 0.05},${base - h * 0.9}`, fill: 'none', stroke: '#6fa655', 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.7 }, g);
-            });
-
-            // Greek key border
-            el('rect', { x: 0, y: 1028, width: 1920, height: 52, fill: '#1f5fae' }, g);
-            el('line', { x1: 0, y1: 1030, x2: 1920, y2: 1030, stroke: '#f1c24b', 'stroke-width': 5 }, g);
-            const key = el('pattern', { id: 'meander', width: 48, height: 40, patternUnits: 'userSpaceOnUse', x: 0, y: 1036 }, defs);
-            el('path', { d: 'M0,34 H48 M8,34 V6 H40 V26 H18 V16 H28', fill: 'none', stroke: '#f1c24b', 'stroke-width': 4, 'stroke-linecap': 'square' }, key);
-            el('rect', { x: 0, y: 1036, width: 1920, height: 40, fill: 'url(#meander)' }, g);
-            return g;
         }
 
-        function parthenon(parent, defs, C, B) {
-            const g = el('g', { stroke: STONE_INK, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }, parent);
-            const marble = 'url(#marble)';
-            // back colonnade, in shade
-            for (let i = 0; i < 7; i++) {
-                const x = C - 205 + i * 68.3;
-                el('rect', { x: x - 15, y: B - 228, width: 30, height: 176, fill: '#c6a473', 'stroke-width': 2.5 }, g);
-            }
-            // front colonnade
-            for (let i = 0; i < 8; i++) {
-                const x = C - 239 + i * 68.3;
-                el('path', { d: `M${x - 21},${B - 54} L${x - 18},${B - 222} L${x + 18},${B - 222} L${x + 21},${B - 54}Z`, fill: 'url(#column)' }, g);
-                el('line', { x1: x - 6, y1: B - 60, x2: x - 5, y2: B - 216, stroke: '#cdb084', 'stroke-width': 2 }, g);
-                el('line', { x1: x + 7, y1: B - 60, x2: x + 6, y2: B - 216, stroke: '#cdb084', 'stroke-width': 2 }, g);
-                el('path', { d: `M${x - 19},${B - 222} L${x - 28},${B - 232} L${x + 28},${B - 232} L${x + 19},${B - 222}Z`, fill: '#f3e1bd' }, g);
-                el('rect', { x: x - 31, y: B - 242, width: 62, height: 10, fill: '#f7ead0' }, g);
-            }
-            // stylobate steps
-            el('rect', { x: C - 300, y: B - 20, width: 600, height: 20, fill: '#dcc091' }, g);
-            el('rect', { x: C - 288, y: B - 38, width: 576, height: 18, fill: '#e8d0a4' }, g);
-            el('rect', { x: C - 276, y: B - 54, width: 552, height: 16, fill: marble }, g);
-            // entablature
-            el('rect', { x: C - 276, y: B - 272, width: 552, height: 30, fill: marble }, g);
-            el('rect', { x: C - 276, y: B - 302, width: 552, height: 30, fill: '#ecd6ad' }, g);
-            for (let x = C - 262; x < C + 262; x += 34) el('rect', { x, y: B - 298, width: 12, height: 22, fill: '#c9a878', 'stroke-width': 2 }, g);
-            el('rect', { x: C - 290, y: B - 314, width: 580, height: 12, fill: '#f7ead0' }, g);
-            // pediment
-            el('path', { d: `M${C - 290},${B - 314} L${C},${B - 378} L${C + 290},${B - 314}Z`, fill: '#f7ead0' }, g);
-            el('path', { d: `M${C - 252},${B - 320} L${C},${B - 370} L${C + 252},${B - 320}Z`, fill: '#e2c898', 'stroke-width': 2.5 }, g);
-            // sunlit edge highlights
-            el('line', { x1: C - 282, y1: B - 316, x2: C - 4, y2: B - 374, stroke: '#fff', 'stroke-width': 3, opacity: 0.8 }, g);
-            return g;
+        function gull(p, f, x, y) {
+            const up = f % 4 < 2, bob = up ? 0 : 1;
+            p.sprite(up ? ['#.....#', '.#...#.', '..#.#..', '...#...'] : ['.......', '##...##', '..#.#..', '...#...'], { '#': NES.white }, x, y + bob);
         }
 
-        function laurel(parent, { cx, y, fs, side, leaves = 8 }) {
-            const g = el('g', {}, parent);
-            const size = fs / 236;
-            const sx = cx + side * fs * 1.2, sy = y + fs * 0.06;
-            const ex = cx + side * fs * 1.36, ey = y - fs * 0.92;
-            const qx = cx + side * fs * 1.66, qy = y - fs * 0.3;
-            el('path', { d: `M${sx},${sy} Q${qx},${qy} ${ex},${ey}`, fill: 'none', stroke: '#6b4a0a', 'stroke-width': 12 * size, 'stroke-linecap': 'round' }, g);
-            el('path', { d: `M${sx},${sy} Q${qx},${qy} ${ex},${ey}`, fill: 'none', stroke: '#e8b43a', 'stroke-width': 6 * size, 'stroke-linecap': 'round' }, g);
-            for (let i = 1; i <= leaves; i++) {
-                const t = i / (leaves + 0.6);
-                const x = (1 - t) ** 2 * sx + 2 * (1 - t) * t * qx + t * t * ex;
-                const y = (1 - t) ** 2 * sy + 2 * (1 - t) * t * qy + t * t * ey;
-                const dx = 2 * (1 - t) * (qx - sx) + 2 * t * (ex - qx), dy = 2 * (1 - t) * (qy - sy) + 2 * t * (ey - qy);
-                const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-                const L = (34 - t * 8) * size;
-                [-1, 1].forEach(k => {
-                    el('ellipse', {
-                        cx: L * 0.55, cy: 0, rx: L * 0.6, ry: L * 0.24, fill: 'url(#gold)', stroke: '#6b4a0a', 'stroke-width': 3 * size,
-                        transform: `translate(${x} ${y}) rotate(${ang + k * 42})`,
-                    }, g);
-                });
-            }
-            el('ellipse', { cx: 0, cy: 0, rx: 18 * size, ry: 8 * size, fill: 'url(#gold)', stroke: '#6b4a0a', 'stroke-width': 3 * size, transform: `translate(${ex} ${ey}) rotate(${side === 1 ? -80 : -100})` }, g);
+        function draw(p, f) {
+            sky(p);
+            sea(p, f);
+            rock(p);
+            land(p);
+            houses(p);
+            temple(p, f);
+            LAYOUT.cypress.forEach(([x, base, h]) => cypress(p, x, base, h));
+            meander(p);
+            gull(p, f, ...LAYOUT.gull);
+
+            const [ix, iy] = LAYOUT.icca, [rx, ry] = LAYOUT.report;
+            nesLogo(p, 'ICCA', ix, iy, { scale: 4, anchor: 'center', top: NES.white, bottom: NES.ice, shine: NES.white, shadow: NES.navy, drop: 3 });
+            const { w: rw } = nesLogo(p, 'REPORT', rx, ry, { scale: 2, anchor: 'center', top: NES.yellow, bottom: NES.gold, shine: NES.cream, shadow: NES.brown });
+            laurel(p, rx - rw / 2 - 10, ry + 16, -1, TALL ? 18 : 24);
+            laurel(p, rx + rw / 2 + 9, ry + 16, 1, TALL ? 18 : 24);
+            const [tx, ty] = LAYOUT.tagline;
+            ['SCIENCE FOR BETTER', 'HEALTHCARE MEETINGS'].forEach((line, i) => nesText(p, line, tx, ty + i * 7, { micro: true, anchor: 'center', color: NES.white, outline: NES.navy }));
+            pushStart(p, f, ...LAYOUT.start);
         }
 
-        function flask(parent, x, y, s) {
-            const g = el('g', { transform: `translate(${x} ${y}) scale(${s})`, stroke: NAVY, 'stroke-width': 5, 'stroke-linejoin': 'round' }, parent);
-            el('path', { d: 'M-11,-44 L-11,-14 L-36,26 Q-40,36 -28,36 L28,36 Q40,36 36,26 L11,-14 L11,-44Z', fill: '#fff' }, g);
-            el('path', { d: 'M-23,6 L-36,26 Q-40,36 -28,36 L28,36 Q40,36 36,26 L23,6Z', fill: '#3fd0a0', 'stroke-width': 0 }, g);
-            el('path', { d: 'M-11,-44 L-11,-14 L-36,26 Q-40,36 -28,36 L28,36 Q40,36 36,26 L11,-14 L11,-44Z', fill: 'none' }, g);
-            el('rect', { x: -16, y: -50, width: 32, height: 9, rx: 3, fill: '#fff' }, g);
-            [[-8, 20, 5], [8, 14, 4], [2, 26, 3], [14, -4, 3.5], [-4, -26, 4]].forEach(([cx, cy, r]) =>
-                el('circle', { cx, cy, r, fill: '#fff', 'stroke-width': 2.5 }, g));
-        }
-
-        function booklet(parent, defs, { x, y, rotate, s = 1 }) {
-            const g = el('g', { transform: `translate(${x} ${y}) rotate(${rotate}) scale(${s})` }, parent);
-            const w = 240, h = 310;
-            el('rect', { x: -w / 2 + 6, y: -h / 2 + 16, width: w, height: h, rx: 10, fill: 'rgba(40,30,10,0.35)' }, g);
-            [[26, 18, '#e9e2d0'], [13, 9, '#f4efe2']].forEach(([dx, dy, c]) =>
-                el('rect', { x: -w / 2 + dx, y: -h / 2 + dy, width: w, height: h, rx: 10, fill: c, stroke: NAVY, 'stroke-width': 5 }, g));
-            el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: 10, fill: '#fffdf6', stroke: NAVY, 'stroke-width': 5 }, g);
-            el('path', { d: `M${-w / 2},${-h / 2 + 10} Q${-w / 2},${-h / 2} ${-w / 2 + 10},${-h / 2} L${w / 2 - 10},${-h / 2} Q${w / 2},${-h / 2} ${w / 2},${-h / 2 + 10} L${w / 2},${-h / 2 + 128} L${-w / 2},${-h / 2 + 128}Z`, fill: 'url(#coverBlue)', stroke: NAVY, 'stroke-width': 5 }, g);
-            el('circle', { cx: 0, cy: -h / 2 + 64, r: 48, fill: '#fff', stroke: NAVY, 'stroke-width': 5 }, g);
-            flask(g, 0, -h / 2 + 64, 0.9);
-            [[170, NAVY, 14], [140, NAVY, 14], [96, '#e8b43a', 10]].forEach(([bw, c, bh], i) =>
-                el('rect', { x: -w / 2 + 26, y: -h / 2 + 152 + i * 28, width: bw, height: bh, rx: bh / 2, fill: c }, g));
-            [180, 160, 172].forEach((bw, i) =>
-                el('rect', { x: -w / 2 + 26, y: -h / 2 + 238 + i * 16, width: bw, height: 7, rx: 3.5, fill: '#c6cedc' }, g));
-            el('rect', { x: -w / 2 + 8, y: -h / 2 + 8, width: w - 16, height: 26, rx: 8, fill: '#fff', opacity: 0.18 }, g);
-        }
-
-        function title(fg, defs, { cx, y, size, ribbonText, laurels = true }) {
-            const icca = linear(defs, 'iccaFill', [[0, '#ffffff'], [1, '#bcdcff']]);
-            const gold = linear(defs, 'reportFill', [[0, '#fff5b8'], [0.5, '#f7c43a'], [1, '#d4880f']]);
-            if (laurels) {
-                laurel(fg, { cx, y, fs: size, side: -1 });
-                laurel(fg, { cx, y, fs: size, side: 1 });
-            }
-            logo(fg, defs, { x: cx, y, size, spans: [{ text: 'ICCA', fill: icca }], outline: NAVY, outlineW: size * 0.2, rimW: size * 0.28, shadow: 'rgba(10,30,80,0.35)', spacing: size * 0.02 });
-            const rs = size * 0.46;
-            logo(fg, defs, { x: cx, y: y + size * 0.56, size: rs, spans: [{ text: 'REPORT', fill: gold }], outline: '#5a3606', outlineW: rs * 0.2, rimW: rs * 0.36, shadow: 'rgba(60,30,0,0.35)', spacing: rs * 0.14 });
-            if (ribbonText) {
-                pill(fg, { x: cx, y: y + size * 0.92, text: ribbonText, size: size * 0.125, fill: '#1f5fae', stroke: '#f1c24b', strokeW: 5, color: '#fff', spacing: 1.5, padX: 40, padY: 18 });
-            }
-        }
-
-        (async () => {
-            await ready();
-            const { defs, bg, fg } = setupSvg();
-            linear(defs, 'marble', [[0, '#fbf1dc'], [1, '#e2c797']]);
-            linear(defs, 'column', [[0, '#fff6e2'], [0.55, '#efdcb6'], [1, '#c8a676']], 0, 0, 1, 0);
-            linear(defs, 'cypress', [[0, '#3f7a3d'], [1, '#1f4226']], 0, 0, 1, 0);
-            linear(defs, 'gold', [[0, '#fff0a0'], [0.5, '#f2c440'], [1, '#c98a14']]);
-            linear(defs, 'coverBlue', [[0, '#3f86d6'], [1, '#1f5fae']]);
-
-            if (TILE) {
-                const land = el('g', { transform: `scale(${1280 / 1920})` }, fg);
-                landscape(land, defs);
-                title(fg, defs, { cx: 330, y: 260, size: 184 });
-                [[60, 110, 18], [600, 90, 16], [640, 330, 12], [1230, 120, 14]].forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff', 0.95));
-            } else {
-                sky(bg, defs);
-                landscape(fg, defs);
-                title(fg, defs, { cx: 520, y: 320, size: 236, ribbonText: 'Science for Better Healthcare Meetings' });
-                booklet(fg, defs, { x: 420, y: 820, rotate: -8 });
-                [[110, 130, 24], [930, 120, 20], [1000, 420, 14], [640, 700, 16], [1840, 420, 18]].forEach(([x, y, r]) => sparkle(fg, x, y, r, '#fff', 0.95));
-            }
-            document.body.dataset.done = '1';
-        })();
+        runFrames(draw, { frames: 12, delay: 140, size: [NW, NH] });
     </script>
 </body>
 </html>

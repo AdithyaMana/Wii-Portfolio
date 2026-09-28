@@ -108,11 +108,12 @@ Each channel is an object in `ChannelsContext.jsx`:
   assets: 'assets/channels/',   // preview video + audio path
   channelart: 'channelart/',    // iframe art path
   target: 'https://...',        // URL opened on Start
-  action: 'open-paper'          // optional: 'open-paper' for Mii overlay
+  action: 'open-paper',         // optional: 'open-paper' for Mii overlay
+  mobileart: true               // optional: has a tall version for phones
 }
 ```
 
-Channel art (`/channelart/{id}/channel.html`) is rendered inside an iframe in the grid tile. The preview screen loads `/assets/channels/{id}/video.{format}` and `/assets/channels/{id}/audio.{format}`.
+Channel art (`/channelart/{id}/channel.html`) is rendered inside an iframe in the grid tile. The preview screen loads `/assets/channels/{id}/video.{format}` and `/assets/channels/{id}/audio.{format}`; on phones and other portrait screens, channels with `mobileart` show `/assets/channels/{id}/video-mobile.webp` full screen instead. The pixel art is drawn by the scenes in `wii-portfolio-react/art-src/` and rendered with `art-src/render.py`.
 
 Channel state is persisted to `localStorage` under the key `adifolio-channels-v17`. Bumping the version resets to defaults on next load.
 

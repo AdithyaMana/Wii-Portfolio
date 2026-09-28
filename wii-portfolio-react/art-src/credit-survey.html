@@ -15,6 +15,15 @@
         // The 14 CRediT contributor roles, in the taxonomy's order
         const ROLES = ['bulb', 'database', 'chart', 'dollar', 'magnifier', 'flask', 'checklist', 'cube', 'code', 'person', 'shield', 'pie', 'pencil', 'review'];
 
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            title: [12, 26], roles: [22, 248], quiz: [19, 104], stylus: [50, 46],
+            twinkles: [[160, 30, 0], [150, 98, 2], [10, 244, 1], [168, 252, 3]],
+        } : {
+            title: [12, 16], roles: [12, 98], quiz: [170, 14], stylus: [70, 64],
+            twinkles: [[160, 20, 0], [158, 150, 2], [306, 160, 1], [120, 76, 3]],
+        };
+
         // Diagonal scrolling checkerboard, a seamless loop every 12 frames
         function checker(p, f) {
             const s = 12, off = f * 2;
@@ -33,7 +42,7 @@
         }
 
         function stylus(p, tx, ty) {
-            const ex = tx + 70, ey = ty + 64;
+            const ex = tx + LAYOUT.stylus[0], ey = ty + LAYOUT.stylus[1];
             p.thick(tx + 5, ty + 5, ex, ey, 6, '#1c1c2a');
             p.thick(tx + 5, ty + 5, ex, ey, 4, '#b8c0d0');
             p.line(tx + 6, ty + 4, ex + 1, ey - 1, '#eef1f7');
@@ -43,8 +52,8 @@
             p.thick(ex - 6, ey - 6, ex, ey, 4, '#7a3ff2');
         }
 
-        function quiz(p, f) {
-            const X = 170, Y = 14, W = 142, H = 132;
+        function quiz(p, f, X, Y) {
+            const W = 142, H = 132;
             p.frame(X, Y, W, H, '#fdfbff', INK, 2);
             p.panel(X + 2, Y + 2, W - 4, 12, VIOLET, 1);
             text(p, 'QUESTION 3/14', X + 7, Y + 5, { color: '#fff' });
@@ -80,25 +89,28 @@
 
         function draw(p, f) {
             checker(p, f);
-            text(p, 'CASE STUDY', 12, 16, { color: '#fff', outline: INK });
+            const [tx, ty] = LAYOUT.title;
+            text(p, 'CASE STUDY', tx, ty, { color: '#fff', outline: INK });
             logo(p, 'CRediT Role', {
-                x: 10, y: 28, size: 25, outlineWidth: 2, dotGap: 3,
+                x: tx - 2, y: ty + 12, size: 25, outlineWidth: 2, dotGap: 3,
                 bands: ['#ffffff', '#f4eeff', '#e3d6ff', '#cdb8ff'], light: '#ffffff', dark: '#b39ce8',
                 outline: INK, rim: '#ffffff', shadow: '#1c0550aa',
             });
             logo(p, 'Survey', {
-                x: 10, y: 50, size: 40, outlineWidth: 2,
+                x: tx - 2, y: ty + 34, size: 40, outlineWidth: 2,
                 bands: ['#fff3a6', '#ffd84a', '#ffb020', '#f28a12'], light: '#fffbe0', dark: '#c46200',
                 outline: INK, rim: '#ffffff', shadow: '#1c0550aa',
             });
-            text(p, '14 CONTRIBUTOR ROLES', 12, 98, { color: '#fff', outline: INK });
-            ROLES.forEach((name, i) => badge(p, name, 12 + (i % 7) * 20, 110 + Math.floor(i / 7) * 20, COLORS[i % COLORS.length]));
+            const [lx, ly] = LAYOUT.roles;
+            text(p, '14 CONTRIBUTOR ROLES', lx, ly, { color: '#fff', outline: INK });
+            ROLES.forEach((name, i) => badge(p, name, lx + (i % 7) * 20, ly + 12 + Math.floor(i / 7) * 20, COLORS[i % COLORS.length]));
 
-            quiz(p, f);
+            const [qx, qy] = LAYOUT.quiz, sx = qx + 40, sy = qy + 84;
+            quiz(p, f, qx, qy);
             const tap = f % 6 < 3;
-            stylus(p, 210 + (tap ? 0 : 3), 98 + (tap ? 0 : 3));
-            if (tap && f % 6 === 1) { p.ring(210, 98, 4, '#ffffff'); p.ring(210, 98, 6, '#ffd23f'); }
-            [[160, 20, 0], [158, 150, 2], [306, 160, 1], [120, 76, 3]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
+            stylus(p, sx + (tap ? 0 : 3), sy + (tap ? 0 : 3));
+            if (tap && f % 6 === 1) { p.ring(sx, sy, 4, '#ffffff'); p.ring(sx, sy, 6, '#ffd23f'); }
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
         }
 
         runFrames(draw, { frames: 12, delay: 140 });

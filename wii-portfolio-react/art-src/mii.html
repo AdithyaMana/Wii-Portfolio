@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mii Channel pixel art</title>
+    <style>
+        @font-face { font-family: 'Continuum'; src: url('../public/fonts/continuum-bold.ttf'); font-weight: 700; }
+    </style>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="pixel.js"></script>
+    <script src="mii-faces.js"></script>
+    <script>
+        // Phone-only art: the Mii Channel title over a crowd of Miis, with
+        // Adi's own Mii in the front row. render.py only asks for ?v=tall.
+        const OUTLINE = '#8a9e9b';
+
+        // back row to front: head size, top of the row, spacing
+        const ROWS = [[12, 132, 13], [15, 146, 15], [18, 162, 18], [22, 182, 21], [25, 206, 24], [28, 234, 27], [32, 264, 30]];
+        const ADI = [76, 266];
+
+        const CROWD = (() => {
+            const rand = rng(12), rows = [];
+            ROWS.forEach(([s, y, step], r) => {
+                const row = [], off = r % 2 ? step / 2 : 0;
+                for (let x = -step + off; x < PW; x += step) {
+                    // leave a gap in the front row for Adi
+                    if (r === ROWS.length - 1 && Math.abs(x + s / 2 - (ADI[0] + 14)) < s * 0.6) continue;
+                    row.push({ x: Math.round(x + (rand() - 0.5) * 3), y: y + Math.round(rand() * 3), s, look: randomLook(rand), ph: Math.floor(rand() * 12) });
+                }
+                rows.push(row);
+            });
+            return rows;
+        })();
+
+        function backdrop(p) {
+            p.vgrad(0, 0, PW, PH, ['#ffffff', '#f6fafa', '#e9f3f3', '#d8eaea']);
+            // the fine scan lines of the Wii menu
+            for (let y = 0; y < PH; y += 3) p.rect(0, y, PW, 1, '#8aa6a40c');
+        }
+
+        function crowd(p, f) {
+            CROWD.forEach((row, r) => {
+                const front = r === ROWS.length - 1, near = r >= ROWS.length - 2;
+                row.forEach(({ x, y, s, look, ph }) => {
+                    const bob = [0, 0, -1, -1, 0, 0, 0, 0, 1, 1, 0, 0][(f + ph) % 12];
+                    miiHead(p, x, y + bob, s, look, { blink: (f + ph) % 12 === 6 });
+                    // the nearest rows' bodies run off the bottom of the screen
+                    if (near) {
+                        const top = y + bob + Math.round(s * 1.12) - Math.round(s * 0.12) + Math.round(s * 0.34), half = Math.round(s / 2 * 1.25);
+                        p.rect(x + Math.round(s / 2) - half, top, half * 2, PH - top, look.shirt);
+                    }
+                });
+                // a soft haze between rows sets the back rows further off
+                if (!front) p.rect(0, 0, PW, PH, '#ffffff14');
+            });
+        }
+
+        function adi(p, f) {
+            const [x, y] = ADI, bob = [0, -1, -2, -2, -1, 0, 0, 0, 0, 0, 0, 0][f];
+            p.sprite(ADI_MII, ADI_MII_PAL, x, y + bob);
+            if (f === 9) [7, 16].forEach(c => { p.rect(x + c, y + 19, 5, 1, ADI_MII_PAL.S); p.rect(x + c, y + 20, 5, 1, ADI_MII_PAL.K); });
+            p.rect(x + 3, y + 39 + bob, 22, PH - y - 39 - bob, ADI_MII_PAL.R);
+            p.rect(x + 3, y + 39 + bob, 1, PH - y - 39 - bob, ADI_MII_PAL.r);
+            p.rect(x + 24, y + 39 + bob, 1, PH - y - 39 - bob, ADI_MII_PAL.r);
+            // "that's me": a hello bubbling up over Adi's head
+            const bw = 28, bx = x + 14 - bw / 2, by = y - 21 + [0, 0, -1, -1, 0, 0][f % 6];
+            p.frame(bx, by, bw, 14, '#ffffff', '#34bede', 2);
+            p.sprite(['#####', '.###.', '..#..'], { '#': '#34bede' }, bx + bw / 2 - 2, by + 13);
+            p.sprite(['###', '.#.'], { '#': '#ffffff' }, bx + bw / 2 - 1, by + 13);
+            text(p, 'HI!', bx + bw / 2 + 1, by + 4, { color: '#1d7f96', anchor: 'center' });
+        }
+
+        function draw(p, f) {
+            backdrop(p);
+            crowd(p, f);
+            adi(p, f);
+            const style = {
+                font: 'Continuum', outlineWidth: 2, anchor: 'center',
+                bands: ['#ffffff', '#f3fafa', '#dcefee', '#bddfde'], light: '#ffffff', dark: '#a9cfcd',
+                outline: OUTLINE, rim: '#ffffff', shadow: '#8aa6a455',
+            };
+            logo(p, 'Mii', { ...style, x: PW / 2, y: 30, size: 60 });
+            logo(p, 'Channel', { ...style, x: PW / 2, y: 82, size: 36 });
+            [[22, 30, 0], [158, 44, 2], [30, 112, 1], [152, 118, 3]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#8fd3e0'));
+        }
+
+        runFrames(draw, { frames: 12, delay: 140, fonts: ['700 30px Continuum'] });
+    </script>
+</body>
+</html>

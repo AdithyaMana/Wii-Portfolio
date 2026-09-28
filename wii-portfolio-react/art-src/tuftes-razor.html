@@ -13,19 +13,31 @@
         const DATA = [30, 48, 40, 66, 54, 82];
         const JUNK = ['#e2413b', '#ffb020', '#3ddc84', '#2f86e0', '#9b6bff', '#ff5d8f'];
 
+        // Where everything sits on the wide canvas and on the tall phone one
+        const LAYOUT = TALL ? {
+            win: [23, 112, 134, 132], sun: [90, 266], rack: [20, 306], ridges: [264, 278, 292], ground: 306,
+            skyH: 290, stars: [[12, 8, 0], [150, 12, 2], [60, 4, 1], [110, 96, 3], [170, 40, 1]],
+            clouds: [[8, 96, 30], [120, 100, 44], [20, 236, 40], [100, 244, 60], [4, 252, 24]],
+        } : {
+            win: [176, 18, 134, 132], sun: [92, 124], rack: [14, 168], ridges: [130, 142, 156], ground: 168,
+            skyH: 134, stars: [[12, 8, 0], [150, 12, 2], [60, 4, 1], [110, 22, 3], [170, 4, 1]],
+            clouds: [[8, 58, 44], [30, 64, 26], [120, 44, 36], [44, 104, 70], [84, 112, 52], [132, 96, 30], [2, 118, 30]],
+        };
+
         // The chart window, cut corner to corner from bottom-left to top-right
-        const WX = 176, WY = 18, WW = 134, WH = 132;
+        const [WX, WY, WW, WH] = LAYOUT.win;
         const above = (x, y) => (y - (WY + WH)) * WW + (x - WX) * WH < 0;
         // the cut-off half slips down along the cut and away from it
         const LIFT = [-5, 1];
 
         function sky(p) {
-            p.vgrad(0, 0, PW, 134, ['#241447', '#3f1d5f', '#6e2566', '#a83460', '#dd5a4a', '#f7913f', '#ffc35c']);
-            [[46, '#ffc35c18'], [40, '#ffd27a22'], [35, '#ffe08a30']].forEach(([r, c]) => p.disc(92, 124, r, c));
-            p.disc(92, 124, 30, '#ffe7a0');
-            p.disc(92, 124, 27, '#fff3c8');
+            const [sx, sy] = LAYOUT.sun;
+            p.vgrad(0, 0, PW, LAYOUT.skyH, ['#241447', '#3f1d5f', '#6e2566', '#a83460', '#dd5a4a', '#f7913f', '#ffc35c']);
+            [[46, '#ffc35c18'], [40, '#ffd27a22'], [35, '#ffe08a30']].forEach(([r, c]) => p.disc(sx, sy, r, c));
+            p.disc(sx, sy, 30, '#ffe7a0');
+            p.disc(sx, sy, 27, '#fff3c8');
             // thin clouds drawn across the sky and the sun
-            [[8, 58, 44], [30, 64, 26], [120, 44, 36], [44, 104, 70], [84, 112, 52], [132, 96, 30], [2, 118, 30]].forEach(([x, y, w]) => {
+            LAYOUT.clouds.forEach(([x, y, w]) => {
                 p.rect(x, y, w, 2, '#c9486a');
                 p.rect(x + 4, y + 2, w - 8, 1, '#a8345f');
             });
@@ -39,65 +51,142 @@
         }
 
         function land(p) {
-            ridge(p, 130, 7, 31, 11, 1, '#8a3569');
-            ridge(p, 142, 6, 23, 9, 2.4, '#5a2257');
-            ridge(p, 156, 4, 37, 13, 0.7, '#35143c');
-            p.rect(0, 168, PW, 12, '#1f0c27');
+            const [a, b, c] = LAYOUT.ridges;
+            ridge(p, a, 7, 31, 11, 1, '#8a3569');
+            ridge(p, b, 6, 23, 9, 2.4, '#5a2257');
+            ridge(p, c, 4, 37, 13, 0.7, '#35143c');
+            p.rect(0, LAYOUT.ground, PW, PH - LAYOUT.ground, '#1f0c27');
         }
 
         // Susuki grass swaying in the evening wind
         function grass(p, f) {
-            const rand = rng(11);
-            for (let i = 0; i < 18; i++) {
-                const bx = 2 + Math.floor(rand() * 316), h = 16 + Math.floor(rand() * 14), ph = rand() * Math.PI * 2;
+            const rand = rng(11), base = PH - 4;
+            for (let i = 0; i < (TALL ? 12 : 18); i++) {
+                const bx = 2 + Math.floor(rand() * (PW - 4)), h = 16 + Math.floor(rand() * 14), ph = rand() * Math.PI * 2;
                 const sway = Math.round(Math.sin((f / 12) * Math.PI * 2 + ph) * 2);
-                const tx = bx + 3 + sway, ty = 176 - h;
-                p.line(bx, 176, tx, ty + 3, '#4a1f45');
+                const tx = bx + 3 + sway, ty = base - h;
+                p.line(bx, base, tx, ty + 3, '#4a1f45');
                 [[0, 0, '#fff0c8'], [1, 0, '#f0c890'], [1, 1, '#f0c890'], [2, 1, '#e0a878'], [2, 2, '#f0c890'], [3, 3, '#d99870'], [0, 1, '#e0a878'], [1, 2, '#d99870'], [0, 2, '#b8785a'], [0, 3, '#8a4a52']]
                     .forEach(([dx, dy, c]) => p.set(tx + dx, ty + dy, c));
             }
         }
 
-        // Katana planted in the hillside in front of the sun, drawn at 45
-        // degrees so every edge stays a clean pixel staircase. (hx, hy) is
-        // the guard; the blade runs down-right into the ground.
-        function katana(p, f) {
-            const hx = 88, hy = 128;
-            const BLADE = [INK, '#fff6e0', '#eef2f6', '#c7d0dc', '#a3aec0', '#6f7a90', INK];
-            for (let i = 4; hy + i < 168; i++) BLADE.forEach((c, k) => p.set(hx + i + k - 3, hy + i, c));
-            for (let i = 4; i < 7; i++) for (let k = -3; k <= 3; k++) p.set(hx + i + k, hy + i, Math.abs(k) === 3 ? INK : '#e0b040');
+        // Katana and its saya resting edge-up on a black lacquer stand. Both
+        // are drawn column by column along a shallow arc, the sword's sori.
+        const SWORD = 140;
+        const sori = s => Math.round(3 * (1 - ((s - SWORD / 2) / (SWORD / 2)) ** 2));
 
-            // silk-wrapped handle: on a 45 degree grip the diamond gaps land
-            // on a square screen grid
-            for (let i = 5; i < 25; i++) {
-                for (let k = -4; k <= 4; k++) {
-                    const x = hx - i + k, y = hy - i;
-                    const gap = x % 4 > 0 && x % 4 < 3 && y % 4 > 0 && y % 4 < 3;
-                    p.set(x, y, Math.abs(k) === 4 ? INK : gap ? '#efe6d0' : '#2b2440');
-                }
-            }
-            for (let i = 25; i < 28; i++) for (let k = -4; k <= 4; k++) p.set(hx - i + k, hy - i, i === 27 || Math.abs(k) === 4 ? INK : '#e0b040');
-
-            // red sageo cord fluttering from the grip
-            const sway = Math.round(Math.sin((f / 12) * Math.PI * 2) * 2);
-            p.thick(hx - 8, hy - 6, hx - 13 + sway, hy + 5, 2, '#b8323b');
-            p.thick(hx - 13 + sway, hy + 5, hx - 9 + sway * 2, hy + 15, 2, '#d8413a');
-
-            p.disc(hx, hy, 7, INK);
-            p.disc(hx, hy, 6, '#2b1d36');
-            p.ring(hx, hy, 6, '#d9a441');
-            p.set(hx - 3, hy - 4, '#ffe08a');
-            p.set(hx - 4, hy - 3, '#ffe08a');
+        function column(p, x, y, r0, r1, colorAt) {
+            for (let r = r0; r <= r1; r++) p.set(x, y + r, colorAt(r));
         }
 
-        const PETALS = [[16, 12, 0], [64, 34, 5], [112, 8, 9], [150, 52, 2], [28, 76, 7], [142, 92, 4], [196, 2, 10], [240, 152, 3], [96, 138, 8], [292, 150, 6], [8, 142, 1], [164, 128, 11]];
+        // (x, y) is the pommel end of the sword's centre line
+        function katana(p, f, x, y) {
+            for (let s = 0; s <= SWORD; s++) {
+                const cx = x + s, cy = y - sori(s);
+                if (s < 3) {
+                    // kashira, the pommel cap
+                    const h = s === 0 ? 3 : 4;
+                    column(p, cx, cy, -h, h, r => Math.abs(r) === h ? INK : s === 2 ? '#d9a441' : r < -1 ? '#4a3f5c' : '#2b2433');
+                } else if (s < 34) {
+                    // silk-wrapped grip: white ray-skin diamonds between the crossed ito
+                    const d = (s - 3) % 7;
+                    column(p, cx, cy, -4, 4, r => {
+                        if (Math.abs(r) === 4) return INK;
+                        if (Math.abs(r) + Math.abs(d - 3) <= 2) return r < 0 ? '#fff8e8' : '#e8dcc0';
+                        return r === -3 ? '#3d3354' : '#231c33';
+                    });
+                } else if (s < 36) {
+                    column(p, cx, cy, -4, 4, r => Math.abs(r) === 4 ? INK : r < -1 ? '#fff0a0' : '#d9a441');
+                } else if (s < 41) {
+                    // tsuba seen edge-on, between two thin seppa washers
+                    if (s === 36 || s === 40) column(p, cx, cy, -5, 5, r => Math.abs(r) === 5 ? INK : '#f0c860');
+                    else {
+                        const h = s === 38 ? 8 : 7;
+                        column(p, cx, cy, -h, h, r => Math.abs(r) === h ? INK : Math.abs(r) === h - 1 ? '#d9a441' : s === 37 && r < -2 ? '#5a4d70' : '#2b2433');
+                    }
+                } else if (s < 45) {
+                    // habaki collar
+                    column(p, cx, cy, -4, 3, r => r === -4 || r === 3 ? INK : r === -3 ? '#fff0a0' : r === 2 ? '#a8741c' : '#e0b040');
+                } else {
+                    // the blade, edge up: cutting edge, wavy hamon, flat, ridge line, spine.
+                    // Over the last 12 columns the edge sweeps down into the tip.
+                    const k = s - (SWORD - 12), top = k < 0 ? -3 : -3 + Math.round((k / 12) ** 2 * 5);
+                    const wave = [0, 0, 1, 1, 1, 0, 0, 1][s % 8];
+                    column(p, cx, cy, top, 3, r => {
+                        if (r === top || r === 3) return INK;
+                        if (k === 0) return '#ffffff';
+                        if (r === top + 1) return '#f4f8fc';
+                        if (r === -1) return wave ? '#ffffff' : '#dce6f1';
+                        if (r === 0) return '#c3cedb';
+                        if (r === 1) return '#eef3f8';
+                        return '#6f7b90';
+                    });
+                }
+            }
+            // a glint runs up the edge during the first half of the loop
+            if (f < 6) {
+                const s = 52 + f * 16;
+                twinkle(p, x + s, y - sori(s) - 3, f % 2 ? 1 : 2, '#ffffff');
+            }
+        }
+
+        // the scabbard only holds the blade, from the habaki to past the tip
+        function saya(p, f, x, y) {
+            for (let s = 40; s <= SWORD + 3; s++) {
+                const cx = x + s, cy = y - sori(Math.min(s, SWORD));
+                if (s < 44) column(p, cx, cy, -4, 4, r => Math.abs(r) === 4 ? INK : r < -1 ? '#ffffff' : '#e8dcc0');
+                else if (s > SWORD - 2) {
+                    const h = s === SWORD + 3 ? 2 : 3;
+                    column(p, cx, cy, -h, h, r => Math.abs(r) === h ? INK : r < 0 ? '#f0c860' : '#b8862a');
+                } else column(p, cx, cy, -3, 3, r => Math.abs(r) === 3 ? INK : r === -2 ? '#6a5a80' : r === -1 ? '#2c2238' : '#16101c');
+            }
+            // red sageo cord wound round the saya, knotted below with a tassel
+            // that sways
+            const cy = y - sori(52), sway = Math.round(Math.sin((f / 12) * Math.PI * 2) * 1.5);
+            [51, 52, 53].forEach(s => column(p, x + s, cy, -4, 4, r => Math.abs(r) === 4 ? '#7a1622' : r < -1 ? '#ff7a7a' : '#c8323c'));
+            p.line(x + 51, cy + 5, x + 52 + sway, cy + 9, '#c8323c');
+            p.line(x + 53, cy + 5, x + 53 + sway, cy + 9, '#a82632');
+            p.rect(x + 51 + sway, cy + 9, 3, 2, '#e8414b');
+            column(p, x + 51 + sway, cy + 11, 0, 3, () => '#c8323c');
+            column(p, x + 52 + sway, cy + 11, 0, 4, () => '#e8414b');
+            column(p, x + 53 + sway, cy + 11, 0, 3, () => '#a82632');
+        }
+
+        // two-tier katanakake: (x, y) is the left end of its base on the ground
+        function stand(p, x, y) {
+            const LAC = '#150d12', HI = '#46303e';
+            [48, 116].forEach(s => {
+                const ux = x + s, top = y - 30 - sori(s);
+                p.rect(ux - 2, top, 5, y - 4 - top, LAC);
+                p.rect(ux - 2, top, 1, y - 4 - top, HI);
+                // red-lined cradles under the sword and under the saya
+                [top, y - 13 - sori(s)].forEach(cy => {
+                    p.rect(ux - 5, cy, 11, 3, LAC);
+                    p.rect(ux - 4, cy, 9, 1, '#b8323b');
+                });
+            });
+            p.rect(x + 36, y - 5, 92, 3, LAC);
+            p.rect(x + 36, y - 5, 92, 1, HI);
+            [48, 116].forEach(s => { p.rect(x + s - 9, y - 3, 19, 3, LAC); p.rect(x + s - 9, y - 3, 19, 1, HI); });
+        }
+
+        function swordRack(p, f) {
+            const [x, y] = LAYOUT.rack;
+            stand(p, x, y);
+            saya(p, f, x, y - 17);
+            katana(p, f, x, y - 34);
+        }
+
         function petals(p, f) {
-            PETALS.forEach(([x0, y0, k]) => {
+            const rand = rng(21);
+            for (let i = 0; i < (TALL ? 14 : 12); i++) {
+                const x0 = Math.floor(rand() * (PW - 20)), y0 = Math.floor(rand() * (PH - 24)), k = Math.floor(rand() * 12);
                 const t = (f + k) % 12, a = t === 0 || t === 11 ? '88' : '';
                 const x = Math.round(x0 + t * 2 + Math.sin((t / 12) * Math.PI * 2) * 2), y = Math.round(y0 + t * 1.5);
                 p.sprite(t % 4 < 2 ? ['#.', '##'] : ['##', '.#'], { '#': '#ffc2d4' + a }, x, y);
                 p.set(x + (t % 4 < 2 ? 0 : 1), y + 1, '#ff8fb1' + a);
-            });
+            }
         }
 
         // The same chart twice: smothered in chartjunk, and pared down to the data
@@ -183,10 +272,10 @@
             }
         }
 
-        function razorGlint(p, f) {
+        function razorGlint(p, f, lx, ly) {
             if (f > 5) return;
             const m = logoMask('Razor', { size: 48 }), bb = m.box;
-            const ox = 12 - bb.x0, oy = 60 - bb.y0, pos = bb.x0 + bb.y0 - 16 + f * 34;
+            const ox = lx - bb.x0, oy = ly - bb.y0, pos = bb.x0 + bb.y0 - 16 + f * 34;
             for (let y = 0; y < m.h; y++) {
                 for (let x = 0; x < m.w; x++) {
                     const k = x + y - pos;
@@ -197,22 +286,23 @@
 
         function draw(p, f) {
             sky(p);
-            [[12, 8, 0], [150, 12, 2], [60, 4, 1], [110, 22, 3], [170, 4, 1]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
+            LAYOUT.stars.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#fff3c4'));
             land(p);
-            katana(p, f);
+            swordRack(p, f);
             grass(p, f);
 
+            const ty = TALL ? 26 : 16;
             logo(p, 'Tufte’s', {
-                x: 12, y: 16, size: 40, outlineWidth: 2,
+                x: 12, y: ty, size: 40, outlineWidth: 2,
                 bands: ['#ffffff', '#fff6e0', '#ffe6b8', '#ffd08a'], light: '#ffffff', dark: '#e0a860',
                 outline: INK, rim: '#ffffff', shadow: '#12071f99',
             });
             logo(p, 'Razor', {
-                x: 12, y: 60, size: 48, outlineWidth: 2,
+                x: 12, y: ty + 44, size: 48, outlineWidth: 2,
                 bands: ['#ffffff', '#e4ebf2', '#b9c6d4', '#8497ad'], light: '#ffffff', dark: '#5d6f86',
                 outline: INK, rim: '#ffffff', shadow: '#12071f99',
             });
-            razorGlint(p, f);
+            razorGlint(p, f, 12, ty + 44);
 
             sliced(p, f);
             petals(p, f);

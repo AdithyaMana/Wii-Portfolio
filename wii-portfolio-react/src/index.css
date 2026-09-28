@@ -1018,23 +1018,44 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     filter: contrast(1.05) saturate(1.05);
 }
 
-/* DS pixel-art channels: keep each art pixel a hard-edged square at any
-   size, and crop evenly so the title up top and the UI along the bottom
-   both stay in frame */
+/* Pixel-art channels (DS and 8-bit): keep each art pixel a hard-edged
+   square at any size, and crop evenly so the title up top and the UI along
+   the bottom both stay in frame */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo {
+.ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="linkedin"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="betterposter"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="icca-report"] .ch-logo {
     object-position: center;
     image-rendering: pixelated;
 }
 
-/* GitHub is pixel art: keep it crisp and uncropped */
-.ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
-    object-fit: contain;
-    transform: scale(1.5);
-    image-rendering: pixelated;
+/* The <picture> that offers phones the tall art shouldn't add a box of its
+   own around the image */
+.ch-selection .ch-logo-container picture {
+    display: contents;
+}
+
+/* Phones and other portrait screens: a channel with tall art fills the
+   whole preview with it rather than sitting in a letterboxed band. Short
+   screens crop the bottom first, where the scenes keep their least
+   important details. Keep the query in step with MOBILE_ART_QUERY in
+   channelArt.js. */
+@media (max-aspect-ratio: 3/4) {
+    .ch-selection .ch-logo-container[data-mobile-art] .ch-logo {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        object-position: center 20%;
+        image-rendering: pixelated;
+    }
 }
 
 /* Disc is a small graphic on black — contain it */
@@ -2691,11 +2712,6 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     .ch-selection video.ch-logo {
         width: 100vw;
         height: auto;
-    }
-
-    /* The desktop pixel-art zoom overflows small screens */
-    .ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo {
-        transform: none;
     }
 
     /* Nav arrows: comfortable thumb targets at screen edges */

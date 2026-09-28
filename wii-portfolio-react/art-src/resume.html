@@ -7,53 +7,11 @@
 <body>
     <pre id="out"></pre>
     <script src="pixel.js"></script>
+    <script src="mii-faces.js"></script>
     <script>
         const INK = '#4a1410';
         const RED = '#e2413b';
 
-        // Adi's Mii, cleaned up by hand from a downscale of the avatar
-        const MII = [
-            '.........KKKKKKKKKK.........',
-            '......KKKHHHHHHHHHHKKK......',
-            '.....KHHHHHHHHHHHHHHHHK.....',
-            '....KHHHhhhHHHHHHHHHHHHK....',
-            '...KHHHhhHHHHHHHHHHHHHHHK...',
-            '...KHHHHHHHHHHHHHHHHHHHHK...',
-            '..KHHHHHHHHHHHHHHHHHHHHHHK..',
-            '..KHHHHHHHHHHHHHHHHHHHHHHK..',
-            '.KHHHHHHHHHHHHHHHSHHHHHHHHK.',
-            '.KHHHHHHHHHHHHHHSSHHHHHHHHK.',
-            '.KHHHHHHHSHHHHHSSSSHHHHHHHK.',
-            '.KHHHHHHHSHHHHSSSSSHHHHHHHK.',
-            '.KHHHHHHSSHHHSSSSSSSHHHHHHK.',
-            '.KHHHHHSSSSHHSSSSSSSSHHHHHK.',
-            '.KHHHHSSSSSSHSSSSSSSSSHHHHK.',
-            '.KHHHSSSSSSSSSSSSSSSSSSHHHK.',
-            '.KHHSSKKSSSSSSSSSSSSKKSSHHK.',
-            '.KHHSSSKKKKSSSSSSKKKKSSSHHK.',
-            '.KHHSSSSSSSSSSSSSSSSSSSSHHK.',
-            '.KHHSSSKKKKKSSSSKKKKKSSSHHK.',
-            '.KHHSSSWWKKWSSSSWWKKWSSSHHK.',
-            '.KHHSSSSsssSSSSSSsssSSSSHHK.',
-            '.KHHSSSSSSSSSSSSSSSSSSSSHHK.',
-            '.KHHSSSSSSSSSnSSSSSSSSSSHHK.',
-            '.KHHSSSSSSSSSnnSSSSSSSSSHHK.',
-            '.KHHsSSSSSSSSSSSSSSSSSSsHHK.',
-            '.KHHsSSSSSSSnSSSSSSSSSSsHHK.',
-            '.KHHKsSSSSSSnnnnSSSSSSsKHHK.',
-            '.KHH.KsSSSSSSSSSSSSSSsK.HHK.',
-            '.KH..KssSSSSSSSSSSSSssK..HK.',
-            '..K..KKssssssssssssssKK..K..',
-            '.......KKssssssssssKK.......',
-            '.........KKssssssKK.........',
-            '......KKRRRKssssKRRRKK......',
-            '.....KRRRRRRKKKKRRRRRRK.....',
-            '....KRRRRRRRRRRRRRRRRRRK....',
-            '...KRRRRRRRRRRRRRRRRRRRRK...',
-            '..KrRRRRRRRRRRRRRRRRRRRRrK..',
-            '..KrRRRRRRRRRRRRRRRRRRRRrK..',
-        ];
-        const MII_PAL = { K: '#15151b', H: '#2b2b35', h: '#52526c', S: '#ffd6ae', s: '#eab089', n: '#7a4430', W: '#ffffff', R: '#e3261c', r: '#a8150f' };
 
         // skill badges: design, research, code, 3D, games, XR, agents, chat
         const BADGES = ['pencil', 'magnifier', 'code', 'cube', 'gamepad', 'headset', 'robot', 'chat'];
@@ -81,39 +39,49 @@
             p.disc(x - 4, y - 10, 2, '#8fdc6f');
         }
 
+        // Where everything sits on the wide canvas and on the tall phone one.
+        // horizon is where the hills meet the sky; the path starts there at pathX.
+        const LAYOUT = TALL ? {
+            horizon: 246, pathX: 96, flowers: 50, clouds: [[112, 14, 1], [150, 64, 0.6], [8, 104, 0.6]], trees: [[158, 244], [20, 300]],
+            title: [24, 26], start: [90, 268], card: [18, 108],
+            twinkles: [[164, 22, 0], [10, 60, 2], [170, 110, 1], [12, 250, 3], [166, 290, 2]],
+        } : {
+            horizon: 118, pathX: 116, flowers: 70, clouds: [[26, 12, 1.1], [132, 30, 0.8], [118, 6, 0.6]], trees: [[150, 116], [22, 158]],
+            title: [24, 14], start: [84, 100], card: [168, 14],
+            twinkles: [[160, 14, 0], [304, 6, 2], [8, 60, 1], [156, 84, 3], [314, 150, 2]],
+        };
+
         function scenery(p) {
-            p.vgrad(0, 0, PW, 118, ['#2f7fe0', '#4f9cf0', '#7fc0fa', '#b6e2ff', '#dcf3ff']);
-            cloud(p, 26, 12, 1.1);
-            cloud(p, 132, 30, 0.8);
-            cloud(p, 118, 6, 0.6);
+            const H0 = LAYOUT.horizon, px = LAYOUT.pathX;
+            p.vgrad(0, 0, PW, H0, ['#2f7fe0', '#4f9cf0', '#7fc0fa', '#b6e2ff', '#dcf3ff']);
+            LAYOUT.clouds.forEach(([x, y, s]) => cloud(p, x, y, s));
             for (let x = 0; x < PW; x++) {
-                const far = Math.round(104 + 5 * Math.sin(x / 23) + 3 * Math.sin(x / 9 + 1));
+                const far = Math.round(H0 - 14 + 5 * Math.sin(x / 23) + 3 * Math.sin(x / 9 + 1));
                 p.rect(x, far, 1, 1, '#b0e0b0');
-                p.rect(x, far + 1, 1, 124 - far, '#7fc48a');
-                const near = Math.round(116 + 4 * Math.sin(x / 31 + 2) + 2 * Math.sin(x / 13));
+                p.rect(x, far + 1, 1, H0 + 6 - far, '#7fc48a');
+                const near = Math.round(H0 - 2 + 4 * Math.sin(x / 31 + 2) + 2 * Math.sin(x / 13));
                 p.rect(x, near, 1, 1, '#8fd87a');
                 p.rect(x, near + 1, 1, PH - near, '#5cbf52');
             }
-            p.vgrad(0, 132, PW, 48, ['#5cbf52', '#50b048', '#43a23f']);
+            p.vgrad(0, H0 + 14, PW, PH - H0 - 14, ['#5cbf52', '#50b048', '#43a23f']);
             // dirt path running off towards the hills
-            for (let y = 118; y < PH; y++) {
-                const t = (y - 118) / (PH - 118), cx = Math.round(116 - t * 40), half = Math.round(2 + t * 20);
+            for (let y = H0; y < PH; y++) {
+                const t = (y - H0) / (PH - H0), cx = Math.round(px - t * 40), half = Math.round(2 + t * 20);
                 p.rect(cx - half - 1, y, half * 2 + 3, 1, '#c89a5a');
                 p.rect(cx - half, y, half * 2 + 1, 1, '#e8c98a');
             }
             const rand = rng(4);
-            for (let i = 0; i < 70; i++) {
-                const x = Math.floor(rand() * PW), y = 124 + Math.floor(rand() * 54);
-                const t = (y - 118) / (PH - 118);
-                if (Math.abs(x - (116 - t * 40)) < 6 + t * 22) continue;
+            for (let i = 0; i < LAYOUT.flowers; i++) {
+                const x = Math.floor(rand() * PW), y = H0 + 6 + Math.floor(rand() * (PH - H0 - 8));
+                const t = (y - H0) / (PH - H0);
+                if (Math.abs(x - (px - t * 40)) < 6 + t * 22) continue;
                 if (rand() < 0.7) p.sprite(['..#..', '#.#.#', '#.#.#'], { '#': '#378f37' }, x, y);
                 else {
                     const petal = ['#ffffff', '#ffe066', '#ff8fb1'][Math.floor(rand() * 3)];
                     p.sprite(['.#.', '#o#', '.#.'], { '#': petal, o: '#f0a020' }, x, y);
                 }
             }
-            tree(p, 150, 116);
-            tree(p, 22, 158);
+            LAYOUT.trees.forEach(([x, y]) => tree(p, x, y));
         }
 
         function chip(p, str, x, y, color) {
@@ -123,7 +91,7 @@
         }
 
         function card(p, f) {
-            const X = 168, Y = 14, W = 144, H = 146;
+            const [X, Y] = LAYOUT.card, W = 144, H = 146;
             p.frame(X, Y, W, H, RED, INK, 2);
             p.rect(X + 3, Y + 2, W - 6, 1, '#ff7f70');
             text(p, 'RESUME CARD', X + W / 2, Y + 4, { color: '#fff', shadow: '#9e1712', anchor: 'center' });
@@ -133,12 +101,12 @@
             // portrait, blinking now and then
             p.frame(X + 8, Y + 18, 34, 42, '#bfe3ff', INK, 1);
             p.rect(X + 9, Y + 48, 32, 11, '#9fd0f5');
-            p.sprite(MII, MII_PAL, X + 11, Y + 19);
+            p.sprite(ADI_MII, ADI_MII_PAL, X + 11, Y + 19);
             if (f === 9) {
                 [7, 16].forEach(c => {
-                    p.rect(X + 11 + c, Y + 19 + 19, 5, 1, MII_PAL.S);
-                    p.rect(X + 11 + c, Y + 19 + 20, 5, 1, MII_PAL.K);
-                    p.rect(X + 11 + c + 1, Y + 19 + 21, 3, 1, MII_PAL.S);
+                    p.rect(X + 11 + c, Y + 19 + 19, 5, 1, ADI_MII_PAL.S);
+                    p.rect(X + 11 + c, Y + 19 + 20, 5, 1, ADI_MII_PAL.K);
+                    p.rect(X + 11 + c + 1, Y + 19 + 21, 3, 1, ADI_MII_PAL.S);
                 });
             }
 
@@ -168,19 +136,20 @@
 
         function draw(p, f) {
             scenery(p);
+            const [tx, ty] = LAYOUT.title;
             logo(p, 'My', {
-                x: 24, y: 14, size: 42, outlineWidth: 2,
+                x: tx, y: ty, size: 42, outlineWidth: 2,
                 bands: ['#fff3a6', '#ffd84a', '#ffb020', '#f28a12'], light: '#fffbe0', dark: '#c46200',
                 outline: INK, rim: '#ffffff', shadow: '#1d3f8a66',
             });
             logo(p, 'Resume', {
-                x: 10, y: 54, size: 36, outlineWidth: 2,
+                x: tx - 14, y: ty + 40, size: 36, outlineWidth: 2,
                 bands: ['#ffffff', '#fff4ef', '#ffe0d6', '#ffc9b8'], light: '#ffffff', dark: '#f0a590',
                 outline: '#9e1712', rim: '#ffffff', shadow: '#1d3f8a66',
             });
-            if (f % 12 < 8) text(p, 'PRESS START', 84, 100, { color: '#ffffff', outline: INK, anchor: 'center' });
+            if (f % 12 < 8) text(p, 'PRESS START', ...LAYOUT.start, { color: '#ffffff', outline: INK, anchor: 'center' });
             card(p, f);
-            [[160, 14, 0], [304, 6, 2], [8, 60, 1], [156, 84, 3], [314, 150, 2]].forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
+            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
         }
 
         runFrames(draw, { frames: 12, delay: 140 });

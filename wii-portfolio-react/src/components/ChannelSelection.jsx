@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
+import { MOBILE_ART_QUERY, mobileArtSrc } from '../channelArt';
 
 const MiiPaper = lazy(() => import('./MiiPaper').then(m => ({ default: m.MiiPaper })));
 const WiiTab = lazy(() => import('./WiiTab').then(m => ({ default: m.WiiTab })));
@@ -216,6 +217,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                     className="ch-logo-container"
                     key={channel.id}
                     data-channel-id={channel.id}
+                    data-mobile-art={channel.mobileart ? '' : undefined}
                     style={{
                         opacity: isVideoLoaded ? 1 : 0,
                         transition: 'opacity 0.4s ease-out'
@@ -229,18 +231,21 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                             autoPlay
                             muted
                             playsInline
-                            loop={channel.id === 'github'}
                             onLoadedData={() => setIsVideoLoaded(true)}
                         />
                     ) : (
-                        <img
-                            id="videoSpec"
-                            className="ch-logo"
-                            src={getVideoSrc()}
-                            alt=""
-                            onLoad={() => setIsVideoLoaded(true)}
-                            onError={handleVideoError}
-                        />
+                        // Portrait screens get the channel's tall art when it has some
+                        <picture>
+                            {channel.mobileart && <source media={MOBILE_ART_QUERY} srcSet={mobileArtSrc(channel)} />}
+                            <img
+                                id="videoSpec"
+                                className="ch-logo"
+                                src={getVideoSrc()}
+                                alt=""
+                                onLoad={() => setIsVideoLoaded(true)}
+                                onError={handleVideoError}
+                            />
+                        </picture>
                     )}
                     {/* Reflection removed for performance */}
                 </div>
