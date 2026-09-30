@@ -113,8 +113,10 @@ const DEFAULT_CHANNELS = [
         title: 'ICCA Report',
         assets: 'assets/channels/',
         channelart: 'channelart/',
-        target: 'https://iccaworld.aflip.in/wavelength_report.html',
-        embed: 'https://iccaworld.aflip.in/wavelength_report.html',
+        // not public: Start asks visitors to email for the PDF
+        target: '',
+        action: 'request-report',
+        contact: 'adithyamana5517@gmail.com',
         videoformat: 'webp',
         mobileart: true
     },

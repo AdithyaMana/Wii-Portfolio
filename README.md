@@ -30,6 +30,9 @@ Everything from the cursor to the startup sound to the warning screen is faithfu
 | Github | Links to GitHub profile |
 | LinkedIn | Links to LinkedIn profile |
 | Resume | Opens resume PDF |
+| Overtone | Opens the game |
+| BetterPoster | Opens the poster templates site |
+| ICCA Report | Not public: Start opens a box to email for the PDF |
 
 ---
 

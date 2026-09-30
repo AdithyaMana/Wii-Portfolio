@@ -5,17 +5,19 @@ import { MOBILE_ART_QUERY, artUrl, mobileArtSrc } from '../channelArt';
 
 const MiiPaper = lazy(() => import('./MiiPaper').then(m => ({ default: m.MiiPaper })));
 const WiiTab = lazy(() => import('./WiiTab').then(m => ({ default: m.WiiTab })));
+const ReportRequest = lazy(() => import('./ReportRequest').then(m => ({ default: m.ReportRequest })));
 
 export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning }) {
     const { playSFX, playSFXMulti, bgMusicToggle } = useAudio();
     const { config } = useConfig();
     const audioRef = useRef(null);
     const fadeIntervalRef = useRef(null);
-    const canStartChannel = (ch) => !!ch?.target || ch?.action === 'open-paper';
+    const canStartChannel = (ch) => !!ch?.target || !!ch?.action;
     const [canStart, setCanStart] = useState(() => canStartChannel(channel));
     const [isVideoLoaded, setIsVideoLoaded] = useState(false);
     const [showMiiPaper, setShowMiiPaper] = useState(false);
     const [showWiiTab, setShowWiiTab] = useState(false);
+    const [showReportRequest, setShowReportRequest] = useState(false);
 
     useEffect(() => {
         // Reset states when channel changes
@@ -42,6 +44,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
         setCanStart(canStartChannel(channel));
         setShowMiiPaper(false);
         setShowWiiTab(false);
+        setShowReportRequest(false);
 
         const fadeInterval = fadeIntervalRef.current;
         const audio = audioRef.current;
@@ -111,6 +114,12 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
 
         if (channel.action === 'open-paper') {
             setShowMiiPaper(true);
+            return;
+        }
+
+        // Reports that can't be shown publicly ask for an email instead
+        if (channel.action === 'request-report') {
+            setShowReportRequest(true);
             return;
         }
 
@@ -282,6 +291,11 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                 {/* In-site Wii tab viewer */}
                 {showWiiTab && (
                     <WiiTab channel={channel} onClose={handleWiiTabClose} />
+                )}
+
+                {/* Email-me box for reports that aren't public */}
+                {showReportRequest && (
+                    <ReportRequest channel={channel} onClose={() => setShowReportRequest(false)} />
                 )}
             </Suspense>
 

@@ -371,7 +371,8 @@
             meander(p, mx, my, mw);
             const [gx, gy] = LAYOUT.tagline;
             ['SCIENCE FOR BETTER', 'HEALTHCARE MEETINGS'].forEach((line, i) => text(p, line, gx, gy + i * 10, { color: '#ffeedd', outline: '#2a1430', anchor: 'center' }));
-            if (f % 12 < 8) text(p, 'PRESS START', ...LAYOUT.start, { color: GOLD[4], outline: '#2a1430', anchor: 'center' });
+            // the report isn't public, so Start asks for it by email
+            if (f % 12 < 8) text(p, 'PRESS START TO REQUEST', ...LAYOUT.start, { color: GOLD[4], outline: '#2a1430', anchor: 'center' });
         }
 
         function draw(p, f) {
