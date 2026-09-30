@@ -1820,6 +1820,26 @@ body.wii-tab-open .wii-cursor {
     transform: translateX(4vw) scale(1.05);
 }
 
+/* The report request box: two lines, then the address to email or copy */
+.returndialog.report-request .msgbox .text {
+    margin-top: 11vh;
+}
+
+.returndialog.report-request .contact-email {
+    color: #34a4d8;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+    user-select: all;
+    cursor: inherit;
+}
+
+.returndialog.report-request .contact-hint {
+    display: block;
+    font-size: 0.55em;
+    line-height: 1.6;
+    color: #999;
+}
+
 /*
 too sick to be seen
 
