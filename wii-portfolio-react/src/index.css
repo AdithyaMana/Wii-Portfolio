@@ -1022,7 +1022,6 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
    hard-edged square at any size, and crop evenly so the title up top and the
    UI along the bottom both stay in frame */
 .ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo,
@@ -1034,9 +1033,10 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
     image-rendering: pixelated;
 }
 
-/* Overtone's art is painted at full size, so it gets the same even crop but
-   ordinary smooth scaling */
-.ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo {
+/* Overtone's art is painted at full size, and Research Agent's is a 3D
+   render, so they get the same even crop but ordinary smooth scaling */
+.ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo {
     object-position: center;
 }
 
