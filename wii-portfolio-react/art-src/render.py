@@ -16,7 +16,10 @@ The mobile version comes from the same page loaded with ?v=tall.
 
 Overtone is painted at full size instead (1920x1080, or 1080x1920 tall) on
 a swirling background that does not compress losslessly, so its frames are
-resized smoothly to each width and saved as lossy WebP.
+resized smoothly to each width and saved as lossy WebP. So is Research
+Agent, which is a 3D render: the page ray-marches it with WebGL, so the
+browser is started with SwiftShader, its software GPU, for that one. It
+takes a while (about half an hour for both versions).
 
 The Mii Channel's phone art is the one exception: it is the original Mii
 Channel image (public/assets/channels/mii/video.jpg) rearranged for a tall
@@ -54,7 +57,9 @@ SCENES = {
     'linkedin': ('expanded', 'mobile'),
 }
 # scenes painted at full size rather than as pixel art
-SMOOTH = {'overtone'}
+SMOOTH = {'overtone', 'research-agent'}
+# scenes drawn with WebGL, which headless Edge only offers through SwiftShader
+GL_SCENES = {'research-agent'}
 # minimum output width and path for each kind of image
 OUTPUTS = {
     'tile': (1280, lambda s: PUBLIC / 'channelart' / s / 'channel.webp'),
@@ -64,17 +69,29 @@ OUTPUTS = {
 
 
 def pixel_frames(scene, view=''):
-    """The page leaves its frames as PNG data URLs in <pre id="out">."""
+    """The page leaves its frames as PNG data URLs in <pre id="out">. A frame
+    can instead be a patch, {x, y, src}: just the pixels that changed since
+    the frame before, to lay over it (src is null when nothing did)."""
     url = (HERE / f'{scene}.html').as_uri() + (f'?v={view}' if view else '')
+    gl = ['--enable-unsafe-swiftshader'] if scene in GL_SCENES else []
     res = subprocess.run([
-        str(EDGE), *EDGE_FLAGS, '--virtual-time-budget=10000', '--dump-dom', url,
+        str(EDGE), *EDGE_FLAGS, *gl, '--virtual-time-budget=10000', '--dump-dom', url,
     ], check=True, capture_output=True)
     dom = res.stdout.decode('utf-8', 'replace')
     found = re.search(r'<pre id="out">(.*?)</pre>', dom, re.S)
     data = json.loads(html.unescape(found.group(1)) if found and found.group(1).strip() else '{"error": "no output"}')
     if 'error' in data:
         raise SystemExit(f'{scene}: {data["error"]}')
-    frames = [Image.open(io.BytesIO(base64.b64decode(url.split(',', 1)[1]))).convert('RGBA') for url in data['frames']]
+    decode = lambda url: Image.open(io.BytesIO(base64.b64decode(url.split(',', 1)[1]))).convert('RGBA')
+    frames = []
+    for f in data['frames']:
+        if isinstance(f, str):
+            frames.append(decode(f))
+            continue
+        frame = frames[-1].copy()
+        if f['src']:
+            frame.paste(decode(f['src']), (f['x'], f['y']))
+        frames.append(frame)
     return frames, data['delay']
 
 
