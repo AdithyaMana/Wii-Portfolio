@@ -6,6 +6,7 @@
 </head>
 <body>
     <pre id="out"></pre>
+    <script src="studio.js"></script>
     <script>
         // A library card catalogue, rendered in 3D like a Wii channel banner:
         // an oak cabinet of drawers on a pale studio backdrop, with the N-R
@@ -13,33 +14,16 @@
         // one by one, until the right one pops up with a blue flag on it and
         // its title highlighted, then settles back for the next search.
         //
-        // The scene is ray-marched in a WebGL fragment shader (signed distance
-        // fields, soft shadows, ambient occlusion) at full size, 1920x1080 or
-        // 1080x1920 with ?v=tall. The typed cards and labels are real text,
-        // set in Courier Prime on a canvas the shader reads as a texture, and
-        // the title is set over the render in the Wii's own Rodin. render.py
-        // starts the browser with WebGL for this one, see GL_SCENES there.
-        //
-        // ?still=N renders just frame N, ?aa=1 skips the supersampling,
-        // ?scale=0.25 renders smaller (the title is then out of place),
-        // ?notitle leaves the title off, and ?eye=x,y,z&target=x,y,z&zoom=z&
-        // shift=x,y move the camera, for quick looks while working on it.
-        const params = new URLSearchParams(location.search);
-        const TALL = params.get('v') === 'tall';
-        const SCALE = Number(params.get('scale') || 1);
-        const W = Math.round((TALL ? 1080 : 1920) * SCALE), H = Math.round((TALL ? 1920 : 1080) * SCALE);
+        // The typed cards and labels are real text, set in Courier Prime on a
+        // canvas the shader reads as a texture. studio.js does the rest: the
+        // marching, lighting, camera, frame loop and title.
         const FRAMES = 40, DELAY = 75;
-        const AA = Number(params.get('aa') || 3);
-        const STILL = params.has('still') ? Number(params.get('still')) : null;
 
-        // The camera. Its lens is shifted, as on an architectural camera, to
-        // set the cabinet beside the title without tilting the view.
-        const VIEW = TALL ? {
+        const VIEW = viewFrom(TALL ? {
             eye: [2.9, 3.5, 6.4], target: [0.55, 1.0, 1.4], zoom: 1.8, shift: [0.0, -0.17],
         } : {
             eye: [2.9, 3.1, 5.9], target: [0.75, 1.1, 1.5], zoom: 2.45, shift: [0.42, -0.06],
-        };
-        for (const k of ['eye', 'target', 'zoom', 'shift']) if (params.has(k)) VIEW[k] = params.get(k).split(',').map(Number);
+        });
 
         // ---- the cards and labels, typed onto a canvas the shader samples.
         // Each entry is a rectangle of the atlas, in pixels.
@@ -131,8 +115,6 @@
             return c;
         }
 
-        const glslRect = r => `vec4(${r.map(v => v.toFixed(1)).join(', ')})`;
-
         // The open drawer (top right), how far out it is, and its cards; the
         // shader is written with these too
         const FRONT = 1.3, PULL = 1.62, OPEN = [1.06, 1.28], NCARDS = 26, PICK = 12;
@@ -140,8 +122,6 @@
         // ---- the animation, frame f of the loop: a ripple runs through the
         // cards as they are read one after another, the found card rises and
         // holds, then settles back. Every card's hop and the found card's rise.
-        const ease = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
-        const easeBack = x => { x = Math.min(1, Math.max(0, x)); return 1 + 2.7 * (x - 1) ** 3 + 1.7 * (x - 1) ** 2; };
         function pose(f) {
             const t = f / FRAMES;
             const hops = Array.from({ length: PICK }, (_, i) => 0.085 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - 0.03 - i * 0.022) / 0.085))) ** 2);
@@ -149,20 +129,13 @@
             return { hops, rise };
         }
 
-        const FRAG = `#version 300 es
-precision highp float;
-uniform vec2 uRes;
+        const HEAD = `
 uniform float uHop[${PICK}];
 uniform float uRise;
-uniform vec3 uEye, uTarget;
-uniform vec2 uShift;
-uniform float uZoom;
-uniform int uAA;
-uniform sampler2D uAtlas;
-out vec4 fragColor;
 
-#define PI 3.14159265
+`;
 
+        const GEOMETRY = `
 // ---- the cabinet: three drawers across, two high, in an oak carcass
 const vec2 CELL = vec2(1.06, 0.68);
 const float PLINTH = 0.2;
@@ -185,23 +158,6 @@ const float TOPMAX = 0.42;                  // above this only the found card go
 const float M_FLOOR = 0.0, M_WOOD = 1.0, M_BRASS = 2.0, M_LABEL = 3.0, M_CARD = 4.0, M_GUIDE = 5.0, M_TAB = 6.0, M_FLAG = 7.0;
 const float M_CLOTH = 8.0, M_PAGES = 9.0, M_PAINT = 10.0, M_LEAD = 11.0, M_ERASER = 12.0, M_CEDAR = 13.0;
 const float TOP = YC + BODY.y + 0.09;       // the cabinet's top surface
-
-float hash1(float n) { return fract(sin(n * 127.1 + 31.7) * 43758.5453); }
-float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise3(vec3 p) {
-    vec3 i = floor(p), f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float n = i.x + i.y * 57.0 + i.z * 113.0;
-    return mix(mix(mix(hash1(n), hash1(n + 1.0), f.x), mix(hash1(n + 57.0), hash1(n + 58.0), f.x), f.y),
-               mix(mix(hash1(n + 113.0), hash1(n + 114.0), f.x), mix(hash1(n + 170.0), hash1(n + 171.0), f.x), f.y), f.z);
-}
-mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
-
-float sdBox(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0); }
-float sdRBox(vec3 p, vec3 b, float r) { return sdBox(p, b - r) - r; }
-float sdCapsule(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
-float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
-vec2 U(vec2 a, vec2 b) { return a.x < b.x ? a : b; }
 
 // ---- the animation, worked out in JS: each card's hop, the found card's rise
 float hopOf(int i) { return i < PICK ? uHop[i] : 0.0; }
@@ -316,21 +272,6 @@ vec2 openDrawer(vec3 p) {
     return U(r, cards(l));
 }
 
-float sdRoundCone(vec3 p, float r1, float r2, float h) {
-    vec2 q = vec2(length(p.xz), p.y);
-    float b = (r1 - r2) / h, a = sqrt(1.0 - b * b), k = dot(q, vec2(-b, a));
-    if (k < 0.0) return length(q) - r1;
-    if (k > a * h) return length(q - vec2(0.0, h)) - r2;
-    return dot(q, vec2(a, b)) - r1;
-}
-float sdHexPrism(vec3 p, vec2 h) {
-    const vec3 k = vec3(-0.8660254, 0.5, 0.57735);
-    p = abs(p);
-    p.xy -= 2.0 * min(dot(k.xy, p.xy), 0.0) * k.xy;
-    vec2 d = vec2(length(p.xy - vec2(clamp(p.x, -k.z * h.x, k.z * h.x), h.x)) * sign(p.y - h.x), p.z - h.y);
-    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
-}
-
 // a cloth-bound book lying flat, its spine towards +z
 vec2 book(vec3 p, vec3 c, vec3 b, float ang, float tint) {
     vec3 q = p - c;
@@ -372,55 +313,9 @@ vec2 map(vec3 p) {
     return U(r, openDrawer(p));
 }
 
-vec3 normal(vec3 p) {
-    const vec2 e = vec2(0.0006, -0.0006);
-    return normalize(e.xyy * map(p + e.xyy).x + e.yyx * map(p + e.yyx).x + e.yxy * map(p + e.yxy).x + e.xxx * map(p + e.xxx).x);
-}
+`;
 
-vec2 march(vec3 ro, vec3 rd) {
-    float t = 0.0;
-    for (int i = 0; i < 240; i++) {
-        vec2 h = map(ro + rd * t);
-        if (h.x < 0.00015 * t + 0.0001) return vec2(t, h.y);
-        t += h.x;
-        if (t > 60.0) break;
-    }
-    return vec2(-1.0, 0.0);
-}
-
-float softShadow(vec3 ro, vec3 rd, float k, float jitter) {
-    float res = 1.0, t = 0.01 + 0.02 * jitter;
-    for (int i = 0; i < 110; i++) {
-        float h = map(ro + rd * t).x;
-        res = min(res, k * h / t);
-        if (res < 0.002 || t > 9.0) break;
-        t += clamp(h, 0.006, 0.08) * (0.8 + 0.4 * jitter);
-    }
-    res = clamp(res, 0.0, 1.0);
-    return res * res * (3.0 - 2.0 * res);
-}
-
-float ao(vec3 p, vec3 n) {
-    float occ = 0.0, sca = 1.0;
-    for (int i = 0; i < 6; i++) {
-        float h = 0.01 + 0.06 * float(i);
-        occ += (h - map(p + n * h).x) * sca;
-        sca *= 0.75;
-    }
-    return clamp(1.0 - 2.0 * occ, 0.0, 1.0);
-}
-
-// ---- the atlas of typed text
-vec4 atlas(vec4 rect, vec2 uv, float lod) {
-    if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return vec4(0.0);
-    return textureLod(uAtlas, (rect.xy + uv * rect.zw) / ${ATLAS.toFixed(1)}, lod);
-}
-// the mip level for a surface at distance t, seen at an angle, with texels per unit
-float lodAt(float t, float facing, float texels) {
-    float px = t * 2.0 / (uRes.y * uZoom * float(uAA));
-    return clamp(log2(px * texels / max(facing, 0.25)) + 0.3, 0.0, 5.0);
-}
-
+        const MATERIALS = `
 // ---- light
 const vec3 KEY = normalize(vec3(-0.55, 1.35, 0.62));
 const vec3 RIM = normalize(vec3(0.9, 0.5, -0.6));
@@ -571,212 +466,28 @@ vec3 shade(vec3 ro, vec3 rd, vec2 uv, float jitter) {
     float spec = pow(clamp(dot(n, hv), 0.0, 1.0), mix(8.0, 180.0, gloss * gloss)) * gloss * gloss;
     col += F * spec * sh * vec3(2.4, 2.25, 2.0) * (metal > 0.5 ? 2.5 : 1.0);
 
-    // a filmic tone curve, then out to the display
-    col *= 0.82;
-    col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
-    return pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+    return toDisplay(col);
 }
 
-void main() {
-    vec3 ww = normalize(uTarget - uEye);
-    vec3 uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0)));
-    vec3 vv = cross(uu, ww);
-    vec3 acc = vec3(0.0);
-    for (int j = 0; j < uAA; j++) {
-        for (int i = 0; i < uAA; i++) {
-            vec2 o = (vec2(float(i), float(j)) + 0.5) / float(uAA) - 0.5;
-            vec2 uv = (2.0 * (gl_FragCoord.xy + o) - uRes) / uRes.y;
-            vec2 lens = uv - 2.0 * uShift;
-            acc += shade(uEye, normalize(lens.x * uu + lens.y * vv + uZoom * ww), uv, hash2(gl_FragCoord.xy + o * 7.3));
-        }
-    }
-    // a whisper of grain so the gradients don't band
-    fragColor = vec4(acc / float(uAA * uAA) + (hash2(gl_FragCoord.xy) - 0.5) / 255.0, 1.0);
-}`;
+`;
 
-        const VERT = `#version 300 es
-in vec2 pos;
-void main() { gl_Position = vec4(pos, 0.0, 1.0); }`;
-
-        function setup(atlasCanvas) {
-            const canvas = document.createElement('canvas');
-            canvas.width = W; canvas.height = H;
-            const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true, antialias: false });
-            if (!gl) throw new Error('no WebGL2: render.py starts the browser with SwiftShader for this scene');
-            const compile = (type, src) => {
-                const s = gl.createShader(type);
-                gl.shaderSource(s, src);
-                gl.compileShader(s);
-                if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
-                return s;
-            };
-            const prog = gl.createProgram();
-            gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
-            gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
-            gl.linkProgram(prog);
-            if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
-            gl.useProgram(prog);
-            gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-            const loc = gl.getAttribLocation(prog, 'pos');
-            gl.enableVertexAttribArray(loc);
-            gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-            const tex = gl.createTexture();
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlasCanvas);
-            gl.generateMipmap(gl.TEXTURE_2D);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-            const u = name => gl.getUniformLocation(prog, name);
-            gl.uniform1i(u('uAtlas'), 0);
-            gl.uniform2f(u('uRes'), W, H);
-            gl.uniform3fv(u('uEye'), VIEW.eye);
-            gl.uniform3fv(u('uTarget'), VIEW.target);
-            gl.uniform2fv(u('uShift'), VIEW.shift);
-            gl.uniform1f(u('uZoom'), Number(VIEW.zoom));
-            gl.uniform1i(u('uAA'), AA);
-            gl.viewport(0, 0, W, H);
-            gl.enable(gl.SCISSOR_TEST);
-            return { gl, canvas, uHop: u('uHop'), uRise: u('uRise') };
-        }
-
-        // Where a point of the scene lands on screen (GL's pixels, y up)
-        function project(P) {
-            const sub = (a, b) => a.map((v, i) => v - b[i]);
-            const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
-            const norm = a => a.map(v => v / Math.hypot(...a));
-            const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-            const ww = norm(sub(VIEW.target, VIEW.eye)), uu = norm(cross(ww, [0, 1, 0])), vv = cross(uu, ww);
-            const d = sub(P, VIEW.eye), z = dot(d, ww);
-            const ux = dot(d, uu) * VIEW.zoom / z + 2 * VIEW.shift[0], uy = dot(d, vv) * VIEW.zoom / z + 2 * VIEW.shift[1];
-            return [(ux * H + W) / 2, (uy * H + H) / 2];
-        }
-
-        // The rectangle of the screen a box of the scene covers, with a margin
-        function screenBox([x0, x1], [y0, y1], [z0, z1]) {
-            const xs = [], ys = [];
-            for (const x of [x0, x1]) for (const y of [y0, y1]) for (const z of [z0, z1]) {
-                const [px, py] = project([x, y, z]);
-                xs.push(px); ys.push(py);
-            }
-            const l = Math.max(0, Math.floor(Math.min(...xs)) - 16), b = Math.max(0, Math.floor(Math.min(...ys)) - 16);
-            return [l, b, Math.min(W, Math.ceil(Math.max(...xs)) + 16) - l, Math.min(H, Math.ceil(Math.max(...ys)) + 16) - b];
-        }
-
-        // Only the open drawer's cards move, so after the first frame only the
-        // parts of the screen they and their shadows can reach are drawn again:
-        // round the drawer, and the patch of floor off to the right where the
-        // found card's shadow lands once it is up
-        const MOVING = [
-            screenBox([OPEN[0] - 0.5, OPEN[0] + 0.9], [OPEN[1] - 0.33, OPEN[1] + 0.8], [FRONT - 0.45, FRONT + PULL + 0.25]),
-            screenBox([OPEN[0] + 0.2, OPEN[0] + 1.9], [0, 0.1], [FRONT - 0.7, FRONT + 0.6]),
-        ];
-
-        // Drawn in tiles, so that no one draw call runs long enough for the
-        // browser to give up on the GPU
-        function render({ gl, uHop, uRise }, { hops, rise }, areas) {
-            gl.uniform1fv(uHop, hops);
-            gl.uniform1f(uRise, rise);
-            const T = 96;
-            for (const [ax, ay, aw, ah] of areas) {
-                for (let y = ay; y < ay + ah; y += T) {
-                    for (let x = ax; x < ax + aw; x += T) {
-                        gl.scissor(x, y, Math.min(T, ax + aw - x), Math.min(T, ay + ah - y));
-                        gl.drawArrays(gl.TRIANGLES, 0, 3);
-                        gl.finish();
-                    }
-                }
-            }
-        }
-
-        // ---- the title, in the Wii menu's Rodin
-        const INK = '#2a3038', BLUE = '#2fb5e8';
-        function title(ctx) {
-            const x = TALL ? W / 2 : 150, align = TALL ? 'center' : 'left';
-            const y0 = TALL ? 290 : 372, size = TALL ? 168 : 158;
-            // CASE STUDY in a blue pill
-            ctx.font = '32px Rodin';
-            ctx.letterSpacing = '6px';
-            const label = 'CASE STUDY', lw = ctx.measureText(label).width + 52, lx = TALL ? x - lw / 2 : x;
-            ctx.fillStyle = BLUE;
-            ctx.beginPath();
-            ctx.roundRect(lx, y0 - 50, lw, 64, 32);
-            ctx.fill();
-            ctx.fillStyle = '#ffffff';
-            ctx.textAlign = 'left';
-            ctx.fillText(label, lx + 29, y0 - 6);
-            ctx.textAlign = align;
-            ctx.letterSpacing = '-3px';
-            ctx.font = `${size}px Rodin`;
-            ctx.fillStyle = INK;
-            ctx.fillText('Research', x - (TALL ? 0 : 8), y0 + 30 + size * 0.92);
-            ctx.fillText('Agent', x - (TALL ? 0 : 8), y0 + 30 + size * 1.98);
-            ctx.letterSpacing = '0px';
-        }
-
-        (async () => {
-            const out = document.getElementById('out');
-            try {
-                const fonts = [
-                    new FontFace('Rodin', 'url("../public/fonts/FOT-Rodin%20Pro%20B.otf")'),
-                    new FontFace('Courier Prime', 'url("fonts/CourierPrime-Bold.woff2")', { weight: '700' }),
-                ];
-                for (const f of fonts) document.fonts.add(await f.load());
-                const scene = setup(makeAtlas());
-                // the patches are looked for in a rectangle round both areas
-                const mx = Math.min(...MOVING.map(a => a[0])), my = Math.min(...MOVING.map(a => a[1]));
-                const mw = Math.max(...MOVING.map(a => a[0] + a[2])) - mx, mh = Math.max(...MOVING.map(a => a[1] + a[3])) - my;
-                const c = document.createElement('canvas');
-                c.width = W; c.height = H;
-                const ctx = c.getContext('2d', { willReadFrequently: true });
-                // The first frame goes out whole. Every one after it goes out
-                // as a patch: the pixels that changed since the frame before,
-                // which render.py lays over it (often none: the found card
-                // holds still a while). All of them whole would be too much
-                // for the browser to hand back.
-                const frames = [];
-                let last = null, before = null;
-                for (let f = 0; f < FRAMES; f++) {
-                    if (STILL !== null && f !== STILL) continue;
-                    const p = pose(f), key = JSON.stringify(p);
-                    if (key !== last) {
-                        render(scene, p, last === null ? [[0, 0, W, H]] : MOVING);
-                        ctx.clearRect(0, 0, W, H);
-                        ctx.drawImage(scene.canvas, 0, 0);
-                        if (!params.has('notitle')) title(ctx);
-                    }
-                    const top = H - my - mh, now = ctx.getImageData(mx, top, mw, mh).data;
-                    if (!frames.length) {
-                        frames.push(c.toDataURL('image/png'));
-                    } else {
-                        let x0 = mw, y0 = mh, x1 = -1, y1 = -1;
-                        for (let y = 0; y < mh; y++) {
-                            for (let x = 0; x < mw; x++) {
-                                const i = (y * mw + x) * 4;
-                                if (now[i] === before[i] && now[i + 1] === before[i + 1] && now[i + 2] === before[i + 2]) continue;
-                                x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
-                            }
-                        }
-                        if (x1 < 0) {
-                            frames.push({ x: 0, y: 0, src: null });
-                        } else {
-                            const patch = document.createElement('canvas');
-                            patch.width = x1 - x0 + 1; patch.height = y1 - y0 + 1;
-                            patch.getContext('2d').drawImage(c, mx + x0, top + y0, patch.width, patch.height, 0, 0, patch.width, patch.height);
-                            frames.push({ x: mx + x0, y: top + y0, src: patch.toDataURL('image/png') });
-                        }
-                    }
-                    last = key;
-                    before = now;
-                }
-                out.textContent = JSON.stringify({ frames, delay: DELAY });
-            } catch (e) {
-                out.textContent = JSON.stringify({ error: String(e && e.stack || e) });
-            }
-        })();
+        runStudio({
+            frag: studioShader({ head: HEAD, geometry: GEOMETRY, materials: MATERIALS, atlasSize: ATLAS }),
+            view: VIEW,
+            frames: FRAMES,
+            delay: DELAY,
+            pose: f => { const { hops, rise } = pose(f); return { uHop: hops, uRise: rise }; },
+            // Only the open drawer's cards move: round the drawer, and the
+            // patch of floor off to the right where the found card's shadow
+            // lands once it is up
+            moving: [
+                [[OPEN[0] - 0.5, OPEN[0] + 0.9], [OPEN[1] - 0.33, OPEN[1] + 0.8], [FRONT - 0.45, FRONT + PULL + 0.25]],
+                [[OPEN[0] + 0.2, OPEN[0] + 1.9], [0, 0.1], [FRONT - 0.7, FRONT + 0.6]],
+            ],
+            atlas: makeAtlas,
+            fonts: [new FontFace('Courier Prime', 'url("fonts/CourierPrime-Bold.woff2")', { weight: '700' })],
+            title: ctx => studioTitle(ctx, { label: 'CASE STUDY', lines: ['Research', 'Agent'], pill: '#2fb5e8' }),
+        });
     </script>
 </body>
 </html>

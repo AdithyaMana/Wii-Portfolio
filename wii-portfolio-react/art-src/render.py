@@ -5,8 +5,8 @@
     python art-src/render.py --publish    # also write into public/
 
 Most scenes are pixel art (pixel.js): the page paints each frame at its
-native size (320x180 for the DS scenes, 384x216 for ICCA Report and
-BetterPoster, the size of a SNES or Mega Drive pixel) and this scales the
+native size (320x180 for the DS scenes, 384x216 for ICCA Report, the
+size of a SNES or Mega Drive pixel) and this scales the
 frames up by a whole number with nearest-neighbour, to at least the width
 below, into looping lossless animated WebP:
     tile     -> public/channelart/<id>/channel.webp               (1280 wide)
@@ -16,10 +16,10 @@ The mobile version comes from the same page loaded with ?v=tall.
 
 Overtone is painted at full size instead (1920x1080, or 1080x1920 tall) on
 a swirling background that does not compress losslessly, so its frames are
-resized smoothly to each width and saved as lossy WebP. So is Research
-Agent, which is a 3D render: the page ray-marches it with WebGL, so the
-browser is started with SwiftShader, its software GPU, for that one. It
-takes a while (about half an hour for both versions).
+resized smoothly to each width and saved as lossy WebP. So are Research
+Agent, Resume and BetterPoster, which are 3D renders (studio.js): the
+pages ray-march them with WebGL, so the browser is started with
+SwiftShader, its software GPU, for those. They take a while.
 
 The Mii Channel's phone art is the one exception: it is the original Mii
 Channel image (public/assets/channels/mii/video.jpg) rearranged for a tall
@@ -57,9 +57,9 @@ SCENES = {
     'linkedin': ('expanded', 'mobile'),
 }
 # scenes painted at full size rather than as pixel art
-SMOOTH = {'overtone', 'research-agent'}
+SMOOTH = {'overtone', 'research-agent', 'resume', 'betterposter'}
 # scenes drawn with WebGL, which headless Edge only offers through SwiftShader
-GL_SCENES = {'research-agent'}
+GL_SCENES = {'research-agent', 'resume', 'betterposter'}
 # minimum output width and path for each kind of image
 OUTPUTS = {
     'tile': (1280, lambda s: PUBLIC / 'channelart' / s / 'channel.webp'),
