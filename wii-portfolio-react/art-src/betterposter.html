@@ -2,458 +2,266 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BetterPoster Green Hill art</title>
+    <title>BetterPoster 3D art</title>
 </head>
 <body>
     <pre id="out"></pre>
-    <script src="pixel.js"></script>
-    <script src="nes.js"></script>
+    <script src="studio.js"></script>
     <script>
-        // BetterPoster as the opening moment of a Sonic 1 act: the zone's title
-        // card over Green Hill, with the HUD in the corner. Painted at the Mega
-        // Drive's own pixel size (384x216 fills a 1080p screen the way 320x224
-        // does), in Green Hill Zone's palette.
-        const SW = TALL ? 216 : 384, SH = TALL ? 384 : 216;
+        // A #BetterPoster poster, rendered in 3D like a Wii channel banner: a
+        // landscape poster on a foam board, resting on a light oak easel on a
+        // pale mint studio floor. It holds still: one frame.
+        //
+        // The poster itself is drawn on a canvas the shader reads as a texture,
+        // set in the Wii's Rodin. studio.js does the rest.
 
-        // Green Hill Zone's colours, from Sonic 1's palette data
-        const INK = '#000000';
-        const SOIL = ['#240000', '#6c2400', '#904800', '#d86c00', '#fc9000'];
-        const GRASS = ['#004800', '#006c00', '#48b400', '#90fc00'];
-        const SKY = '#2448d8', SKY_DEEP = '#2400b4', HAZE = '#6c90fc';
-        const CLOUD = ['#6c90fc', '#b4d8fc', '#d8fcfc', '#fcfcfc'];
-        const LILAC = ['#2400b4', '#906cfc', '#b490fc', '#d8b4fc'];
-        const GREY = ['#000000', '#484848', '#909090', '#b4b4b4', '#fcfcfc'];
-        const GOLD = ['#484800', '#909000', '#fcfc00', '#fcfcfc'];
-        const YELLOW = '#fcd800', ORANGE = '#fc9000', RED = '#fc0000';
-        // The four water blues rotate one slot a frame (the game's own palette
-        // cycle), which is what makes the lake and the waterfalls shimmer
-        const WATER = ['#6c90b4', '#6c90fc', '#90b4fc', '#b4d8fc'];
-        const water = (slot, f) => WATER[(((slot - f) % 4) + 4) % 4];
-
-        const eased = (x, x0, x1, y0, y1) => Math.round(y0 + (y1 - y0) * (1 - Math.cos(Math.PI * Math.min(1, Math.max(0, (x - x0) / (x1 - x0))))) / 2);
-
-        // Where everything sits on the wide canvas and on the tall phone one
-        // ground(x) is the height of the grass at x, or null over a gap
-        const LAYOUT = TALL ? {
-            clouds: [[-10, 2, 1.2], [120, 10, 1], [40, 60, 0.7], [160, 70, 0.6]], peaks: 146, bank: [180, 198], lake: 198,
-            falls: [[34, 7], [112, 9], [178, 6]], ground: x => (x >= 72 && x < 122 ? null : 262), bridge: [72, 122, 262],
-            palms: [[26, 262, 72], [182, 262, 66]], monitor: [150, 262], rock: null,
-            sunflowers: [[54, 262]], flowers: [[129, 262]],
-            rings: [[80, 238], [97, 230], [114, 238]],
-            hud: [24, 28], title: [108, 96], zone: [44, 118], act: [150, 126],
+        const VIEW = viewFrom(TALL ? {
+            eye: [2.8, 3.0, 7.6], target: [0.2, 1.55, 0.0], zoom: 2.15, shift: [0.0, -0.1],
         } : {
-            clouds: [[-20, 2, 1.4], [150, 0, 1.2], [300, 6, 1.1], [96, 40, 0.7], [236, 46, 0.6]], peaks: 56, bank: [96, 114], lake: 114,
-            falls: [[62, 8], [178, 10], [262, 7], [346, 8]], ground: x => (x < 272 ? eased(x, 64, 112, 150, 174) : eased(x, 272, 316, 174, 150)),
-            palms: [[36, 150, 76], [350, 150, 64]], monitor: [236, 174], rock: [152, 174],
-            sunflowers: [[84, 150], [258, 174]], flowers: [[120, 174], [204, 174], [326, 150]],
-            rings: [[150, 148], [166, 140], [182, 136], [198, 140], [214, 148]],
-            hud: [18, 26], title: [192, 68], zone: [206, 90], act: [290, 98],
-        };
+            eye: [2.5, 2.7, 7.2], target: [0.2, 1.6, 0.0], zoom: 3.3, shift: [0.33, -0.02],
+        });
 
-        // ---- background: sky and clouds, far peaks, the rocky far bank with
-        // its waterfalls, and the lake
-        function sky(p) {
-            p.rect(0, 0, SW, SH, SKY);
-            // a paler band of sky down near the horizon
-            const y0 = LAYOUT.peaks + 6;
-            p.rect(0, y0, SW, LAYOUT.lake - y0, HAZE);
-            p.rect(0, y0 - 3, SW, 1, HAZE);
-        }
+        // ---- the poster, in a 1000-unit wide drawing scaled onto the atlas
+        const ATLAS = 2048;
+        const POSTER = [8, 8, 2032, 1287];   // atlas rectangle, 3 x 1.9 units on the board
+        const BOARD = [1.5, 0.95];            // half size of the foam board
 
-        // a cloud bank: round puffs over a flat base, lit from above
-        function cloud(p, x, y, s) {
-            const puffs = [[0, 10, 9], [11, 6, 11], [25, 4, 12], [39, 7, 10], [51, 11, 8], [60, 13, 6]];
-            const w = 68, h = 24, m = new Mask(Math.ceil(w * s) + 2, Math.ceil(h * s) + 2), base = Math.round(21 * s);
-            puffs.forEach(([px, py, r]) => {
-                const cx = (px + 4) * s, cy = (py + r * 0.6) * s, rr = r * s;
-                for (let j = 0; j < m.h; j++) for (let i = 0; i < m.w; i++) if ((i - cx) ** 2 + (j - cy) ** 2 <= rr * rr && j <= base) m.set(i, j);
+        function makeAtlas() {
+            const c = document.createElement('canvas');
+            c.width = c.height = ATLAS;
+            const ctx = c.getContext('2d');
+            const k = POSTER[2] / 1000, PH = 1000 * POSTER[3] / POSTER[2];
+            ctx.translate(POSTER[0], POSTER[1]);
+            ctx.scale(k, k);
+            const GREEN = '#1fa65a', DARK = '#1f2d2a', LIGHT = '#c9d2ce', MID = '#8c9a95';
+            const rr = (x, y, w, h, r, fill) => { ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); };
+            const lines = (x, y, widths, fill, gap = 17, h = 9) => widths.forEach((w, i) => rr(x, y + i * gap, w, h, h / 2, fill));
+
+            // the paper
+            ctx.fillStyle = '#fbfaf4';
+            ctx.fillRect(0, 0, 1000, PH);
+            ctx.fillStyle = '#ecebe2';
+            ctx.fillRect(0, 0, 1000, 5);
+
+            // left column: a dark title block, then three sections of text
+            rr(30, 34, 232, 20, 10, DARK);
+            rr(30, 64, 204, 20, 10, DARK);
+            rr(30, 94, 132, 20, 10, DARK);
+            lines(30, 140, [168, 118], MID, 18, 10);
+            [[212, [232, 202, 232, 160]], [352, [232, 200, 232, 162, 200]], [492, [232, 204, 232, 170]]].forEach(([y, w]) => {
+                rr(30, y, 64, 13, 6.5, GREEN);
+                lines(30, y + 32, w, LIGHT);
             });
-            p.mask(m, (i, j) => {
-                const edge = !m.get(i, j - 1) || !m.get(i - 1, j);
-                if (j >= base - 1) return CLOUD[0];
-                if (edge) return CLOUD[3];
-                const t = j / base;
-                return t < 0.45 ? CLOUD[3] : t < 0.7 ? CLOUD[2] : CLOUD[1];
-            }, x, y);
-        }
 
-        // sharp mountains far off, fading into the haze
-        function peaks(p) {
-            const base = LAYOUT.bank[0] + 6, top = LAYOUT.peaks, H = base - top;
-            const PEAKS = [[0.03, 0.62], [0.13, 0.95], [0.21, 0.7], [0.31, 0.5], [0.41, 0.85], [0.5, 0.58], [0.6, 1], [0.69, 0.66], [0.8, 0.88], [0.9, 0.6], [0.99, 0.8]];
-            const rough = x => 1.6 * Math.sin(x * 0.61) + 1.1 * Math.sin(x * 1.37 + 1);
-            const h = x => {
-                let v = 0;
-                PEAKS.forEach(([u, k]) => { v = Math.max(v, k * H - Math.abs(x - u * SW) * (x < u * SW ? 1.05 : 1.3)); });
-                return Math.round(base - Math.max(0, v + (v > 3 ? rough(x) : 0)));
-            };
-            for (let x = 0; x < SW; x++) {
-                const y0 = h(x), rising = h(x + 2) < h(x - 2);
-                for (let y = y0; y < base; y++) {
-                    const d = y - y0;
-                    let c = rising ? LILAC[3] : LILAC[1];
-                    if (rising && d > 3 + ((x * 7) % 5)) c = LILAC[2];
-                    if (!rising && d < 2) c = LILAC[2];
-                    if (d === 0) c = rising ? '#fcfcfc' : LILAC[3];
-                    p.set(x, y, c);
-                }
-            }
-        }
+            // the green centre panel, and the finding in big type
+            const g = ctx.createLinearGradient(0, 24, 0, PH - 24);
+            g.addColorStop(0, '#2bb566');
+            g.addColorStop(1, '#168a4a');
+            rr(300, 24, 398, PH - 48, 20, g);
+            ctx.textBaseline = 'alphabetic';
+            ctx.textAlign = 'left';
+            const words = [['Say the', '#ffffff'], ['main finding', '#ffd84a'], ['in plain', '#ffffff'], ['English.', '#ffffff']];
+            let size = 80;
+            ctx.font = `${size}px Rodin`;
+            size *= 336 / Math.max(...words.map(([w]) => ctx.measureText(w).width));
+            ctx.font = `${size}px Rodin`;
+            words.forEach(([w, col], i) => { ctx.fillStyle = col; ctx.fillText(w, 336, 138 + i * size * 1.28); });
+            lines(336, 395, [330, 276, 232], 'rgba(255,255,255,0.45)', 17, 8);
 
-        // the far bank: hills of the same checkered soil, smaller for distance,
-        // with bushes along the top and waterfalls pouring from notches
-        function bank(p, f) {
-            const [top, bottom] = LAYOUT.bank;
-            const edge = x => Math.round(top + 2 * Math.sin(x * 0.045 + 1) + 1.5 * Math.sin(x * 0.13));
-            for (let x = 0; x < SW; x++) {
-                const e = edge(x);
-                for (let y = e; y < bottom; y++) {
-                    const light = ((x >> 3) + (y >> 3)) & 1;
-                    let c = light ? SOIL[3] : SOIL[2];
-                    if (((y & 7) === 0 || (x & 7) === 0) && light) c = SOIL[4];
-                    if (y < e + 5) c = y < e + 3 ? SOIL[1] : light ? SOIL[2] : SOIL[1];
-                    p.set(x, y, c);
-                }
-                // bushes: rounded clumps with a lit crown
-                const bump = Math.round(4 + 3 * Math.abs(Math.sin(x * 0.19)) + 1.5 * Math.sin(x * 0.07 + 2));
-                for (let y = e - bump; y < e + 3; y++) {
-                    const d = y - (e - bump);
-                    p.set(x, y, d === 0 ? GRASS[3] : d < 3 && (x + d) % 3 ? GRASS[2] : y > e ? GRASS[0] : GRASS[1]);
-                }
+            // the QR code
+            rr(336, 462, 112, 112, 8, '#ffffff');
+            const N = 21, m = 92 / N, rand = (seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647)(11);
+            const finder = (cx, cy) => (cx < 7 && cy < 7) || (cx > 13 && cy < 7) || (cx < 7 && cy > 13);
+            ctx.fillStyle = '#10201a';
+            for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+                if (finder(x, y)) continue;
+                if (rand() > 0.5) ctx.fillRect(346 + x * m, 472 + y * m, m + 0.4, m + 0.4);
             }
-            LAYOUT.falls.forEach(([fx, w]) => {
-                const e = Math.min(edge(fx), edge(fx + w));
-                for (let y = e - 1; y < bottom + 1; y++) {
-                    for (let i = 0; i < w; i++) p.set(fx + i, y, i === 0 || i === w - 1 ? water(y + 2, f) : water(y + (i & 1), f));
-                }
-                for (let i = -3; i < w + 3; i++) {
-                    p.set(fx + i, bottom, i < -1 || i > w ? water(i, f) : CLOUD[3]);
-                    p.set(fx + i, bottom + 1, i < 0 || i >= w ? water(i + 2, f) : CLOUD[2]);
-                }
+            [[0, 0], [14, 0], [0, 14]].forEach(([fx, fy]) => {
+                ctx.fillStyle = '#10201a';
+                ctx.fillRect(346 + fx * m, 472 + fy * m, 7 * m, 7 * m);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(346 + (fx + 1) * m, 472 + (fy + 1) * m, 5 * m, 5 * m);
+                ctx.fillStyle = '#10201a';
+                ctx.fillRect(346 + (fx + 2) * m, 472 + (fy + 2) * m, 3 * m, 3 * m);
             });
-        }
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '27px Rodin';
+            ctx.fillText('Scan for the', 466, 524);
+            ctx.fillText('full paper', 466, 556);
 
-        // the lake: deep blue, with glints that thin out as it comes closer
-        function lake(p, f) {
-            const top = LAYOUT.lake + 2, rand = rng(21);
-            p.rect(0, top, SW, SH - top, SKY);
-            p.rect(0, top, SW, 1, '#2490d8');
-            for (let y = top + 1; y < SH; y += 2) {
-                const r = (y - top) / (SH - top), n = Math.round(SW / 9 * (1 - r * 0.7));
-                for (let i = 0; i < n; i++) {
-                    const x = Math.floor(rand() * SW), w = 2 + Math.floor(rand() * (3 + r * 6)), slot = Math.floor(rand() * 4);
-                    for (let k = 0; k < w; k++) p.set(x + k, y, water(slot + (k > w / 2 ? 1 : 0), f));
-                }
-            }
-        }
-
-        // ---- the ground: grass lip, then checkered soil
-        function ground(p) {
-            const gy = LAYOUT.ground;
-            for (let x = 0; x < SW; x++) {
-                const s = gy(x);
-                if (s === null) continue;
-                const cliff = gy(x - 1) === null || gy(x + 1) === null;
-                // soil squares on a fixed grid, each with a lit top-left edge
-                for (let y = s + 6; y < SH; y++) {
-                    const light = ((x >> 4) + (y >> 4)) & 1, ix = x & 15, iy = y & 15;
-                    let c = light ? SOIL[3] : SOIL[2];
-                    if (iy === 0 || ix === 0) c = light ? SOIL[4] : SOIL[3];
-                    if (iy === 15 || ix === 15) c = light ? SOIL[2] : SOIL[1];
-                    // the grass casts a shadow on the soil just under it
-                    if (y < s + 14) c = y < s + 11 ? SOIL[1] : light ? SOIL[2] : SOIL[1];
-                    // a dark edge where the ground drops away
-                    if (cliff) c = SOIL[0];
-                    p.set(x, y, c);
-                }
-                // the grass: tufts on top, a light edge, then a fringe hanging over the soil
-                const k = x & 7, tuft = [0, 1, 2, 1, 0, 0, 1, 0][k], hang = [4, 6, 7, 7, 6, 4, 3, 3][k];
-                for (let y = s - tuft; y < s; y++) p.set(x, y, y === s - tuft ? GRASS[3] : GRASS[2]);
-                for (let y = s; y < s + 6 + hang; y++) {
-                    const d = y - s;
-                    let c = d < 2 ? GRASS[3] : d < 5 ? GRASS[2] : d < 6 + hang - 1 ? GRASS[1] : GRASS[0];
-                    if (d === 2 && (x & 3) === 1) c = GRASS[3];
-                    if (d === 4 && (x & 7) === 5) c = GRASS[1];
-                    p.set(x, y, c);
-                }
-            }
-        }
-
-        // a sagging bridge of logs across a gap
-        function bridge(p, x0, x1, y) {
-            for (let x = x0 - 2; x < x1 + 2; x++) {
-                const i = x - x0, sag = Math.round(3 * Math.sin(Math.PI * Math.min(1, Math.max(0, i / (x1 - x0))))), k = ((i % 8) + 8) % 8;
-                const top = y - 1 + sag;
-                for (let j = 0; j < 8; j++) {
-                    const round = (k === 0 || k === 7) && (j === 0 || j === 7);
-                    if (round) continue;
-                    let c = SOIL[2];
-                    if (k === 0 || j === 7) c = SOIL[0];
-                    else if (k === 7) c = SOIL[1];
-                    else if (j === 0) c = SOIL[4];
-                    else if (j === 1 || k === 1) c = SOIL[3];
-                    p.set(x, top + j, c);
-                }
-            }
-        }
-
-        // ---- scenery sprites
-        function palm(p, x, base, h) {
-            const n = Math.floor(h / 6), top = [];
-            for (let i = 0; i < n; i++) {
-                const cx = x + Math.round(6 * (i / n) ** 2), y = base - (i + 1) * 6, w = 8 - Math.round(2 * i / n);
-                for (let j = 0; j < 6; j++) {
-                    const ww = w - (j > 3 ? 1 : 0), l = cx - (ww >> 1);
-                    for (let k = 0; k < ww; k++) {
-                        const c = j === 0 ? SOIL[1] : k === 0 ? SOIL[1] : k === ww - 1 ? SOIL[1] : k < 3 ? SOIL[4] : k < ww - 2 ? SOIL[3] : SOIL[2];
-                        p.set(l + k, y + j, c);
-                    }
-                }
-                top[0] = cx; top[1] = y;
-            }
-            const [tx, ty] = top;
-            // broad drooping fronds: a lit upper blade, a dark underside with
-            // notched edges, a darker rib down the middle
-            [[-1, -0.55, 32, 0.05], [-1, 0, 25, 0.045], [-0.45, -1, 18, 0.07], [0.45, -1, 18, 0.07], [1, 0, 25, 0.045], [1, -0.55, 32, 0.05]].forEach(([dx, dy, L, g]) => {
-                const len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
-                const at = s => [tx + ux * s, ty + uy * s + g * s * s];
-                for (let s = 0; s <= L; s += 0.5) {
-                    const [px, py] = at(s), [qx, qy] = at(s + 0.5), tl = Math.hypot(qx - px, qy - py) || 1;
-                    // normal pointing "up" the blade
-                    let nx = (qy - py) / tl, ny = -(qx - px) / tl;
-                    if (ny > 0) { nx = -nx; ny = -ny; }
-                    const w = 4.4 * Math.pow(Math.sin(Math.PI * Math.min(1, s / L + 0.06)), 0.8);
-                    for (let t = -w; t <= w; t += 0.5) {
-                        const x = Math.round(px + nx * t), y = Math.round(py + ny * t);
-                        const notch = t < -w + 1.5 && Math.floor(s) % 3 === 0;
-                        if (notch) continue;
-                        p.set(x, y, t > w - 1 ? GRASS[3] : t > 0.5 ? GRASS[2] : t > -0.5 ? GRASS[1] : t > -w + 1 ? GRASS[1] : GRASS[0]);
-                    }
-                }
+            // right column: a bar chart and a line chart, then more text
+            rr(726, 34, 244, 188, 12, '#ecf2ee');
+            [[0.34, '#a6dcba'], [0.5, '#6cc58f'], [0.74, '#2bb566'], [1.0, '#168a4a']].forEach(([h, col], i) => {
+                rr(748 + i * 54, 196 - 140 * h, 38, 140 * h, 4, col);
             });
-            p.disc(tx, ty + 1, 3, SOIL[1]);
-            p.disc(tx - 1, ty, 2, SOIL[2]);
-        }
-
-        // the sunflowers turn their petals a notch every couple of frames
-        function sunflower(p, f, x, s) {
-            const hy = s - 28;
-            p.rect(x - 1, hy + 6, 2, s - hy - 6, GRASS[1]);
-            p.rect(x - 1, hy + 6, 1, s - hy - 6, GRASS[2]);
-            [[-1, 10], [1, 15]].forEach(([side, dy]) => {
-                for (let i = 0; i < 6; i++) {
-                    const lx = x + side * (i + 1), ly = hy + dy - Math.round(i * 0.5) + (i > 3 ? 1 : 0);
-                    p.set(lx, ly, i < 4 ? GRASS[2] : GRASS[1]);
-                    p.set(lx, ly + 1, GRASS[1]);
-                }
+            ctx.fillStyle = DARK;
+            ctx.fillRect(742, 196, 216, 3);
+            rr(726, 246, 244, 160, 12, '#ecf2ee');
+            const pts = [[748, 380], [800, 360], [846, 368], [892, 322], [948, 304]];
+            ctx.strokeStyle = '#f0a030';
+            ctx.lineWidth = 6;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+            ctx.stroke();
+            pts.slice(1).forEach(([x, y]) => {
+                ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.lineWidth = 5; ctx.stroke();
             });
-            const turn = Math.floor(f / 2) % 2 ? Math.PI / 10 : 0;
-            for (let k = 0; k < 10; k++) {
-                const a = turn + k * Math.PI / 5;
-                p.disc(Math.round(x + Math.cos(a) * 6), Math.round(hy + Math.sin(a) * 6), 3, SOIL[1]);
-            }
-            for (let k = 0; k < 10; k++) {
-                const a = turn + k * Math.PI / 5, px = Math.round(x + Math.cos(a) * 6), py = Math.round(hy + Math.sin(a) * 6);
-                p.disc(px, py, 2, '#fcfc00');
-                p.set(px + 1, py + 1, YELLOW);
-                p.set(px, py + 2, ORANGE);
-                p.set(px + 2, py, ORANGE);
-            }
-            p.disc(x, hy, 4, SOIL[0]);
-            p.disc(x, hy, 3, SOIL[2]);
-            [[-1, -1], [1, -1], [0, 1], [-2, 1], [2, 1], [-1, 2], [1, 2]].forEach(([i, j]) => p.set(x + i, hy + j, SOIL[1]));
-            p.set(x - 2, hy - 2, SOIL[3]);
-            p.set(x - 1, hy - 2, SOIL[4]);
+            lines(726, 442, [244, 204, 244, 168, 224, 190], LIGHT);
+            rr(726, 560, 64, 13, 6.5, GREEN);
+            lines(726, 586, [170], LIGHT);
+            return c;
         }
 
-        // a clump of purple flowers that open and close
-        function flowers(p, f, x, s) {
-            [[0, 9], [6, 6], [-5, 5]].forEach(([dx, h], i) => {
-                const fx = x + dx, fy = s - h, open = (Math.floor(f / 2) + i) % 2;
-                p.rect(fx, fy + 2, 1, h - 2, GRASS[1]);
-                p.set(fx + 1, fy + h - 3, GRASS[2]);
-                const petals = open ? [[0, -2], [-2, 0], [2, 0], [0, 2], [-1, -1], [1, -1], [-1, 1], [1, 1]] : [[0, -1], [-1, 0], [1, 0], [0, 1], [-1, -1], [1, -1]];
-                petals.forEach(([px, py]) => p.set(fx + px, fy + py, py < 0 || px < 0 ? LILAC[3] : LILAC[2]));
-                p.set(fx, fy, YELLOW);
-                if (open) { p.set(fx - 2, fy + 1, LILAC[1]); p.set(fx + 2, fy + 1, LILAC[1]); }
-            });
+        const TILT = 0.16, EZ = 0.45;
+        // the rear leg's top, in the world (the tilted easel frame turned back)
+        const REAR_TOP = [0, Math.cos(TILT) * 2.88 + Math.sin(TILT) * -0.1, EZ - Math.sin(TILT) * 2.88 + Math.cos(TILT) * -0.1];
+
+        const GEOMETRY = `
+const float M_FLOOR = 0.0, M_OAK = 1.0, M_FOAM = 2.0;
+const float TILT = ${TILT};
+const float EZ = ${EZ};
+const vec2 BOARD = vec2(${BOARD.join(', ')});
+const float BOARD_Y = 2.0;                  // height of the board's middle, in easel space
+const vec3 REAR_TOP = vec3(${REAR_TOP.map(v => v.toFixed(3)).join(', ')});
+const vec3 REAR_FOOT = vec3(0.0, 0.035, -1.45);
+
+// the easel's own space: its front legs stand straight up and the board
+// faces along +z; the whole thing leans back a little
+vec3 easelSpace(vec3 p) {
+    vec3 l = p - vec3(0.0, 0.0, EZ);
+    l.yz = rot(-TILT) * l.yz;
+    return l;
+}
+
+float easel(vec3 p) {
+    vec3 b = p - vec3(0.0, 1.6, -0.35);
+    float bound = sdBox(b, vec3(1.75, 1.75, 1.3));
+    if (bound > 0.35) return bound;
+    vec3 l = easelSpace(p);
+    // the front legs, and the bars across them at the top and lower down
+    float d = sdRBox(vec3(abs(l.x) - 1.12, l.y - 1.55, l.z), vec3(0.05, 1.55, 0.032), 0.012);
+    d = min(d, sdRBox(l - vec3(0.0, 3.0, 0.0), vec3(1.17, 0.07, 0.05), 0.015));
+    d = min(d, sdRBox(l - vec3(0.0, 0.55, 0.0), vec3(1.12, 0.04, 0.025), 0.012));
+    // the ledge the board rests on, with a small lip
+    d = min(d, sdRBox(l - vec3(0.0, 0.99, 0.2), vec3(1.4, 0.055, 0.2), 0.012));
+    d = min(d, sdRBox(l - vec3(0.0, 1.1, 0.4), vec3(1.4, 0.035, 0.022), 0.01));
+    // the rear leg
+    d = min(d, sdCapsule(p, REAR_TOP, REAR_FOOT, 0.042));
+    d = min(d, sdRBox(l - vec3(0.0, 2.92, -0.07), vec3(0.09, 0.09, 0.07), 0.015));
+    return d;
+}
+
+float board(vec3 p) {
+    vec3 l = easelSpace(p) - vec3(0.0, BOARD_Y, 0.075);
+    float bound = sdBox(l, vec3(BOARD.x + 0.1, BOARD.y + 0.1, 0.1));
+    if (bound > 0.35) return bound;
+    return sdRBox(l, vec3(BOARD, 0.025), 0.01);
+}
+
+vec2 map(vec3 p) {
+    vec2 r = vec2(p.y, M_FLOOR);
+    r = U(r, vec2(easel(p), M_OAK));
+    return U(r, vec2(board(p), M_FOAM));
+}
+
+`;
+
+        const MATERIALS = `
+// ---- light
+const vec3 KEY = normalize(vec3(-0.55, 1.35, 0.62));
+const vec3 RIM = normalize(vec3(0.9, 0.5, -0.6));
+
+// the backdrop, in display colours: pale mint, lighter up top
+vec3 backdrop(vec2 uv) {
+    return mix(vec3(0.80, 0.915, 0.85), vec3(0.95, 0.985, 0.96), smoothstep(-0.9, 0.7, uv.y));
+}
+
+vec3 env(vec3 r) {
+    vec3 sky = mix(vec3(0.7, 0.84, 0.76), vec3(1.0), smoothstep(0.0, 0.8, r.y));
+    vec3 c = mix(vec3(0.4, 0.42, 0.38), sky, smoothstep(-0.15, 0.1, r.y));
+    c += vec3(5.0, 4.7, 4.3) * smoothstep(0.9, 0.97, dot(r, KEY));
+    c += vec3(1.6, 1.8, 1.9) * smoothstep(0.88, 0.95, dot(r, RIM));
+    return c;
+}
+
+vec3 woodColor(vec3 p, vec3 n) {
+    // light oak, its figure running along each part
+    vec3 q = abs(n.x) > 0.5 ? p.zyx : p;
+    float g = noise3(q * vec3(0.8, 24.0, 24.0)) * 0.6 + noise3(q * vec3(2.5, 64.0, 64.0)) * 0.4;
+    float rings = sin(q.y * 34.0 + q.z * 8.0 + g * 6.0) * 0.5 + 0.5;
+    return mix(vec3(0.3, 0.15, 0.055), vec3(0.58, 0.33, 0.14), 0.35 + 0.45 * rings * g + 0.2 * g);
+}
+
+vec3 shade(vec3 ro, vec3 rd, vec2 uv, float jitter) {
+    vec2 h = march(ro, rd);
+    vec3 bg = backdrop(uv);
+    if (h.x < 0.0) return bg;
+    vec3 p = ro + rd * h.x;
+    float m = h.y;
+    vec3 n = normal(p);
+    float occ = ao(p, n);
+    float sh = softShadow(p + n * 0.002, KEY, 6.0, jitter);
+    float facing = abs(dot(n, rd));
+
+    if (m == M_FLOOR) {
+        // a shadow catcher: the backdrop, darkened where the easel shades it
+        float k = mix(0.68, 1.0, sh) * mix(0.6, 1.0, occ);
+        return mix(bg * mix(vec3(0.6, 0.75, 0.67), vec3(1.0), k), bg, smoothstep(9.0, 22.0, h.x));
+    }
+
+    vec3 alb, f0 = vec3(0.04);
+    float rough = 0.5, wrap = 0.0;
+    if (m == M_OAK) {
+        alb = woodColor(p, n);
+        rough = 0.42;
+    } else {
+        // the foam board: white edges, the poster on its face
+        vec3 l = easelSpace(p);
+        vec3 nl = n;
+        nl.yz = rot(-TILT) * nl.yz;
+        alb = vec3(0.85, 0.855, 0.84);
+        rough = 0.7;
+        wrap = 0.2;
+        if (nl.z > 0.7 && l.z > 0.095) {
+            vec2 u = vec2(l.x / (2.0 * BOARD.x) + 0.5, 0.5 - (l.y - BOARD_Y) / (2.0 * BOARD.y));
+            vec4 t = atlas(${glslRect(POSTER)}, u, lodAt(h.x, facing, 680.0));
+            alb = mix(alb, pow(t.rgb, vec3(2.2)), t.a);
+            rough = 0.55;
         }
+    }
 
-        // one of Green Hill's purple boulders
-        function rock(p, x, s) {
-            for (let j = 0; j < 13; j++) {
-                for (let i = -11; i <= 11; i++) {
-                    const u = i / 11, v = (j - 13) / 13;
-                    if (u * u + v * v > 1) continue;
-                    const edge = (i / 10.2) ** 2 + ((j - 13) / 12) ** 2 > 1;
-                    p.set(x + i, s - 13 + j, edge ? LILAC[0] : u + v < -0.9 ? LILAC[3] : u - v > 0.8 ? LILAC[1] : LILAC[2]);
-                }
-            }
-            p.line(x - 2, s - 9, x + 1, s - 5, LILAC[1]);
-            p.line(x + 1, s - 5, x + 4, s - 4, LILAC[1]);
-        }
+    // a warm key with soft shadows, a cool sky, a strip light behind on the
+    // right and a little bounce off the floor
+    float dif = clamp((dot(n, KEY) + wrap) / (1.0 + wrap), 0.0, 1.0) * sh;
+    float sky = (0.6 + 0.4 * n.y) * occ;
+    float rim = clamp(dot(n, RIM), 0.0, 1.0) * occ;
+    float bounce = clamp(-n.y, 0.0, 1.0) * occ;
+    vec3 light = vec3(2.7, 2.5, 2.25) * dif + vec3(0.56, 0.62, 0.62) * sky + vec3(0.55, 0.65, 0.65) * rim + vec3(0.3, 0.32, 0.28) * bounce;
+    vec3 col = alb * light;
 
-        // ---- rings, spinning: face on, turning, edge on, turning back
-        function ring(p, f, x, y) {
-            const k = [1, 0.66, 0.2, 0.66][f % 4];
-            for (let j = -8; j <= 8; j++) {
-                for (let i = -8; i <= 8; i++) {
-                    const u = (i + 0.5) / k, v = j + 0.5, d = Math.hypot(u, v);
-                    if (k < 0.3 ? Math.abs(i + 0.5) > 1.6 || Math.abs(v) > 7.8 : d > 7.8 || d < 3.4) continue;
-                    // lit from the top left: a white glint, bright gold, darker gold round the far edges
-                    const light = -(u + v) / Math.max(1, d) / Math.SQRT2, outer = d > 6.9, inner = d < 4.3;
-                    let c = GOLD[2];
-                    if (outer || inner) c = light > 0.2 ? GOLD[2] : GOLD[1];
-                    if ((outer && light < -0.45) || (inner && light > 0.5)) c = GOLD[0];
-                    if (!outer && !inner && light > 0.55 && d > 4.8 && d < 6.3) c = GOLD[3];
-                    if (k < 0.3) c = i < 0 ? GOLD[2] : GOLD[1];
-                    p.set(x + i, y + j, c);
-                }
-            }
-        }
+    // reflections of the studio, blurrier and dimmer off rougher surfaces
+    vec3 r = reflect(rd, n);
+    float fres = pow(1.0 - clamp(dot(n, -rd), 0.0, 1.0), 5.0);
+    vec3 F = f0 + (1.0 - f0) * fres;
+    float gloss = 1.0 - rough;
+    col += F * env(r) * mix(0.25, 1.0, gloss * gloss) * mix(0.35, 1.0, sh) * occ * gloss * 0.9;
+    vec3 hv = normalize(KEY - rd);
+    float spec = pow(clamp(dot(n, hv), 0.0, 1.0), mix(8.0, 180.0, gloss * gloss)) * gloss * gloss;
+    col += F * spec * sh * vec3(2.4, 2.25, 2.0);
 
-        // ---- an item monitor with a #betterposter on its screen
-        function monitor(p, f, x, s) {
-            const W = 26, H = 22, l = x - W / 2, top = s - H - 6;
-            // stand
-            p.rect(l + 3, s - 6, W - 6, 6, GREY[1]);
-            p.rect(l + 3, s - 6, W - 6, 1, GREY[2]);
-            p.rect(l + 1, s - 2, W - 2, 2, GREY[0]);
-            // case
-            p.rect(l, top, W, H, INK);
-            p.rect(l + 1, top + 1, W - 2, H - 2, GREY[3]);
-            p.rect(l + 1, top + 1, W - 2, 1, GREY[4]);
-            p.rect(l + 1, top + 1, 1, H - 2, GREY[4]);
-            p.rect(l + W - 2, top + 2, 1, H - 3, GREY[2]);
-            p.rect(l + 2, top + H - 2, W - 3, 1, GREY[2]);
-            // screen
-            const sx = l + 4, sy = top + 4, sw = W - 8, sh = H - 8;
-            p.rect(sx - 1, sy - 1, sw + 2, sh + 2, GREY[1]);
-            p.rect(sx, sy, sw, sh, '#000090');
-            if (f % 4 === 3) {
-                const rand = rng(f + 5);
-                for (let j = 0; j < sh; j++) for (let i = 0; i < sw; i++) if (rand() < 0.45) p.set(sx + i, sy + j, rand() < 0.5 ? GREY[3] : GREY[4]);
-                return;
-            }
-            // the poster: grey side columns, the finding big in the green middle
-            const px = sx + 3, py = sy + 1, pw = sw - 6, ph = sh - 2;
-            p.rect(px, py, pw, ph, GREY[4]);
-            p.rect(px + 4, py + 1, pw - 8, ph - 2, GRASS[2]);
-            [2, 4, 6].forEach(dy => p.rect(px + 5, py + dy, pw - 10, 1, GREY[4]));
-            p.rect(px + 5, py + 8, 3, 2, INK);
-            [1, 3, 5, 7].forEach(dy => { p.rect(px + 1, py + dy, 2, 1, GREY[2]); p.rect(px + pw - 3, py + dy, 2, 1, GREY[2]); });
-            p.set(sx + 1, sy + 1, '#6c90fc');
-            p.set(sx + 2, sy + 1, '#6c90fc');
-            p.set(sx + 1, sy + 2, '#6c90fc');
-        }
+    return toDisplay(col);
+}
 
-        // ---- HUD, in the 8-bit font with Sonic's colouring: yellow labels,
-        // white numbers, RINGS flashing red at zero
-        const HUD_FONT = { ...NES_FONT, 0: NES_FONT.O };
-        function hudText(p, str, x, y, top, bottom, anchor = 'left') {
-            const { m, pad } = glyphMask(HUD_FONT, str, 1, 2), w = m.w - pad * 2, ox = (anchor === 'right' ? x - w : x) - pad;
-            p.mask(m.grow(true), INK, ox + 1, y - pad + 1);
-            p.mask(m.grow(true), INK, ox, y - pad);
-            p.mask(m, (i, j) => (j - pad < 4 ? top : bottom), ox, y - pad);
-            return w;
-        }
+`;
 
-        function hud(p, f) {
-            const [x, y] = LAYOUT.hud, right = x + 76, white = ['#fcfcfc', '#b4b4b4'], yellow = ['#fcfc00', YELLOW];
-            [['SCORE', '0', yellow], ['TIME', '0:00', yellow], ['RINGS', '0', f % 4 < 2 ? [RED, '#b40000'] : yellow]].forEach(([label, value, colours], i) => {
-                hudText(p, label, x, y + i * 16, ...colours);
-                hudText(p, value, right, y + i * 16, ...white, 'right');
-            });
-        }
-
-        // ---- the title card: the zone name in big blocky capitals, and the
-        // act in the blue oval
-        const TITLE_FONT = {
-            B: ['##########..', '###########.', '###.....####', '###......###', '###......###', '###.....####', '##########..', '##########..', '###.....####', '###......###', '###......###', '###......###', '###.....####', '###########.', '##########..'],
-            E: ['###########', '###########', '###........', '###........', '###........', '###........', '#########..', '#########..', '###........', '###........', '###........', '###........', '###........', '###########', '###########'],
-            T: ['############', '############', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....', '....####....'],
-            R: ['##########..', '###########.', '###.....####', '###......###', '###......###', '###.....####', '###########.', '##########..', '###...####..', '###....####.', '###.....###.', '###.....####', '###......###', '###......###', '###......###'],
-            P: ['##########..', '###########.', '###.....####', '###......###', '###......###', '###.....####', '###########.', '##########..', '###.........', '###.........', '###.........', '###.........', '###.........', '###.........', '###.........'],
-            O: ['..########..', '.##########.', '####....####', '###......###', '###......###', '###......###', '###......###', '###......###', '###......###', '###......###', '###......###', '###......###', '####....####', '.##########.', '..########..'],
-            S: ['..#########.', '.###########', '####.....###', '###.........', '####........', '.#########..', '..#########.', '.........###', '..........##', '..........##', '##........##', '###......###', '####....####', '.##########.', '..########..'],
-            Z: ['############', '############', '........####', '.......####.', '......####..', '.....####...', '.....###....', '....####....', '...####.....', '..####......', '.####.......', '####........', '###.........', '############', '############'],
-            N: ['####......###', '#####.....###', '######....###', '###.###...###', '###.####..###', '###..###..###', '###..####.###', '###...###.###', '###...#######', '###....######', '###....######', '###.....#####', '###......####', '###......####', '###.......###'],
-        };
-
-        function titleMask(str) {
-            const glyphs = [...str].map(ch => TITLE_FONT[ch]), pad = 3;
-            const w = glyphs.reduce((s, g, i) => s + g[0].length + (i ? 2 : 0), 0), h = 15;
-            const m = new Mask(w + pad * 2, h + pad * 2);
-            let cx = pad;
-            glyphs.forEach(g => {
-                g.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') m.set(cx + i, pad + j); }));
-                cx += g[0].length + 2;
-            });
-            return { m, w, pad };
-        }
-
-        function titleText(p, str, x, y, anchor = 'left') {
-            const { m, w, pad } = titleMask(str), ox = (anchor === 'center' ? Math.round(x - w / 2) : x) - pad, oy = y - pad;
-            const edge = m.grow(true);
-            p.mask(edge, SKY_DEEP, ox + 2, oy + 2);
-            p.mask(edge, INK, ox, oy);
-            p.mask(m, (i, j) => (j - pad < 7 ? '#fcfcfc' : j - pad < 11 ? '#d8fcfc' : '#b4d8fc'), ox, oy);
-            return w;
-        }
-
-        const ONE = ['..####..', '.#####..', '######..', '######..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '..####..', '########', '########'];
-
-        function actOval(p, x, y) {
-            const rx = 25, ry = 15, m = new Mask(rx * 2 + 1, ry * 2 + 1);
-            for (let j = -ry; j <= ry; j++) {
-                const span = Math.round(rx * Math.sqrt(Math.max(0, 1 - (j / (ry + 0.5)) ** 2)));
-                for (let i = -span; i <= span; i++) m.set(rx + i, ry + j);
-            }
-            const ox = x - rx, oy = y - ry;
-            p.mask(m.grow(true), SKY_DEEP, ox + 2, oy + 2);
-            p.mask(m.grow(true), INK, ox, oy);
-            // glossy blue: a light cap, the royal blue body, a deeper base
-            p.mask(m, (i, j) => (j < 6 ? HAZE : j < ry * 2 - 7 ? SKY : SKY_DEEP), ox, oy);
-            for (let i = 10; i < rx * 2 - 12; i++) if (m.get(i, 2)) p.set(ox + i, oy + 3, CLOUD[2]);
-            // ACT, then a gap, then the number
-            const { m: act, pad } = glyphMask(NES_FONT, 'ACT', 1, 2);
-            const ax = x - 18, ay = y - 3;
-            p.mask(act.grow(true), INK, ax - pad, ay - pad);
-            p.mask(act, (i, j) => (j - pad < 4 ? '#fcfcfc' : CLOUD[1]), ax - pad, ay - pad);
-            const one = new Mask(ONE[0].length + 4, ONE.length + 4);
-            ONE.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') one.set(i + 2, j + 2); }));
-            const nx = x + 9, ny = y - 8;
-            p.mask(one.grow(true), INK, nx - 2 + 1, ny - 2 + 1);
-            p.mask(one.grow(true), INK, nx - 2, ny - 2);
-            p.mask(one, (i, j) => (j < 8 ? '#fcfc00' : j < 13 ? YELLOW : ORANGE), nx - 2, ny - 2);
-        }
-
-        function titleCard(p) {
-            const [tx, ty] = LAYOUT.title, [zx, zy] = LAYOUT.zone, [ax, ay] = LAYOUT.act;
-            titleText(p, 'BETTERPOSTER', tx, ty, 'center');
-            titleText(p, 'ZONE', zx, zy);
-            actOval(p, ax, ay);
-        }
-
-        function draw(p, f) {
-            sky(p);
-            LAYOUT.clouds.forEach(([x, y, s]) => cloud(p, x, y, s));
-            peaks(p);
-            bank(p, f);
-            lake(p, f);
-            LAYOUT.palms.forEach(([x, base, h]) => palm(p, x, base, h));
-            ground(p);
-            if (LAYOUT.bridge) bridge(p, ...LAYOUT.bridge);
-            LAYOUT.sunflowers.forEach(([x, s]) => sunflower(p, f, x, s));
-            LAYOUT.flowers.forEach(([x, s]) => flowers(p, f, x, s));
-            if (LAYOUT.rock) rock(p, ...LAYOUT.rock);
-            monitor(p, f, ...LAYOUT.monitor);
-            LAYOUT.rings.forEach(([x, y]) => ring(p, f, x, y));
-            hud(p, f);
-            titleCard(p);
-        }
-
-        runFrames(draw, { frames: 12, delay: 140, size: [SW, SH] });
+        runStudio({
+            frag: studioShader({ geometry: GEOMETRY, materials: MATERIALS, atlasSize: ATLAS }),
+            view: VIEW,
+            atlas: makeAtlas,
+            title: ctx => studioTitle(ctx, { label: 'WEBSITE', lines: ['Better', 'Poster'], pill: '#1fa65a' }),
+        });
     </script>
 </body>
 </html>

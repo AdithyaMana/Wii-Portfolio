@@ -1021,22 +1021,23 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 /* Pixel-art channels (DS, 8-bit and 16-bit): keep each art pixel a
    hard-edged square at any size, and crop evenly so the title up top and the
    UI along the bottom both stay in frame */
-.ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-survey"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="credit-website"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="tuftes-razor"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="github"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="linkedin"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="betterposter"] .ch-logo,
 .ch-selection .ch-logo-container[data-channel-id="icca-report"] .ch-logo {
     object-position: center;
     image-rendering: pixelated;
 }
 
-/* Overtone's art is painted at full size, and Research Agent's is a 3D
-   render, so they get the same even crop but ordinary smooth scaling */
+/* Overtone's art is painted at full size, and Research Agent's, Resume's
+   and BetterPoster's are 3D renders, so they get the same even crop but
+   ordinary smooth scaling */
 .ch-selection .ch-logo-container[data-channel-id="overtone"] .ch-logo,
-.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo {
+.ch-selection .ch-logo-container[data-channel-id="research-agent"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="resume"] .ch-logo,
+.ch-selection .ch-logo-container[data-channel-id="betterposter"] .ch-logo {
     object-position: center;
 }
 

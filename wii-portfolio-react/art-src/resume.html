@@ -2,158 +2,432 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Resume pixel art</title>
+    <title>Resume 3D art</title>
 </head>
 <body>
     <pre id="out"></pre>
-    <script src="pixel.js"></script>
-    <script src="mii-faces.js"></script>
+    <script src="studio.js"></script>
     <script>
-        const INK = '#4a1410';
-        const RED = '#e2413b';
+        // My workspace as a little isometric diorama, floating in the dark:
+        // a corner of a room cut away like a doll's house, with a desk, a
+        // chair, a bookshelf, a plant and a window onto the night. It's
+        // toon shaded, in flat bands of colour with ink outlines, unlike the
+        // studio product shots of the other 3D channels. The monitor types
+        // out who I am, holds, and clears for the next go.
+        //
+        // The screen's text is drawn on a canvas the shader reads as a
+        // texture; studio.js does the marching, camera and frame loop.
+        const FRAMES = 36, DELAY = 90;
 
-
-        // skill badges: design, research, code, 3D, games, XR, agents, chat
-        const BADGES = ['pencil', 'magnifier', 'code', 'cube', 'gamepad', 'headset', 'robot', 'chat'];
-        const BADGE_COLORS = ['#ff5d8f', '#ffb020', '#27c3a4', '#4c8dff', '#9b6bff', '#ff7a45', '#17b3d6', '#e2413b'];
-
-        function cloud(p, x, y, s) {
-            const puffs = [[0, 0, 6], [8, -3, 8], [17, 0, 6], [-6, 2, 4], [23, 3, 4]]
-                .map(([dx, dy, r]) => [x + Math.round(dx * s), y + Math.round(dy * s), Math.max(2, Math.round(r * s))]);
-            const base = y + Math.round(5 * s);
-            const puff = (cx, cy, r, c) => {
-                for (let j = -r; j <= r; j++) {
-                    for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + r * 0.8 && cy + j <= base) p.set(cx + i, cy + j, c);
-                }
-            };
-            puffs.forEach(([cx, cy, r]) => puff(cx, cy + 2, r, '#cfe6f8'));
-            puffs.forEach(([cx, cy, r]) => puff(cx, cy, r, '#ffffff'));
-        }
-
-        function tree(p, x, y) {
-            p.rect(x - 2, y, 5, 12, '#5a3418');
-            p.rect(x - 1, y, 3, 11, '#8a5a2b');
-            p.disc(x, y - 6, 12, '#1f5a24');
-            p.disc(x, y - 6, 11, '#3fa34a');
-            p.disc(x - 3, y - 9, 6, '#5cbf55');
-            p.disc(x - 4, y - 10, 2, '#8fdc6f');
-        }
-
-        // Where everything sits on the wide canvas and on the tall phone one.
-        // horizon is where the hills meet the sky; the path starts there at pathX.
-        const LAYOUT = TALL ? {
-            horizon: 246, pathX: 96, flowers: 50, clouds: [[112, 14, 1], [150, 64, 0.6], [8, 104, 0.6]], trees: [[158, 244], [20, 300]],
-            title: [90, 24], start: [90, 268], card: [18, 108],
-            twinkles: [[164, 22, 0], [10, 60, 2], [170, 110, 1], [12, 250, 3], [166, 290, 2]],
+        // A long lens from far off, so the room is drawn almost flat, like
+        // an isometric game
+        const VIEW = viewFrom(TALL ? {
+            eye: [26.0, 22.6, 26.0], target: [-0.05, 0.62, 0.05], zoom: 9.2, shift: [0.0, -0.22],
         } : {
-            horizon: 118, pathX: 116, flowers: 70, clouds: [[26, 12, 1.1], [132, 30, 0.8], [118, 6, 0.6]], trees: [[150, 116], [22, 158]],
-            title: [82, 14], start: [82, 102], card: [168, 14],
-            twinkles: [[160, 14, 0], [304, 6, 2], [8, 60, 1], [156, 84, 3], [314, 150, 2]],
-        };
+            eye: [26.0, 22.6, 26.0], target: [0.0, 0.75, 0.0], zoom: 14.2, shift: [0.36, 0.0],
+        });
 
-        function scenery(p) {
-            const H0 = LAYOUT.horizon, px = LAYOUT.pathX;
-            p.vgrad(0, 0, PW, H0, ['#2f7fe0', '#4f9cf0', '#7fc0fa', '#b6e2ff', '#dcf3ff']);
-            LAYOUT.clouds.forEach(([x, y, s]) => cloud(p, x, y, s));
-            for (let x = 0; x < PW; x++) {
-                const far = Math.round(H0 - 14 + 5 * Math.sin(x / 23) + 3 * Math.sin(x / 9 + 1));
-                p.rect(x, far, 1, 1, '#b0e0b0');
-                p.rect(x, far + 1, 1, H0 + 6 - far, '#7fc48a');
-                const near = Math.round(H0 - 2 + 4 * Math.sin(x / 31 + 2) + 2 * Math.sin(x / 13));
-                p.rect(x, near, 1, 1, '#8fd87a');
-                p.rect(x, near + 1, 1, PH - near, '#5cbf52');
-            }
-            p.vgrad(0, H0 + 14, PW, PH - H0 - 14, ['#5cbf52', '#50b048', '#43a23f']);
-            // dirt path running off towards the hills
-            for (let y = H0; y < PH; y++) {
-                const t = (y - H0) / (PH - H0), cx = Math.round(px - t * 40), half = Math.round(2 + t * 20);
-                p.rect(cx - half - 1, y, half * 2 + 3, 1, '#c89a5a');
-                p.rect(cx - half, y, half * 2 + 1, 1, '#e8c98a');
-            }
-            const rand = rng(4);
-            for (let i = 0; i < LAYOUT.flowers; i++) {
-                const x = Math.floor(rand() * PW), y = H0 + 6 + Math.floor(rand() * (PH - H0 - 8));
-                const t = (y - H0) / (PH - H0);
-                if (Math.abs(x - (px - t * 40)) < 6 + t * 22) continue;
-                if (rand() < 0.7) p.sprite(['..#..', '#.#.#', '#.#.#'], { '#': '#378f37' }, x, y);
-                else {
-                    const petal = ['#ffffff', '#ffe066', '#ff8fb1'][Math.floor(rand() * 3)];
-                    p.sprite(['.#.', '#o#', '.#.'], { '#': petal, o: '#f0a020' }, x, y);
-                }
-            }
-            LAYOUT.trees.forEach(([x, y]) => tree(p, x, y));
+        // ---- the monitor's screen, typed in Courier Prime on a grid
+        const ATLAS = 1024;
+        const SCREEN = [0, 0, 1024, 604];
+        const ROWS = 5, CHAR_W = 48, ROW_H = 104, LEFT = 60, TOP = 42;
+        const LINES = [
+            ['$ whoami', '#7cffb2'],
+            ['adithya mana', '#ffd84a'],
+            ['designer', '#e8eeff'],
+            ['engineer', '#e8eeff'],
+            ['researcher', '#e8eeff'],
+        ];
+        // where each line's first letter falls in the order they're typed
+        const STARTS = LINES.reduce((a, [l], i) => [...a, i ? a[i - 1] + LINES[i - 1][0].length : 0], []);
+        const TOTAL = STARTS[ROWS - 1] + LINES[ROWS - 1][0].length;
+
+        function makeAtlas() {
+            const c = document.createElement('canvas');
+            c.width = c.height = ATLAS;
+            const ctx = c.getContext('2d');
+            ctx.font = 'bold 80px "Courier Prime"';
+            ctx.textBaseline = 'middle';
+            LINES.forEach(([line, color], r) => {
+                ctx.fillStyle = color;
+                [...line].forEach((ch, k) => ctx.fillText(ch, LEFT + k * CHAR_W, TOP + (r + 0.5) * ROW_H));
+            });
+            return c;
         }
 
-        function chip(p, str, x, y, color) {
-            const w = textWidth(str);
-            p.panel(x, y, w + 4, 9, color, 1);
-            text(p, str, x + 2, y + 1, { color: '#fff' });
+        // ---- the animation: nothing, then typing, then a hold with the
+        // cursor blinking, then the screen clears and it starts again
+        function pose(f) {
+            const typed = Math.round(TOTAL * Math.min(1, Math.max(0, (f - 2) / 22)));
+            return { uChars: typed, uBlink: f % 4 < 2 ? 1 : 0 };
         }
 
-        function card(p, f) {
-            const [X, Y] = LAYOUT.card, W = 144, H = 146;
-            p.frame(X, Y, W, H, RED, INK, 2);
-            p.rect(X + 3, Y + 2, W - 6, 1, '#ff7f70');
-            text(p, 'RESUME CARD', X + W / 2, Y + 4, { color: '#fff', shadow: '#9e1712', anchor: 'center' });
-            p.frame(X + 4, Y + 14, W - 8, H - 18, '#fff6e8', '#9e1712', 1);
-            for (let j = Y + 16; j < Y + H - 5; j += 2) p.rect(X + 5, j, W - 10, 1, '#fdeedb');
+        // the monitor: centre and half size of its screen, and how far it's
+        // turned from facing straight out (+z) towards the room
+        const MON = [0.12, 1.24, -1.2], SCR = [0.46, 0.272], TURN = -0.42;
 
-            // portrait, blinking now and then
-            p.frame(X + 8, Y + 18, 34, 42, '#bfe3ff', INK, 1);
-            p.rect(X + 9, Y + 48, 32, 11, '#9fd0f5');
-            p.sprite(ADI_MII, ADI_MII_PAL, X + 11, Y + 19);
-            if (f === 9) {
-                [7, 16].forEach(c => {
-                    p.rect(X + 11 + c, Y + 19 + 19, 5, 1, ADI_MII_PAL.S);
-                    p.rect(X + 11 + c, Y + 19 + 20, 5, 1, ADI_MII_PAL.K);
-                    p.rect(X + 11 + c + 1, Y + 19 + 21, 3, 1, ADI_MII_PAL.S);
-                });
+        const HEAD = `
+uniform float uChars;
+uniform float uBlink;
+`;
+
+        const GEOMETRY = `
+// ---- the room: a floor slab and two walls, the back (-z) and the left (-x)
+const float R = 1.5, WALL_H = 2.3, WALL_T = 0.12;
+const float IN = -R + WALL_T;               // the walls' inside faces
+
+const float M_FLOOR = 1.0, M_SLAB = 2.0, M_WALL = 3.0, M_TRIM = 4.0, M_DESK = 5.0, M_METAL = 6.0;
+const float M_SCREEN = 7.0, M_KEYS = 8.0, M_CHAIR = 9.0, M_SHELF = 10.0, M_BOOK = 11.0, M_POT = 12.0;
+const float M_LEAF = 13.0, M_FRAME = 14.0, M_PAPER = 15.0, M_RUG = 16.0, M_MUG = 17.0, M_GLASS = 18.0;
+const float M_CORK = 19.0, M_NOTE = 20.0, M_LAMP = 21.0, M_BULB = 22.0, M_SOIL = 23.0;
+
+const vec3 MON = vec3(${MON.join(', ')});
+const vec2 SCR = vec2(${SCR.join(', ')});
+const float TURN = ${TURN.toFixed(2)};
+
+// a point in the monitor's own coordinates
+vec3 monitorSpace(vec3 p) { vec3 m = p - MON; m.xz = rot(TURN) * m.xz; return m; }
+
+float sdEllipsoid(vec3 p, vec3 r) { float k0 = length(p / r), k1 = length(p / (r * r)); return k0 * (k0 - 1.0) / k1; }
+
+vec2 room(vec3 p) {
+    vec2 r = vec2(sdBox(p - vec3(0.0, -0.17, 0.0), vec3(R, 0.17, R)), M_SLAB);
+    // the window in the back wall
+    vec3 w = p - vec3(0.95, 1.62, -R + WALL_T * 0.5);
+    float hole = sdBox(w, vec3(0.3, 0.26, 0.2));
+    float walls = min(sdBox(p - vec3(-R + WALL_T * 0.5, WALL_H * 0.5, 0.0), vec3(WALL_T * 0.5, WALL_H * 0.5, R)),
+                      sdBox(p - vec3(0.0, WALL_H * 0.5, -R + WALL_T * 0.5), vec3(R, WALL_H * 0.5, WALL_T * 0.5)));
+    r = U(r, vec2(max(walls, -hole), M_WALL));
+    // its frame, a cross bar, a sill and the glass
+    float frame = max(sdBox(w, vec3(0.33, 0.29, 0.075)), -sdBox(w, vec3(0.28, 0.24, 0.2)));
+    frame = min(frame, sdBox(w, vec3(0.012, 0.25, 0.03)));
+    frame = min(frame, sdBox(w - vec3(0.0, -0.3, 0.07), vec3(0.37, 0.025, 0.06)));
+    r = U(r, vec2(frame, M_TRIM));
+    r = U(r, vec2(sdBox(w + vec3(0.0, 0.0, 0.01), vec3(0.29, 0.25, 0.005)), M_GLASS));
+    // skirting boards
+    float trim = min(sdBox(p - vec3(IN + 0.012, 0.05, 0.0), vec3(0.012, 0.05, R)), sdBox(p - vec3(0.0, 0.05, IN + 0.012), vec3(R, 0.05, 0.012)));
+    r = U(r, vec2(trim, M_TRIM));
+    // a round rug
+    r = U(r, vec2(sdCylinder(p - vec3(0.2, 0.004, -0.15), 0.78, 0.004), M_RUG));
+    return r;
+}
+
+vec2 desk(vec3 p) {
+    float bound = sdBox(p - vec3(0.15, 0.85, -1.05), vec3(1.0, 0.85, 0.5));
+    if (bound > 0.3) return vec2(bound, M_DESK);
+    vec2 r = vec2(sdRBox(p - vec3(0.15, 0.74, -1.06), vec3(0.88, 0.035, 0.31), 0.01), M_DESK);
+    r = U(r, vec2(min(sdBox(p - vec3(-0.66, 0.37, -1.06), vec3(0.03, 0.37, 0.29)), sdBox(p - vec3(0.96, 0.37, -1.06), vec3(0.03, 0.37, 0.29))), M_DESK));
+    // the monitor, its neck and foot
+    vec3 m = monitorSpace(p);
+    r = U(r, vec2(sdRBox(m, vec3(SCR + 0.025, 0.025), 0.012), M_METAL));
+    r = U(r, vec2(sdBox(m - vec3(0.0, 0.0, 0.026), vec3(SCR, 0.002)), M_SCREEN));
+    r = U(r, vec2(sdBox(m - vec3(0.0, -0.37, -0.05), vec3(0.03, 0.14, 0.02)), M_METAL));
+    r = U(r, vec2(sdRBox(m - vec3(0.0, -0.453, 0.0), vec3(0.15, 0.012, 0.09), 0.01), M_METAL));
+    // keyboard, a mug, and a desk lamp
+    r = U(r, vec2(sdRBox(p - vec3(0.12, 0.79, -0.86), vec3(0.3, 0.014, 0.085), 0.01), M_KEYS));
+    vec3 g = p - vec3(-0.45, 0.775, -0.92);
+    float mug = max(sdCylinder(g - vec3(0.0, 0.07, 0.0), 0.06, 0.07), -sdCylinder(g - vec3(0.0, 0.1, 0.0), 0.048, 0.07));
+    mug = min(mug, sdTorus((g - vec3(0.07, 0.075, 0.0)).xzy, vec2(0.035, 0.011)));
+    r = U(r, vec2(mug, M_MUG));
+    vec3 l = p - vec3(0.84, 0.775, -1.2);
+    float lamp = sdCylinder(l - vec3(0.0, 0.012, 0.0), 0.09, 0.012);
+    lamp = min(lamp, sdCapsule(l, vec3(0.0, 0.02, 0.0), vec3(0.02, 0.42, 0.04), 0.014));
+    lamp = min(lamp, sdCapsule(l, vec3(0.02, 0.42, 0.04), vec3(-0.1, 0.5, 0.16), 0.014));
+    vec3 hd = l - vec3(-0.13, 0.46, 0.2);
+    hd.xy = rot(0.9) * hd.xy;
+    float hood = max(sdRoundCone(hd, 0.11, 0.035, 0.12), -sdRoundCone(hd + vec3(0.0, 0.012, 0.0), 0.1, 0.03, 0.12));
+    r = U(r, vec2(min(lamp, hood), M_LAMP));
+    r = U(r, vec2(length(hd - vec3(0.0, 0.03, 0.0)) - 0.045, M_BULB));
+    return r;
+}
+
+vec2 chair(vec3 p) {
+    vec3 q = p - vec3(0.2, 0.0, -0.42);
+    float bound = sdBox(q - vec3(0.0, 0.6, 0.0), vec3(0.4, 0.62, 0.4));
+    if (bound > 0.3) return vec2(bound, M_CHAIR);
+    q.xz = rot(0.35) * q.xz;
+    float seat = sdRBox(q - vec3(0.0, 0.5, 0.0), vec3(0.24, 0.05, 0.23), 0.04);
+    float back = sdRBox(q - vec3(0.0, 0.88, 0.21), vec3(0.23, 0.26, 0.04), 0.04);
+    vec2 r = vec2(min(seat, back), M_CHAIR);
+    float metal = sdCapsule(q, vec3(0.0, 0.08, 0.0), vec3(0.0, 0.46, 0.0), 0.028);
+    metal = min(metal, sdCapsule(q, vec3(0.0, 0.55, 0.19), vec3(0.0, 0.7, 0.19), 0.02));
+    // five feet, each with a castor
+    for (int i = 0; i < 5; i++) {
+        float a = float(i) * 1.2566;
+        vec3 f = vec3(cos(a), 0.0, sin(a)) * 0.24;
+        metal = min(metal, sdCapsule(q, vec3(0.0, 0.08, 0.0), f + vec3(0.0, 0.06, 0.0), 0.02));
+        metal = min(metal, length(q - f - vec3(0.0, 0.03, 0.0)) - 0.03);
+    }
+    return U(r, vec2(metal, M_METAL));
+}
+
+// a book's colour comes along as the fraction of its material
+vec2 shelf(vec3 p) {
+    vec3 q = p - vec3(IN + 0.16, 0.0, 0.05);
+    float bound = sdBox(q - vec3(0.0, 0.9, 0.0), vec3(0.2, 0.95, 0.6));
+    if (bound > 0.3) return vec2(bound, M_SHELF);
+    // a case open to the room, with three shelves
+    float box = max(sdBox(q - vec3(0.0, 0.8, 0.0), vec3(0.16, 0.8, 0.56)), -sdBox(q - vec3(0.03, 0.8, 0.0), vec3(0.16, 0.76, 0.52)));
+    for (int i = 1; i < 4; i++) box = min(box, sdBox(q - vec3(0.0, 0.04 + float(i) * 0.4, 0.0), vec3(0.15, 0.015, 0.53)));
+    vec2 r = vec2(box, M_SHELF);
+    // books, filed along each shelf, with a gap here and there
+    float level = clamp(floor((q.y - 0.04) / 0.4), 0.0, 3.0);
+    float base = 0.04 + level * 0.4 + (level > 0.0 ? 0.015 : 0.0);
+    const float CELL = 0.082;
+    // this slot's book and its neighbours', since a slot may be empty
+    for (int k = -1; k <= 1; k++) {
+        float id = floor((q.z + 0.5) / CELL) + float(k);
+        if (id < 0.0 || id > 11.0) continue;
+        float h1 = hash2(vec2(id, level)), h2 = hash2(vec2(level, id + 7.0));
+        if (h1 < 0.13 || (level == 3.0 && id > 5.0)) continue;
+        float tall = 0.11 + 0.06 * h2;
+        float zc = q.z + 0.5 - (id + 0.5) * CELL;
+        r = U(r, vec2(sdBox(vec3(q.x - 0.03, q.y - base - tall, zc), vec3(0.11, tall, CELL * 0.5 - 0.006)), M_BOOK + fract(h1 * 13.7) * 0.9));
+    }
+    // a small plant in a pot on top
+    vec3 t = q - vec3(0.0, 1.6, 0.3);
+    r = U(r, vec2(sdCylinder(t - vec3(0.0, 0.07, 0.0), 0.075, 0.07), M_POT));
+    float leaves = 1e9;
+    for (int i = 0; i < 4; i++) {
+        float a = float(i) * 1.5708 + 0.4;
+        vec3 lp = t - vec3(cos(a) * 0.07, 0.2, sin(a) * 0.07);
+        lp.xz = rot(-a) * lp.xz;
+        leaves = min(leaves, sdEllipsoid(lp, vec3(0.1, 0.035, 0.05)));
+    }
+    return U(r, vec2(leaves, M_LEAF));
+}
+
+vec2 plant(vec3 p) {
+    vec3 q = p - vec3(1.05, 0.0, 1.0);
+    float bound = sdBox(q - vec3(0.0, 0.55, 0.0), vec3(0.45, 0.6, 0.45));
+    if (bound > 0.3) return vec2(bound, M_POT);
+    // a short pot with a rim, and dark soil
+    float pot = sdCylinder(q - vec3(0.0, 0.11, 0.0), 0.15, 0.11) - 0.01;
+    pot = min(pot, sdCylinder(q - vec3(0.0, 0.21, 0.0), 0.17, 0.03) - 0.008);
+    pot = max(pot, -sdCylinder(q - vec3(0.0, 0.26, 0.0), 0.14, 0.03));
+    vec2 r = vec2(pot, M_POT);
+    r = U(r, vec2(sdCylinder(q - vec3(0.0, 0.215, 0.0), 0.14, 0.01), M_SOIL));
+    // a snake plant: tall flat blades fanning up out of it
+    float leaves = 1e9;
+    for (int i = 0; i < 7; i++) {
+        float a = float(i) * 2.4 + 0.3, tall = 0.24 + 0.12 * hash1(float(i) + 2.0);
+        vec3 lp = q - vec3(0.0, 0.22, 0.0);
+        lp.xz = rot(a) * lp.xz;
+        lp.xy = rot(0.12 + 0.22 * hash1(float(i))) * lp.xy;
+        lp -= vec3(0.0, tall, 0.0);
+        leaves = min(leaves, sdEllipsoid(lp, vec3(0.05, tall, 0.014)));
+    }
+    return U(r, vec2(leaves, M_LEAF + 0.5));
+}
+
+// a framed certificate on the left wall, a pinboard with notes on the back
+vec2 wallArt(vec3 p) {
+    vec3 c = p - vec3(IN, 1.95, 0.05);
+    vec2 r = vec2(sdBox(c, vec3(0.02, 0.2, 0.27)), M_FRAME);
+    r = U(r, vec2(sdBox(c - vec3(0.018, 0.0, 0.0), vec3(0.005, 0.16, 0.23)), M_PAPER));
+    vec3 b = p - vec3(-0.6, 1.6, IN);
+    r = U(r, vec2(sdRBox(b, vec3(0.42, 0.28, 0.02), 0.008), M_CORK));
+    for (int i = 0; i < 5; i++) {
+        vec2 at = vec2(-0.27 + float(i % 3) * 0.26, 0.11 - float(i / 3) * 0.22) + vec2(hash1(float(i)) - 0.5, hash1(float(i) + 4.0) - 0.5) * 0.05;
+        vec3 n = b - vec3(at, 0.025);
+        n.xy = rot((hash1(float(i) + 9.0) - 0.5) * 0.4) * n.xy;
+        r = U(r, vec2(sdBox(n, vec3(0.085, 0.085, 0.004)), M_NOTE + float(i) * 0.15));
+    }
+    return r;
+}
+
+vec2 map(vec3 p) {
+    vec2 r = room(p);
+    r = U(r, desk(p));
+    r = U(r, chair(p));
+    r = U(r, shelf(p));
+    r = U(r, plant(p));
+    return U(r, wallArt(p));
+}
+`;
+
+        const MATERIALS = `
+// ---- light: one sun from the front left, and flat toon bands
+const vec3 SUN = normalize(vec3(0.5, 1.0, 0.8));
+const vec3 INK = vec3(0.1, 0.09, 0.2);
+
+// the night behind: deep blue, a soft glow under the room, a few stars
+vec3 backdrop(vec2 uv) {
+    vec3 c = mix(vec3(0.06, 0.06, 0.13), vec3(0.13, 0.12, 0.24), smoothstep(-1.0, 0.9, uv.y));
+    vec2 g = uv - vec2(${TALL ? '0.0, -0.4' : '0.66, -0.12'});
+    c += vec3(0.2, 0.13, 0.28) * exp(-1.6 * dot(g, g));
+    vec2 cell = floor(uv * 26.0), f = fract(uv * 26.0) - 0.5;
+    vec2 o = vec2(hash2(cell + 3.1), hash2(cell + 7.7)) - 0.5;
+    c += vec3(0.9, 0.9, 1.0) * step(0.93, hash2(cell)) * smoothstep(0.06, 0.0, length(f - o * 0.6)) * (0.4 + 0.6 * hash2(cell + 1.3));
+    return c;
+}
+
+// the ray through a point of the screen
+vec3 rayAt(vec2 uv) {
+    vec3 ww = normalize(uTarget - uEye), uu = normalize(cross(ww, vec3(0.0, 1.0, 0.0))), vv = cross(uu, ww);
+    vec2 lens = uv - 2.0 * uShift;
+    return normalize(lens.x * uu + lens.y * vv + uZoom * ww);
+}
+
+// flat colours, in display terms
+vec3 albedo(float m, vec3 p, vec3 n) {
+    if (m == M_FLOOR) {
+        // planks running along x
+        float plank = floor(p.z / 0.2), seam = smoothstep(0.012, 0.0, abs(fract(p.z / 0.2) - 0.5) - 0.48);
+        return mix(vec3(0.85, 0.6, 0.38), vec3(0.78, 0.53, 0.33), hash1(plank)) * (1.0 - 0.25 * seam);
+    }
+    if (m == M_SLAB) return vec3(0.55, 0.36, 0.3);
+    if (m == M_WALL) return abs(n.x) > 0.5 ? vec3(0.98, 0.86, 0.78) : vec3(0.95, 0.8, 0.74);
+    if (m == M_TRIM || m == M_DESK) return vec3(0.99, 0.97, 0.93);
+    if (m == M_METAL) return vec3(0.28, 0.29, 0.36);
+    if (m == M_KEYS) {
+        vec2 k = fract(vec2(p.x / 0.045, p.z / 0.045));
+        return mix(vec3(0.86, 0.87, 0.9), vec3(0.6, 0.62, 0.7), step(0.82, max(k.x, k.y)) * step(0.5, n.y));
+    }
+    if (m == M_CHAIR) return vec3(0.9, 0.24, 0.22);
+    if (m == M_SHELF) return vec3(0.27, 0.66, 0.66);
+    if (floor(m) == M_BOOK) {
+        vec3 c[6] = vec3[6](vec3(0.95, 0.42, 0.36), vec3(0.98, 0.78, 0.3), vec3(0.36, 0.56, 0.92), vec3(0.55, 0.42, 0.85), vec3(0.98, 0.95, 0.88), vec3(0.3, 0.75, 0.55));
+        return c[int(fract(m) * 6.6) % 6];
+    }
+    if (m == M_POT) return vec3(0.9, 0.5, 0.33);
+    if (m == M_SOIL) return vec3(0.36, 0.24, 0.2);
+    if (m == M_LEAF) return vec3(0.35, 0.72, 0.38);
+    if (m == M_LEAF + 0.5) {
+        // snake plant blades: dark green, banded
+        return mix(vec3(0.18, 0.5, 0.3), vec3(0.3, 0.62, 0.36), step(0.5, fract(p.y * 14.0)));
+    }
+    if (m == M_FRAME) return vec3(0.25, 0.2, 0.3);
+    if (m == M_PAPER) {
+        // a certificate: a title bar, lines, a gold seal
+        float y = p.y - 1.95, z = p.z - 0.05;
+        float ink = step(abs(y - 0.08), 0.022) * step(abs(z), 0.14) + step(abs(y + 0.01), 0.008) * step(abs(z), 0.17) + step(abs(y + 0.05), 0.008) * step(abs(z), 0.12);
+        vec3 c = mix(vec3(1.0, 0.98, 0.92), vec3(0.42, 0.36, 0.5), min(ink, 1.0));
+        return mix(c, vec3(0.98, 0.76, 0.2), step(length(vec2(y + 0.1, z - 0.15)), 0.035));
+    }
+    if (m == M_RUG) {
+        float d = length(p.xz - vec2(0.2, -0.15));
+        return mix(vec3(0.42, 0.4, 0.75), vec3(0.98, 0.9, 0.78), step(0.5, fract(d * 4.0)));
+    }
+    if (m == M_MUG) return vec3(0.99, 0.82, 0.28);
+    if (m == M_CORK) return vec3(0.82, 0.62, 0.42);
+    if (floor(m) == M_NOTE) {
+        vec3 c[5] = vec3[5](vec3(1.0, 0.9, 0.4), vec3(1.0, 0.6, 0.7), vec3(0.6, 0.88, 1.0), vec3(0.7, 0.95, 0.6), vec3(1.0, 0.75, 0.45));
+        return c[int(fract(m) / 0.15 + 0.5) % 5];
+    }
+    if (m == M_LAMP) return vec3(0.36, 0.55, 0.95);
+    return vec3(1.0);
+}
+
+// the hit along a ray from the eye: distance and material, and its normal
+vec2 hitAt(vec3 rd, out vec3 n) {
+    vec2 h = march(uEye, rd);
+    n = h.x < 0.0 ? vec3(0.0) : normal(uEye + rd * h.x);
+    return h;
+}
+
+vec3 shade(vec3 ro, vec3 rd, vec2 uv, float jitter) {
+    vec3 n;
+    vec2 h = hitAt(rd, n);
+    vec3 col;
+    if (h.x < 0.0) {
+        col = backdrop(uv);
+    } else {
+        vec3 p = ro + rd * h.x;
+        float m = h.y;
+        // the floor slab's top is the plank floor
+        if (m == M_SLAB && n.y > 0.5) m = M_FLOOR;
+        if (m == M_SCREEN) {
+            // the screen glows: typed text, up to where the typing has got,
+            // and a blinking cursor after it
+            vec3 l = monitorSpace(p);
+            vec2 u = vec2(l.x / (2.0 * SCR.x) + 0.5, 0.5 - l.y / (2.0 * SCR.y));
+            vec2 px = u * vec2(${SCREEN[2].toFixed(1)}, ${SCREEN[3].toFixed(1)});
+            float row = floor((px.y - ${TOP.toFixed(1)}) / ${ROW_H.toFixed(1)}), colm = floor((px.x - ${LEFT.toFixed(1)}) / ${CHAR_W.toFixed(1)});
+            float starts[${ROWS + 1}] = float[${ROWS + 1}](${[...STARTS, TOTAL].map(v => v.toFixed(1)).join(', ')});
+            col = vec3(0.07, 0.1, 0.2);
+            if (row >= 0.0 && row < ${ROWS.toFixed(1)} && colm >= 0.0) {
+                int ri = int(row);
+                vec4 t = atlas(${glslRect(SCREEN)}, u, 0.0);
+                if (starts[ri] + colm < uChars) col = mix(col, t.rgb, t.a);
+                // the cursor sits where the next letter will go
+                bool here = uChars >= starts[ri] && (uChars < starts[ri + 1] || ri == ${ROWS - 1});
+                if (here && colm == uChars - starts[ri] && uBlink > 0.5) col = vec3(0.49, 1.0, 0.7);
             }
+        } else if (m == M_BULB) {
+            col = vec3(1.0, 0.96, 0.8);
+        } else if (m == M_GLASS) {
+            // the night outside, with a moon
+            vec2 w = vec2(p.x - 0.95, p.y - 1.62);
+            col = mix(vec3(0.12, 0.13, 0.32), vec3(0.24, 0.22, 0.5), smoothstep(-0.25, 0.25, w.y));
+            col = mix(col, vec3(1.0, 0.95, 0.75), smoothstep(0.062, 0.055, length(w - vec2(0.13, 0.11))));
+            col = mix(col, vec3(0.9, 0.9, 1.0), step(0.985, hash2(floor(w * 60.0))));
+        } else {
+            // toon light: lit, half lit and shadow, in flat bands
+            vec3 alb = albedo(m, p, n);
+            float sh = softShadow(p + n * 0.003, SUN, 40.0, jitter);
+            float v = dot(n, SUN) * sh;
+            float band = 0.55 + 0.25 * smoothstep(0.0, 0.04, v) + 0.2 * smoothstep(0.5, 0.54, v);
+            float occ = mix(0.8, 1.0, ao(p, n));
+            col = alb * mix(vec3(0.42, 0.44, 0.68), vec3(1.0), band) * occ;
+            // a crisp highlight on the shiny things
+            if (m == M_CHAIR || m == M_MUG || m == M_LAMP || m == M_METAL) {
+                float s = pow(clamp(dot(n, normalize(SUN - rd)), 0.0, 1.0), 60.0);
+                col += 0.35 * smoothstep(0.45, 0.5, s) * sh;
+            }
+            // the lamp throws a warm pool on the desk
+            col += vec3(0.25, 0.18, 0.05) * smoothstep(0.55, 0.0, length(p - vec3(0.62, 1.24, -0.95)) - 0.25) * step(0.5, n.y);
+        }
+    }
 
-            text(p, 'ADITHYA', X + 48, Y + 20, { color: '#3b2622', scale: 2 });
-            chip(p, 'DESIGNER', X + 48, Y + 38, '#ff7a45');
-            chip(p, 'ENGINEER', X + 48, Y + 48, '#4c8dff');
-            chip(p, 'RESEARCHER', X + 48, Y + 58, '#27b38f');
+    // ink outlines: wherever the rays a little to the right and up hit
+    // something else, or the same thing at another depth or angle
+    float ink = 0.0;
+    float off = 3.2 / uRes.y;
+    for (int k = 0; k < 2; k++) {
+        vec3 nn;
+        vec2 g = hitAt(rayAt(uv + (k == 0 ? vec2(off, 0.0) : vec2(0.0, off))), nn);
+        bool a = h.x > 0.0, b = g.x > 0.0;
+        if (a != b) ink = 1.0;
+        else if (a && (abs(g.x - h.x) > 0.06 || floor(g.y) != floor(h.y) || dot(n, nn) < 0.8)) ink = 1.0;
+    }
+    return mix(col, INK, ink);
+}
+`;
 
-            text(p, 'BADGES', X + 8, Y + 71, { color: '#b8574a' });
-            BADGES.forEach((name, i) => {
-                const bx = X + 8 + i * 16, by = Y + 81;
-                p.frame(bx, by, 14, 14, BADGE_COLORS[i], INK, 1);
-                p.rect(bx + 2, by + 1, 10, 1, '#ffffff55');
-                icon(p, name, bx + 2, by + 2);
+        // ---- the title: big and chunky with a hard red shadow, and a small
+        // label above it, rather than the other channels' pill
+        function title(ctx) {
+            const x = TALL ? W / 2 : 150, y0 = TALL ? 300 : 380, size = TALL ? 172 : 160;
+            ctx.textAlign = TALL ? 'center' : 'left';
+            ctx.font = '34px Rodin';
+            ctx.letterSpacing = '8px';
+            ctx.fillStyle = '#ff7a6e';
+            ctx.fillText('PLAYER 1 · RESUME', x + (TALL ? 4 : 0), y0);
+            ctx.font = `${size}px Rodin`;
+            ctx.letterSpacing = '-3px';
+            ['My', 'Resume'].forEach((line, i) => {
+                const y = y0 + 40 + size * (0.92 + i * 1.04);
+                ctx.fillStyle = '#e2413b';
+                ctx.fillText(line, x - 8 + 9, y + 9);
+                ctx.fillStyle = '#fff4e6';
+                ctx.fillText(line, x - 8, y);
             });
-
-            [['DESIGN', 9], ['CODE', 8], ['RESEARCH', 9]].forEach(([label, v], i) => {
-                const ry = Y + 101 + i * 12;
-                text(p, label, X + 8, ry, { color: '#6a3a30' });
-                for (let s = 0; s < 10; s++) {
-                    const on = s < v;
-                    p.rect(X + 62 + s * 7, ry, 6, 7, on ? '#ff8a3d' : '#f0dccb');
-                    if (on) p.rect(X + 62 + s * 7, ry, 6, 2, '#ffc24a');
-                }
-            });
+            ctx.letterSpacing = '0px';
         }
 
-        function draw(p, f) {
-            scenery(p);
-            // "My", "Resume" and PRESS START all centred on the same line
-            const [tx, ty] = LAYOUT.title;
-            logo(p, 'My', {
-                x: tx, y: ty, anchor: 'center', size: 42, outlineWidth: 2,
-                bands: ['#fff3a6', '#ffd84a', '#ffb020', '#f28a12'], light: '#fffbe0', dark: '#c46200',
-                outline: INK, rim: '#ffffff', shadow: '#1d3f8a66',
-            });
-            logo(p, 'Resume', {
-                x: tx, y: ty + 40, anchor: 'center', size: 36, outlineWidth: 2,
-                bands: ['#ffffff', '#fff4ef', '#ffe0d6', '#ffc9b8'], light: '#ffffff', dark: '#f0a590',
-                outline: '#9e1712', rim: '#ffffff', shadow: '#1d3f8a66',
-            });
-            if (f % 12 < 8) text(p, 'PRESS START', ...LAYOUT.start, { color: '#ffffff', outline: INK, anchor: 'center' });
-            card(p, f);
-            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4));
-        }
-
-        runFrames(draw, { frames: 12, delay: 140 });
+        runStudio({
+            frag: studioShader({ head: HEAD, geometry: GEOMETRY, materials: MATERIALS, atlasSize: ATLAS }),
+            view: VIEW,
+            frames: FRAMES,
+            delay: DELAY,
+            pose,
+            // only the monitor's screen changes
+            moving: [[[MON[0] - SCR[0] - 0.05, MON[0] + SCR[0] + 0.05], [MON[1] - SCR[1] - 0.05, MON[1] + SCR[1] + 0.05], [MON[2] - 0.25, MON[2] + 0.25]]],
+            atlas: makeAtlas,
+            fonts: [new FontFace('Courier Prime', 'url("fonts/CourierPrime-Bold.woff2")', { weight: '700' })],
+            title,
+        });
     </script>
 </body>
 </html>
