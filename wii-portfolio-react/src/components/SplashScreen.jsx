@@ -178,28 +178,34 @@ export function SplashScreen({ onComplete }) {
         <div className="splash">
             {showWarning && (
                 <div className="warning" onClick={handleClick}>
-                    <div className="warning-container">
-                        {/* A short hello before the menu, in place of the Wii's
-                            health and safety screen */}
-                        <div className="intro">
-                            <img src="/assets/mii-avatar.png" className="intro-mii" alt="" />
-                            <h1 className="intro-title">Hi, I&apos;m Adi.</h1>
-                            <p className="intro-lead">
-                                I research, design, make games and write code.
-                                This portfolio is a Wii menu, and every channel is something I made.
-                            </p>
-                            <ul className="intro-hints">
-                                <li><b>Click</b> a channel to open it</li>
-                                <li className="intro-desktop-only"><b>Right-click</b> for the Home menu</li>
-                            </ul>
-                            <p className="intro-note">Best on a computer. Phones work too, just a bit squished.</p>
+                    {/* Laid out like the Wii's health and safety screen */}
+                    <div className="hs">
+                        <h1 className="hs-title">
+                            <svg className="hs-icon" viewBox="0 0 64 56" aria-hidden="true">
+                                <path d="M32 3 L62 53 H2 Z" fill="#fff" strokeLinejoin="round" />
+                                <rect x="29" y="18" width="6" height="19" rx="3" fill="#000" />
+                                <circle cx="32" cy="45" r="3.6" fill="#000" />
+                            </svg>
+                            WARNING-HEALTH AND SAFETY
+                        </h1>
+
+                        <div className="hs-caps">
+                            <p>Hi, I&apos;m Adi. I research, design, make games and write code.</p>
+                            <p>This portfolio is a Wii menu, and every channel is something I made.</p>
+                        </div>
+
+                        <div className="hs-small">
+                            <p>Click a channel to open it.</p>
+                            <p className="intro-desktop-only">Right-click for the Home menu.</p>
                         </div>
 
                         {canClick ? (
-                            <span style={{ opacity: 1 }}>{isTouch ? 'Tap' : 'Click'} anywhere to start.</span>
+                            <span className="hs-press">{isTouch ? 'Tap' : 'Click'} anywhere to start.</span>
                         ) : (
-                            <span style={{ animation: 'none', opacity: 0.5 }}>Loading...</span>
+                            <span className="hs-press hs-loading">Loading...</span>
                         )}
+
+                        <p className="hs-note">Best on a computer. Phones work too, just a bit squished.</p>
                     </div>
                 </div>
             )}
