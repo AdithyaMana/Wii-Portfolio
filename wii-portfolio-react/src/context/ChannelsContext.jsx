@@ -32,6 +32,16 @@ const DEFAULT_CHANNELS = [
         mobileart: true
     },
     {
+        id: 'poster-row-tracker',
+        title: 'Poster-Row Tracker',
+        assets: 'assets/channels/',
+        channelart: 'channelart/',
+        target: 'https://poster-row-tracker.web.app/',
+        embed: 'https://poster-row-tracker.web.app/',
+        videoformat: 'webp',
+        mobileart: true
+    },
+    {
         id: 'research-agent',
         title: 'Research Agent',
         assets: 'assets/channels/',
@@ -57,16 +67,6 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: 'https://medium.com/@akirauxr/cat-videos-a-panicked-discord-message-and-14-icons-a4cc5a2c4e6c',
-        videoformat: 'webp',
-        mobileart: true
-    },
-    {
-        id: 'poster-row-tracker',
-        title: 'Poster-Row Tracker',
-        assets: 'assets/channels/',
-        channelart: 'channelart/',
-        target: 'https://poster-row-tracker.web.app/',
-        embed: 'https://poster-row-tracker.web.app/',
         videoformat: 'webp',
         mobileart: true
     },
