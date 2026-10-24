@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useAudio } from '../context/AudioContext';
 import { useConfig } from '../context/ConfigContext';
-import { MOBILE_ART_QUERY, artUrl, mobileArtSrc } from '../channelArt';
+import { WiiSpinner } from './WiiSpinner';
+import { MOBILE_ART_QUERY, artUrl, audioSrc, mobileArtSrc } from '../channelArt';
 
 const MiiPaper = lazy(() => import('./MiiPaper').then(m => ({ default: m.MiiPaper })));
 const WiiTab = lazy(() => import('./WiiTab').then(m => ({ default: m.WiiTab })));
@@ -30,9 +31,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
         bgMusicToggle(false);
 
         if (channel && audioRef.current) {
-            const audioFormat = channel.audioformat || 'mp3';
-            const audioSrc = `/${channel.assets}${channel.id}/audio.${audioFormat}`;
-            audioRef.current.src = audioSrc;
+            audioRef.current.src = audioSrc(channel);
             audioRef.current.currentTime = 0;
             // Ensure each channel preview starts at configured volume
             audioRef.current.volume = config.musicVol ?? 0.5;
@@ -212,12 +211,7 @@ export function ChannelSelection({ channel, onBack, onNext, onPrev, isReturning 
                         alignItems: 'center',
                         backgroundColor: 'black' // Or match the background pattern color
                     }}>
-                        <img
-                            src="/assets/loading.png"
-                            alt="Loading..."
-                            className="loading"
-                            style={{ width: '10vh', height: '10vh' }}
-                        />
+                        <WiiSpinner size="10vh" />
                     </div>
                 )}
 

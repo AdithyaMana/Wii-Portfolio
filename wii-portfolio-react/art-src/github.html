@@ -8,172 +8,266 @@
     <pre id="out"></pre>
     <script src="pixel.js"></script>
     <script>
+        // The commit graph as a night-time metro map: a green main line, two
+        // branches that split off and merge back at stations, and little
+        // commit trains looping around it.
         const INK = '#010409';
-        // GitHub's contribution greens, from an empty day to a busy one
-        const GREENS = ['#1f2630', '#0e4429', '#006d32', '#26a641', '#39d353'];
+        const GREEN = '#39d353', GREEN_D = '#26a641', PURPLE = '#a371f7', BLUE = '#58a6ff';
+        const FRAMES = 24;
 
-        // Where everything sits on the wide canvas and on the tall phone one.
-        // weeks is how long the skyline runs; origin is where its first day sits.
-        const LAYOUT = TALL ? {
-            title: [12, 28], weeks: 14, origin: [20, 182], legend: [14, 268],
-            twinkles: [[150, 20, 0], [120, 104, 2], [20, 120, 1], [166, 150, 3], [150, 296, 1]],
+        // Everything on the map is laid out along u (the way trains run) and v
+        // (across it), then mapped to the screen: u is x on the wide canvas and
+        // y on the tall phone one. a is how far a branch swings out.
+        const A = 26;
+        const L = TALL ? {
+            map: (u, v) => [v, u],
+            v0: 92, range: [70, 390], clip: 104, b1: -1, b2: 1,
+            s1: 120, m1: 200, s2: 218, m2: 290,
+            title: [14, 20], handle: [14, 62],
+            octo: [100, 174], plat: [98, 198, 76], sign: [132, 146],
+            twinkles: [[160, 20, 0], [20, 94, 2], [166, 70, 1], [14, 300, 3], [160, 250, 2]],
+            moon: [154, 88],
         } : {
-            title: [12, 20], weeks: 22, origin: [126, 78], legend: [14, 138],
-            twinkles: [[180, 14, 0], [300, 30, 2], [240, 10, 1], [110, 60, 3], [96, 118, 1]],
+            map: (u, v) => [u, v],
+            v0: 124, range: [-50, 370], clip: -999, b1: -1, b2: 1,
+            s1: 40, m1: 150, s2: 180, m2: 280,
+            title: [14, 12], handle: [14, 54],
+            octo: [234, 90], plat: [228, 114, 90], sign: [272, 94],
+            twinkles: [[180, 14, 0], [300, 20, 2], [200, 40, 1], [118, 72, 3], [14, 160, 1], [190, 160, 2]],
+            moon: [296, 38],
         };
-        // 12px isometric tiles: S across and Q down per grid step
-        const TW = 12, S = TW / 2, Q = TW / 4;
-        const HEIGHTS = [1, 4, 8, 13, 19].map(h => Math.round(h * TW / 8));
+        const [U0, U1] = L.range;
+        const SLOT = (U1 - U0) / 4;
 
-        // A year of made-up but plausible activity: busy stretches, quiet
-        // weekends, the odd big day
-        function contributions(weeks) {
-            const rand = rng(1337), grid = [];
-            for (let i = 0; i < weeks; i++) {
-                const season = 0.55 + 0.45 * Math.sin(i / 4.3 + 1.2);
-                grid.push([0, 1, 2, 3, 4, 5, 6].map(j => {
-                    const weekend = j === 0 || j === 6 ? 0.5 : 1;
-                    const v = rand() * (0.3 + 0.7 * season) * weekend * 5.4 + 0.35;
-                    return Math.max(0, Math.min(4, Math.floor(v)));
-                }));
-            }
-            return grid;
+        // a branch as a polyline of [u, v] corners
+        function branch(s, m, sign) {
+            return [[U0, 0], [s, 0], [s + A, sign * A], [m - A, sign * A], [m, 0], [U1, 0]];
         }
-        const GRID = contributions(LAYOUT.weeks);
+        const LINES = [
+            { pts: [[Math.max(U0, L.clip), 0], [U1, 0]], color: GREEN },
+            { pts: branch(L.s1, L.m1, L.b1), color: PURPLE, from: L.s1, to: L.m1 },
+            { pts: branch(L.s2, L.m2, L.b2), color: BLUE, from: L.s2, to: L.m2 },
+        ];
+        const at = (u, dv) => L.map(u, L.v0 + dv);
 
-        // Isometric helpers: cell (i, j) covers [i, i+1] x [j, j+1] in grid
-        // units; weeks run down-right and days up-right, at the 2:1 pixel slope.
-        // UP and DN are the top face's upper and lower edge in each column.
-        const [OX, OY] = LAYOUT.origin;
-        const iso = (u, v) => [OX + S * (u + v), OY + Q * (u - v) + Q];
-        const UP = [...Array(TW)].map((_, k) => Q - Math.ceil(Math.min(k, TW - 1 - k) / 2)), DN = UP.map(u => 2 * Q - u);
-
-        function block(p, i, j, h, c, lit) {
-            const X = OX + S * (i + j), Y = OY + Q * (i - j) - h;
-            for (let k = 0; k < TW; k++) {
-                const x = X + k;
-                for (let y = Y + DN[k] + 1; y <= Y + DN[k] + h; y++) p.set(x, y, k < S ? c : shade(c, 0.6));
-                if (h > 1) p.set(x, Y + DN[k] + h, shade(c, k < S ? 0.75 : 0.45));
-                // top face, with a faint seam along its front edges so neighbouring
-                // days of the same level still read as separate cells
-                for (let y = Y + UP[k]; y <= Y + DN[k]; y++) p.set(x, y, lit ? shade(c, 1.7) : y === Y + DN[k] ? shade(c, 1.1) : shade(c, 1.28));
+        function vAt(pts, u) {
+            for (let i = 1; i < pts.length; i++) {
+                const [u0, v0] = pts[i - 1], [u1, v1] = pts[i];
+                if (u <= u1) return u1 === u0 ? v1 : v0 + (v1 - v0) * (u - u0) / (u1 - u0);
             }
+            return 0;
         }
 
-        // The skyline sits on a slab like a GitHub Skyline print, with the
-        // handle engraved along its long front face
-        function plinth(p) {
-            const C = LAYOUT.weeks, T = Math.round(10 * TW / 8);
-            const [lx] = iso(-1, -1), [rx] = iso(C + 1, 8);
-            for (let x = lx; x <= rx; x++) {
-                for (let y = OY - 10 * Q; y < OY + Q * (C + 10); y++) {
-                    const a = (x - OX) / S, b = (y - OY - Q) / Q, u = (a + b) / 2, v = (a - b) / 2;
-                    if (u >= -1 && u <= C + 1 && v >= -1 && v <= 8) p.set(x, y, '#161b22');
+        function sky(p) {
+            p.vgrad(0, 0, PW, PH, ['#0d1117', '#0d1117', '#101a2b', '#16243a']);
+            // far-off skyline with a few lit windows
+            const rand = rng(77);
+            const base = TALL ? 318 : 170;
+            for (let x = 0; x < (TALL ? 180 : 320); x += 0) {
+                const w = 10 + Math.floor(rand() * 12), h = 8 + Math.floor(rand() * 26);
+                if (TALL) {
+                    p.rect(x, base - h, w, h + 2, '#0f1824');
+                    for (let k = 0; k < 4; k++) if (rand() > 0.5) p.set(x + 2 + Math.floor(rand() * (w - 4)), base - h + 3 + Math.floor(rand() * (h - 4)), '#2c3b52');
+                } else {
+                    p.rect(x, base - h, w, h + 10, '#0f1824');
+                    for (let k = 0; k < 4; k++) if (rand() > 0.5) p.set(x + 2 + Math.floor(rand() * (w - 4)), base - h + 3 + Math.floor(rand() * (h - 4)), '#2c3b52');
                 }
-            }
-            // front-left face along the weeks, front-right face along the days
-            const [ax, ay] = iso(-1, -1), [bx, by] = iso(C + 1, -1), [cx, cy] = iso(C + 1, 8);
-            for (let x = ax; x <= bx; x++) {
-                const top = Math.round(ay + (by - ay) * (x - ax) / (bx - ax));
-                for (let y = top + 1; y <= top + T; y++) p.set(x, y, y === top + 1 ? '#30363d' : '#0d1117');
-            }
-            for (let x = bx; x <= cx; x++) {
-                const top = Math.round(by + (cy - by) * (x - bx) / (cx - bx));
-                for (let y = top + 1; y <= top + T; y++) p.set(x, y, y === top + 1 ? '#21262d' : '#07090d');
-            }
-            // engraved handle, sheared to run down the face at the same slope
-            const { m, pad } = textMask('@ADITHYAMANA');
-            const tx = ax + 12;
-            for (let my = 0; my < m.h; my++) {
-                for (let mx = 0; mx < m.w; mx++) {
-                    if (!m.get(mx, my)) continue;
-                    const x = tx + mx - pad, top = Math.round(ay + (by - ay) * (x - ax) / (bx - ax));
-                    p.set(x, top + 4 + my - pad, '#8b949e');
-                }
+                x += w + 1;
             }
         }
 
-        function skyline(p, f) {
-            const C = LAYOUT.weeks, cells = [];
-            for (let i = 0; i < C; i++) for (let j = 0; j < 7; j++) cells.push([i, j]);
-            // back to front: cells further down the screen are nearer
-            cells.sort((a, b) => (a[0] - a[1]) - (b[0] - b[1]) || a[0] - b[0]);
-            // a light sweeps along the weeks once per loop
-            const sweep = Math.floor((f / 12) * (C + 6)) - 3;
-            cells.forEach(([i, j]) => {
-                const lv = GRID[i][j];
-                block(p, i, j, HEIGHTS[lv], GREENS[lv], lv > 0 && Math.abs(i - sweep) < 1);
+        function moon(p) {
+            const [x, y] = L.moon;
+            for (let j = -10; j <= 10; j++) for (let i = -10; i <= 10; i++) {
+                const inMoon = i * i + j * j <= 90, bite = (i - 5) * (i - 5) + (j + 3) * (j + 3) <= 62;
+                if (inMoon && !bite) p.set(x + i, y + j, i + j < -4 ? '#f0f6fc' : '#c9d1d9');
+            }
+        }
+
+        function drawLines(p) {
+            const dark = '#06090f';
+            // each line is drawn in full from its first corner to its last
+            const runs = LINES.map(l => (l.from === undefined ? l.pts : l.pts.filter(([u]) => u >= l.from && u <= l.to)));
+            for (const w of [8, 6]) {
+                runs.forEach((pts, n) => {
+                    for (let i = 1; i < pts.length; i++) {
+                        const [x0, y0] = L.map(pts[i - 1][0], L.v0 + pts[i - 1][1]), [x1, y1] = L.map(pts[i][0], L.v0 + pts[i][1]);
+                        p.thick(x0, y0, x1, y1, w, w === 8 ? dark : LINES[n].color);
+                    }
+                });
+            }
+            // sleepers: a lighter dash every few px along each run
+            runs.forEach((pts, n) => {
+                for (let u = pts[0][0]; u <= pts[pts.length - 1][0]; u += 6) {
+                    const [x, y] = at(u, vAt(pts, u));
+                    p.set(x, y, shade(LINES[n].color, 1.5));
+                }
             });
         }
 
-        // Mona the Octocat, standing on the tallest tower
-        const OCTO = [
-            '.KK.........KK.',
-            'KBBK.......KBBK',
-            'KBBBKKKKKKKBBBK',
-            'KBBBBBBBBBBBBBK',
-            'KBBSSSSSSSSSBBK',
-            'KBSSSSSSSSSSSBK',
-            'KBSSEsSSSEsSSBK',
-            'KBSSEESSSEESSBK',
-            'KBSSSSSPSSSSSBK',
-            '.KBSSSSSSSSSBK.',
-            '..KBBBBBBBBBK..',
-            '.KBBBBBBBBBBBK.',
-            'KBBKBBKBKBBKBBK',
-            'KBK.KBK.KBK.KBK',
-            '.K...K...K...K.',
-        ];
-        const OCTO_PAL = { K: INK, B: '#2d333b', S: '#f5c7a9', E: '#24292f', s: '#ffffff', P: '#e27d8f' };
-
-        function mona(p, f) {
-            let best = [0, 0], top = -1;
-            GRID.forEach((w, i) => w.forEach((lv, j) => { if (lv > top || (lv === top && i > best[0] && i < LAYOUT.weeks * 0.6)) { top = lv; best = [i, j]; } }));
-            const [i, j] = best, h = HEIGHTS[top];
-            const x = OX + S * (i + j) + S - 7, y = OY + Q * (i - j) - h + Q - 14;
-            const bob = [0, 0, -1, -1, 0, 0][f % 6];
-            p.sprite(OCTO, OCTO_PAL, x, y + bob);
-            if (f % 12 === 5) [6, 10].forEach(c => p.rect(x + c - 2, y + bob + 6, 2, 2, OCTO_PAL.S));
+        function station(p, u, dv, big = false) {
+            const [x, y] = at(u, dv), r = big ? 4 : 3;
+            p.disc(x, y, r + 1, INK);
+            p.disc(x, y, r, '#f0f6fc');
+            p.disc(x, y, r - 2, '#0d1117');
         }
 
-        // "+1" floating up from a day during the first half of the loop
-        function plusOne(p, f) {
-            if (f > 7) return;
-            const i = Math.floor(LAYOUT.weeks * 0.78), j = 3, lv = GRID[i][j];
-            const x = OX + S * (i + j) + S - 5, y = OY + Q * (i - j) - HEIGHTS[lv] - 8 - f * 2;
-            text(p, '+1', x, y, { color: f > 5 ? '#39d35388' : '#39d353', outline: INK });
+        function pill(p, str, x, y, color) {
+            const w = textWidth(str) + 5;
+            p.frame(x, y, w, 11, color, INK, 1);
+            text(p, str, x + 3, y + 2, { color: INK });
+            return w;
+        }
+
+        // a car drawn in its own (along, across) space, clipped to the visible map
+        function car(p, u, v, kind, color) {
+            const lenA = kind === 'engine' ? 12 : 10, wid = 7;
+            const cu = Math.round(u), cv = Math.round(v);
+            for (let a = 0; a < lenA; a++) {
+                for (let b = 0; b < wid; b++) {
+                    const uu = cu - Math.floor(lenA / 2) + a;
+                    if (uu < L.clip) continue;
+                    let c = null;
+                    const edge = a === 0 || a === lenA - 1 || b === 0 || b === wid - 1;
+                    const corner = (a === 0 || a === lenA - 1) && (b === 0 || b === wid - 1);
+                    if (corner) continue;
+                    if (edge) c = INK;
+                    else if (b === 1) c = shade(color, 1.4);
+                    else if (b >= 2 && b <= 3 && a >= 2 && a <= lenA - 3 && (a % 3 !== 0 || kind === 'engine')) c = '#d7ecff';
+                    else c = shade(color, b === 5 ? 0.7 : 1);
+                    if (kind === 'engine') {
+                        if (a === lenA - 2 && b >= 2 && b <= 4) c = '#fff3a6';
+                        if (a >= lenA - 5 && a <= lenA - 3 && b >= 2 && b <= 3) c = '#d7ecff';
+                        if (a < lenA - 5 && b >= 2 && b <= 3) c = shade(color, 0.85);
+                    }
+                    const [x, y] = L.map(uu, L.v0 + cv + (b - 3));
+                    p.set(x, y, c);
+                }
+            }
+            // wheels
+            for (const a of [2, lenA - 3]) {
+                const uu = cu - Math.floor(lenA / 2) + a;
+                if (uu < L.clip) continue;
+                const [x, y] = L.map(uu, L.v0 + cv + 4);
+                p.set(x, y, '#c9d1d9');
+            }
+        }
+
+        function trains(p, f) {
+            // two trains alternate round the loop: one takes the first branch,
+            // the other the second. Each moves two slots in FRAMES frames.
+            for (let k = 0; k < 4; k++) {
+                const which = k % 2;
+                const head = U0 + ((k * SLOT + f * 2 * SLOT / FRAMES) % (U1 - U0));
+                const pts = which === 0 ? LINES[1].pts : LINES[2].pts;
+                const color = which === 0 ? '#2ea043' : '#1f6feb';
+                const body = which === 0 ? GREEN_D : '#388bfd';
+                for (let c = 0; c < 4; c++) {
+                    const u = head - c * 11;
+                    const uu = u < U0 ? u + (U1 - U0) : u;
+                    car(p, uu, vAt(pts, uu), c === 0 ? 'engine' : 'car', c === 0 ? color : body);
+                }
+            }
+        }
+
+        const OCTO = [
+            '..##......##..',
+            '.####....####.',
+            '##############',
+            '##############',
+            '##ee######ee##',
+            '##ee######ee##',
+            '##############',
+            '.############.',
+            '..gggggggggg..',
+            '.############.',
+            '.##.##..##.##.',
+            '..#..#..#..#..',
+        ];
+
+        function platform(p) {
+            const [x, y, w] = L.plat;
+            p.rect(x, y, w, 5, '#8b949e');
+            p.rect(x, y, w, 1, '#c9d1d9');
+            p.rect(x, y + 4, w, 1, '#484f58');
+            for (let i = 4; i < w - 2; i += 8) p.rect(x + i, y + 2, 4, 1, '#ffd23f');
+        }
+
+        function octocat(p, f) {
+            const [x, y] = L.octo;
+            const bob = f % 12 < 6 ? 0 : 1;
+            const pal = { '#': '#f0f6fc', e: INK, g: GREEN };
+            // lantern held out on a tentacle, swinging
+            const sw = [0, 1, 2, 1][Math.floor(f / 3) % 4] * 2;
+            p.thick(x + 27, y + 12 + bob, x + 32 + sw, y + 4 + bob, 2, '#f0f6fc');
+            p.rect(x + 31 + sw, y - 2 + bob, 6, 7, INK);
+            p.rect(x + 32 + sw, y - 1 + bob, 4, 5, '#ffd23f');
+            p.rect(x + 33 + sw, y + bob, 2, 2, '#fff8c4');
+            p.sprite(OCTO, pal, x, y + bob, { scale: 2 });
+            // eyes catch the light
+            p.set(x + 5, y + 9 + bob, '#fff'); p.set(x + 21, y + 9 + bob, '#fff');
+            p.rect(x + 2, y + 24 + bob, 24, 1, '#06090f');
+        }
+
+        function sign(p) {
+            const [x, y] = L.sign;
+            p.rect(x + 12, y + 8, 2, L.plat[1] - y - 8, '#30363d');
+            const w = textWidth('SHIP IT') + 8;
+            p.frame(x, y, w, 12, GREEN_D, INK, 1);
+            p.rect(x + 1, y + 1, w - 2, 1, GREEN);
+            text(p, 'SHIP IT', x + 4, y + 3, { color: '#fff' });
+        }
+
+        function tunnel(p) {
+            if (!TALL) return;
+            const x = L.v0, y = L.clip + 2;
+            p.panel(x - 22, y - 22, 44, 22, '#2c3b52', 2);
+            p.panel(x - 21, y - 21, 42, 21, '#1b2638', 2);
+            p.rect(x - 21, y - 21, 42, 1, '#3d4f6b');
+            for (let r = 0; r < 4; r++) for (let c = r % 2 ? 4 : 0; c < 42; c += 8) p.rect(x - 21 + c, y - 18 + r * 4, 6, 1, '#223048');
+            p.panel(x - 9, y - 14, 18, 14, INK, 2);
+            p.rect(x - 8, y - 13, 16, 1, '#2c3b52');
         }
 
         function draw(p, f) {
-            p.vgrad(0, 0, PW, PH, ['#05070c', '#0d1117', '#101a2a', '#132640']);
-            const rand = rng(8);
-            for (let s = 0; s < (TALL ? 60 : 70); s++) {
-                const x = Math.floor(rand() * PW), y = Math.floor(rand() * PH), c = rand() > 0.8 ? '#8b949e' : '#30363d';
-                p.set(x, y, c);
-            }
-            LAYOUT.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o) % 4, '#c9d1d9'));
-
-            plinth(p);
-            skyline(p, f);
-            mona(p, f);
-            plusOne(p, f);
-
-            const [tx, ty] = LAYOUT.title;
+            sky(p);
+            moon(p);
+            L.twinkles.forEach(([x, y, o]) => twinkle(p, x, y, (f + o * 3) >> 1));
+            const [tx, ty] = L.title;
             logo(p, 'GitHub', {
-                x: tx, y: ty, size: 44, outlineWidth: 2,
-                bands: ['#ffffff', '#eef2f6', '#d0d7de', '#aeb8c4'], light: '#ffffff', dark: '#8c959f',
-                outline: INK, rim: '#ffffff', shadow: '#000000aa',
+                x: tx, y: ty, size: TALL ? 38 : 40, outlineWidth: 2,
+                bands: ['#ffffff', '#f0f6fc', '#c9d1d9', '#8b949e'], light: '#ffffff', dark: '#6e7681',
+                outline: INK, rim: '#ffffff', shadow: '#010409cc',
             });
-            text(p, '@ADITHYAMANA', tx + 2, ty + 46, { color: '#39d353', outline: INK });
-
-            const [gx, gy] = LAYOUT.legend;
-            text(p, 'CONTRIBUTIONS', gx, gy, { color: '#c9d1d9', outline: INK });
-            text(p, 'LESS', gx, gy + 13, { color: '#8b949e' });
-            GREENS.forEach((c, k) => { p.rect(gx + 27 + k * 9, gy + 12, 8, 8, INK); p.rect(gx + 28 + k * 9, gy + 13, 6, 6, c); });
-            text(p, 'MORE', gx + 75, gy + 13, { color: '#8b949e' });
+            logo(p, '@AdithyaMana', {
+                x: L.handle[0], y: L.handle[1], size: TALL ? 18 : 17, outlineWidth: 1, dotGap: 1,
+                bands: [GREEN, GREEN, GREEN_D, GREEN_D], light: '#a6f5b4', dark: '#196c2e',
+                outline: INK, shadow: '#010409cc',
+            });
+            drawLines(p);
+            // stations at every split and merge, plus a stop along each branch
+            [L.s1, L.m1, L.s2, L.m2].forEach(u => station(p, u, 0, true));
+            station(p, (L.s1 + L.m1) / 2, L.b1 * A);
+            station(p, (L.s2 + L.m2) / 2, L.b2 * A);
+            trains(p, f);
+            tunnel(p);
+            if (!TALL) {
+                const lbl = (s, c, u, dv) => { const [x, y] = at(u, dv); pill(p, s, x, y, c); };
+                lbl('MAIN', GREEN, 4, 14);
+                lbl('FEATURE', PURPLE, 68, -44);
+                lbl('HOTFIX', BLUE, 198, 32);
+            } else {
+                const lbl = (s, c, x, y) => pill(p, s, x, y, c);
+                lbl('FEATURE', PURPLE, 12, 166);
+                lbl('HOTFIX', BLUE, 127, 262);
+                lbl('MAIN', GREEN, 128, 304);
+            }
+            platform(p);
+            sign(p);
+            octocat(p, f);
         }
 
-        runFrames(draw, { frames: 12, delay: 140 });
+        runFrames(draw, { frames: FRAMES, delay: 100, fonts: ['16px Rubik'] });
     </script>
 </body>
 </html>

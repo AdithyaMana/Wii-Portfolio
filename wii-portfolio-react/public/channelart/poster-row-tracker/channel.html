@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poster-Row Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #dbe8f8;
+        }
+
+        .channel-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            animation: channel-fade-in 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        @keyframes channel-fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* The channel art; the WebP carries its own looping animation */
+        .channel-art {
+            position: absolute;
+            inset: 0;
+            background: center / cover no-repeat;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="channel-container">
+        <div class="channel-art"></div>
+        <script>
+            // The page's ?v= version is passed on to the art so that new art
+            // isn't hidden behind the year-long cache the host gives it
+            const v = new URLSearchParams(location.search).get('v');
+            document.querySelector('.channel-art').style.backgroundImage = `url('channel.webp${v ? `?v=${encodeURIComponent(v)}` : ''}')`;
+        </script>
+    </div>
+</body>
+
+</html>

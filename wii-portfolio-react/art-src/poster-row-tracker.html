@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Poster-Row Tracker 3D art</title>
+</head>
+<body>
+    <pre id="out"></pre>
+    <script src="studio.js"></script>
+    <script>
+        // A short row of the poster hall as a little diorama: three light
+        // wooden A-frame stands with colourful posters and blue aisle signs,
+        // on a square of blue carpet. Three capsule visitors stand and
+        // walk the aisle, each with a glowing tracking ring on the floor,
+        // and a heat pool builds up in front of the most-viewed poster.
+        //
+        // The posters, signs and the dwell-time tag are drawn on a canvas the
+        // shader reads as a texture; studio.js does the rest. The loop is
+        // one breath of the rings and one drift of the third visitor.
+        const FRAMES = 12, DELAY = 108;
+
+        const VIEW = viewFrom(TALL ? {
+            eye: [2.8, 7.0, 13.0], target: [-0.1, 0.8, 0.5], zoom: 2.4, shift: [0.0, -0.17],
+        } : {
+            eye: [5.3, 5.5, 13.5], target: [0.1, 0.75, 0.35], zoom: 4.9, shift: [0.31, -0.02],
+        });
+
+        // ---- the atlas: three posters, three aisle signs and the dwell tag
+        const ATLAS = 2048;
+        const PW = 0.55, PH = 0.75;                 // half size of a poster, in world units
+        const POSTERS = [[8, 8, 640, 873], [660, 8, 640, 873], [1312, 8, 640, 873]];
+        const SIGN_HALF = [0.46, 0.13];
+        const SIGNS = [[8, 900, 720, 204], [8, 1116, 720, 204], [8, 1332, 720, 204]];
+        const SIGN_TEXT = ['LBP 009-014', 'LBP 015-020', 'LBP 021-026'];
+        const TAG_HALF = [0.36, 0.15];
+        const TAG = [8, 1560, 480, 200];
+
+        function makeAtlas() {
+            const c = document.createElement('canvas');
+            c.width = c.height = ATLAS;
+            const ctx = c.getContext('2d');
+            const rr = (x, y, w, h, r, fill) => { ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); };
+            const lines = (x, y, widths, fill, gap = 22, h = 11) => widths.forEach((w, i) => rr(x, y + i * gap, w, h, h / 2, fill));
+
+            // ---- the posters: a coloured header, a figure and some text
+            const palette = [
+                { main: '#ff6b5b', dark: '#d94a3d', soft: '#ffd9d3', alt: '#ffc233' },
+                { main: '#17b3a3', dark: '#0c8578', soft: '#cdf1ec', alt: '#ff8a3d' },
+                { main: '#7a5cff', dark: '#5738d6', soft: '#e0d9ff', alt: '#ffc233' },
+            ];
+            palette.forEach((col, k) => {
+                const [x, y, w, h] = POSTERS[k];
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.fillStyle = '#fffdf7';
+                ctx.fillRect(0, 0, w, h);
+                // header block with the title as bars
+                ctx.fillStyle = col.main;
+                ctx.fillRect(0, 0, w, 214);
+                rr(40, 44, 420, 34, 17, '#ffffff');
+                rr(40, 96, 330, 34, 17, '#ffffff');
+                lines(40, 154, [180], 'rgba(255,255,255,0.65)', 22, 14);
+                rr(w - 128, 42, 88, 88, 44, col.alt);
+                if (k === 0) {
+                    // a bar chart
+                    rr(40, 250, 560, 270, 22, col.soft);
+                    [0.35, 0.55, 0.42, 0.85, 0.65].forEach((v, i) => rr(76 + i * 104, 490 - 200 * v, 66, 200 * v, 8, i === 3 ? col.dark : col.main));
+                    ctx.fillStyle = '#2a3038';
+                    ctx.fillRect(64, 490, 512, 5);
+                } else if (k === 1) {
+                    // a donut chart and a legend
+                    rr(40, 250, 560, 270, 22, col.soft);
+                    const cx = 190, cy = 385, parts = [[0.42, col.main], [0.28, col.alt], [0.18, col.dark], [0.12, '#ffffff']];
+                    let a = -Math.PI / 2;
+                    parts.forEach(([f, fill]) => {
+                        ctx.beginPath(); ctx.arc(cx, cy, 98, a, a + f * Math.PI * 2); ctx.arc(cx, cy, 52, a + f * Math.PI * 2, a, true); ctx.closePath();
+                        ctx.fillStyle = fill; ctx.fill(); a += f * Math.PI * 2;
+                    });
+                    parts.forEach(([, fill], i) => { rr(340, 316 + i * 46, 26, 26, 8, fill); rr(380, 322 + i * 46, 170 - i * 18, 13, 6.5, '#8da7a3'); });
+                } else {
+                    // a picture and a line chart
+                    const g = ctx.createLinearGradient(0, 250, 0, 520);
+                    g.addColorStop(0, '#ffd27a'); g.addColorStop(1, '#ff8a6b');
+                    rr(40, 250, 560, 270, 22, g);
+                    ctx.fillStyle = col.main; ctx.beginPath(); ctx.moveTo(40, 520); ctx.lineTo(220, 360); ctx.lineTo(340, 460); ctx.lineTo(450, 340); ctx.lineTo(600, 480); ctx.lineTo(600, 520); ctx.lineTo(40, 520); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(480, 322, 38, 0, 7); ctx.fill();
+                }
+                // columns of text, a pull quote, and a QR-ish square
+                rr(40, 556, 90, 16, 8, col.main);
+                lines(40, 592, [250, 220, 250, 190, 240, 170], '#cfd6d3');
+                rr(330, 556, 90, 16, 8, col.main);
+                lines(330, 592, [270, 230, 270, 200], '#cfd6d3');
+                rr(330, 700, 270, 110, 16, col.soft);
+                lines(352, 726, [200, 160], col.dark, 30, 14);
+                for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
+                    if ((i * 7 + j * 3 + k) % 3 !== 0 || (i % 4 === 0 && j % 4 === 0)) rr(40 + i * 17, 720 + j * 17, 14, 14, 3, '#2a3038');
+                }
+                rr(40, h - 34, w - 80, 8, 4, col.soft);
+                ctx.restore();
+            });
+
+            // ---- the aisle-end signs: white type on blue
+            SIGNS.forEach(([x, y, w, h], k) => {
+                const g = ctx.createLinearGradient(0, y, 0, y + h);
+                g.addColorStop(0, '#3a7bec'); g.addColorStop(1, '#2459c8');
+                ctx.fillStyle = g;
+                ctx.fillRect(x, y, w, h);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '100px Rodin';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText(SIGN_TEXT[k], x + w / 2, y + h / 2 + 34);
+            });
+
+            // ---- the dwell-time tag: a clock and the time
+            {
+                const [x, y, w, h] = TAG;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeStyle = '#2f6be0'; ctx.lineWidth = 12; ctx.lineCap = 'round';
+                ctx.beginPath(); ctx.arc(x + 82, y + h / 2, 44, 0, 7); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(x + 82, y + h / 2 - 26); ctx.lineTo(x + 82, y + h / 2); ctx.lineTo(x + 102, y + h / 2 + 12); ctx.stroke();
+                ctx.fillStyle = '#1f3f9c';
+                ctx.font = '104px Rodin';
+                ctx.textAlign = 'left';
+                ctx.fillText('2:14', x + 164, y + h / 2 + 36);
+            }
+            return c;
+        }
+
+        // ---- the loop: one cycle over the frames
+        const pose = f => ({ uPh: +(f / FRAMES).toFixed(4) });
+
+        const HEAD = `
+uniform float uPh;
+`;
+
+        const SP = 1.75, SZ = -0.5, TILT = 0.1;
+        // the rear leg's top in a stand's own offset frame (the tilted frame turned back)
+        const REAR_TOP = [0, Math.cos(TILT) * 2.0 + Math.sin(TILT) * -0.06, SZ - Math.sin(TILT) * 2.0 + Math.cos(TILT) * -0.06];
+
+        const GEOMETRY = `
+const float M_FLOOR = 0.0, M_WOOD = 1.0, M_PAPER = 2.0, M_CARPET = 3.0, M_SIGN = 4.0, M_TAG = 5.0;
+const float M_BODY = 6.0, M_HAIR = 7.0, M_SKIN = 8.0, M_PACK = 9.0;
+const float SP = ${SP}, SZ = ${SZ}, TILT = ${TILT};
+const float TOP = 0.09;                          // the carpet's top face
+const vec2 PHALF = vec2(${PW}, ${PH});
+const vec2 SHALF = vec2(${SIGN_HALF.join(', ')});
+const vec2 THALF = vec2(${TAG_HALF.join(', ')});
+const float PY = 1.3;                            // height of a poster's middle, in stand space
+const vec3 REAR_TOP = vec3(${REAR_TOP.map(v => v.toFixed(3)).join(', ')});
+const vec3 REAR_FOOT = vec3(0.0, 0.0, ${SZ - 0.8});
+
+// a stand's own space: the frame stands straight and faces +z, and leans back a little
+vec3 standSpace(vec3 q) {
+    vec3 l = q - vec3(0.0, 0.0, SZ);
+    l.yz = rot(-TILT) * l.yz;
+    return l;
+}
+
+// where the visitors stand: the first two are reading, the third drifts along the aisle
+vec3 visPos(int i) {
+    if (i == 0) return vec3(-1.62, TOP, 0.95);
+    if (i == 1) return vec3(0.1, TOP, 0.9);
+    return vec3(1.45 + 0.36 * sin(2.0 * PI * uPh), TOP, 1.35);
+}
+vec3 tagPos() { return vec3(0.72, 1.5 + 0.035 * sin(2.0 * PI * uPh + 1.0), 1.0); }
+
+vec2 stand(vec3 p, int i) {
+    float cx = float(i - 1) * SP;
+    vec3 q = p - vec3(cx, TOP, 0.0);
+    float bound = sdBox(q - vec3(0.0, 1.2, SZ - 0.35), vec3(0.8, 1.3, 0.85));
+    if (bound > 0.3) return vec2(bound, M_WOOD);
+    vec3 l = standSpace(q);
+    // the frame round the poster, with its poster set in the face
+    float frame = sdRBox(l - vec3(0.0, PY, 0.0), vec3(PHALF + 0.06, 0.03), 0.014);
+    vec2 r = vec2(frame, M_WOOD);
+    r = U(r, vec2(sdBox(l - vec3(0.0, PY, 0.03), vec3(PHALF, 0.006)), M_PAPER));
+    // the front legs run on down from the frame, a bar between them
+    r = U(r, vec2(sdRBox(vec3(abs(l.x) - 0.5, l.y - 0.4, l.z), vec3(0.04, 0.42, 0.028), 0.01), M_WOOD));
+    r = U(r, vec2(sdRBox(l - vec3(0.0, 0.3, 0.0), vec3(0.5, 0.035, 0.024), 0.008), M_WOOD));
+    // the rear leg, hinged to a small block at the top
+    r = U(r, vec2(sdCapsule(q, REAR_TOP, REAR_FOOT, 0.035), M_WOOD));
+    r = U(r, vec2(sdRBox(l - vec3(0.0, 2.04, -0.05), vec3(0.08, 0.05, 0.05), 0.012), M_WOOD));
+    // the blue aisle-end sign, sat on the frame's top edge
+    r = U(r, vec2(sdRBox(l - vec3(0.0, 2.16 + SHALF.y, 0.0), vec3(SHALF, 0.03), 0.012), M_SIGN));
+    return r;
+}
+
+vec2 visitor(vec3 p, int i) {
+    vec3 q = p - visPos(i);
+    float bound = sdBox(q - vec3(0.0, 0.58, 0.0), vec3(0.4, 0.6, 0.4));
+    if (bound > 0.25) return vec2(bound, M_BODY);
+    // a capsule body, a round head and hair over the back of it
+    vec2 r = vec2(sdCapsule(q, vec3(0.0, 0.23, 0.0), vec3(0.0, 0.5, 0.0), 0.215), M_BODY + float(i) * 0.1);
+    vec3 h = q - vec3(0.0, 0.89, 0.0);
+    r = U(r, vec2(length(h) - 0.165, M_SKIN));
+    vec3 hc = h - vec3(0.0, 0.015, 0.03);
+    float hair = max(length(hc) - 0.178, dot(h, normalize(vec3(0.0, -0.3, -1.0))) - 0.04);
+    r = U(r, vec2(hair, M_HAIR + float(i) * 0.1));
+    if (i == 0) r = U(r, vec2(sdRBox(q - vec3(0.0, 0.42, 0.24), vec3(0.14, 0.17, 0.06), 0.04), M_PACK));
+    if (i == 2) r = U(r, vec2(sdRBox(q - vec3(0.0, 0.4, 0.24), vec3(0.12, 0.14, 0.05), 0.04), M_PACK));
+    return r;
+}
+
+vec2 map(vec3 p) {
+    vec2 r = vec2(p.y, M_FLOOR);
+    // the carpet tile, a thick rounded slab
+    r = U(r, vec2(sdRBox(p - vec3(0.0, TOP * 0.5, 0.45), vec3(2.85, TOP * 0.5, 1.8), 0.03), M_CARPET));
+    for (int i = 0; i < 3; i++) {
+        r = U(r, stand(p, i));
+        r = U(r, visitor(p, i));
+    }
+    vec3 t = p - tagPos();
+    if (sdBox(t, vec3(0.5)) < 0.3) r = U(r, vec2(sdRBox(t, vec3(THALF, 0.025), 0.05), M_TAG));
+    return r;
+}
+`;
+
+        const MATERIALS = `
+// ---- light
+const vec3 KEY = normalize(vec3(-0.55, 1.35, 0.62));
+const vec3 RIM = normalize(vec3(0.9, 0.5, -0.6));
+
+// the backdrop, in display colours: pale sky blue, lighter up top
+vec3 backdrop(vec2 uv) {
+    return mix(vec3(0.76, 0.85, 0.96), vec3(0.94, 0.965, 1.0), smoothstep(-0.9, 0.7, uv.y));
+}
+
+vec3 env(vec3 r) {
+    vec3 sky = mix(vec3(0.7, 0.78, 0.9), vec3(1.0), smoothstep(0.0, 0.8, r.y));
+    vec3 c = mix(vec3(0.38, 0.4, 0.44), sky, smoothstep(-0.15, 0.1, r.y));
+    c += vec3(5.0, 4.7, 4.3) * smoothstep(0.9, 0.97, dot(r, KEY));
+    c += vec3(1.6, 1.8, 1.9) * smoothstep(0.88, 0.95, dot(r, RIM));
+    return c;
+}
+
+vec3 d2l(vec3 c) { return pow(c, vec3(2.2)); }
+
+vec3 woodColor(vec3 p, vec3 n) {
+    // pale beech, its figure running along each part
+    vec3 q = abs(n.x) > 0.5 ? p.zyx : p;
+    float g = noise3(q * vec3(0.8, 22.0, 22.0)) * 0.6 + noise3(q * vec3(2.5, 60.0, 60.0)) * 0.4;
+    float rings = sin(q.y * 30.0 + q.z * 8.0 + g * 6.0) * 0.5 + 0.5;
+    return mix(vec3(0.45, 0.26, 0.11), vec3(0.78, 0.55, 0.3), 0.4 + 0.4 * rings * g + 0.2 * g);
+}
+
+// the three tracking rings: a steady one, and one that breathes out and fades
+float ringGlow(vec2 d, float phase, float big) {
+    float r = length(d);
+    float steadyR = 0.42, w = 0.022;
+    float a = smoothstep(w, w * 0.4, abs(r - steadyR)) + 0.35 * exp(-abs(r - steadyR) * 16.0);
+    float expR = steadyR + 0.55 * fract(phase);
+    float fade = (1.0 - fract(phase)) * smoothstep(0.0, 0.08, fract(phase));
+    a += fade * (smoothstep(w, w * 0.3, abs(r - expR)) * 0.8 + 0.25 * exp(-abs(r - expR) * 20.0));
+    return a * (0.8 + 0.2 * big);
+}
+
+vec3 shade(vec3 ro, vec3 rd, vec2 uv, float jitter) {
+    vec2 h = march(ro, rd);
+    vec3 bg = backdrop(uv);
+    if (h.x < 0.0) return bg;
+    vec3 p = ro + rd * h.x;
+    float m = h.y;
+    vec3 n = normal(p);
+    float occ = ao(p, n);
+    float sh = softShadow(p + n * 0.002, KEY, 7.0, jitter);
+    float facing = abs(dot(n, rd));
+
+    if (m == M_FLOOR) {
+        // a shadow catcher: the backdrop, darkened where the scene shades it
+        float k = mix(0.62, 1.0, sh) * mix(0.55, 1.0, occ);
+        return mix(bg * mix(vec3(0.62, 0.72, 0.86), vec3(1.0), k), bg, smoothstep(9.0, 22.0, h.x));
+    }
+
+    vec3 alb = vec3(0.8), f0 = vec3(0.04), glow = vec3(0.0);
+    float rough = 0.5, wrap = 0.0;
+    float mi = floor(m + 0.01);
+    int idx = int((m - mi) * 10.0 + 0.5);
+    int stand = int(clamp(floor((p.x + SP * 0.5) / SP) + 1.0, 0.0, 2.0));
+    vec3 sl = standSpace(p - vec3(float(stand - 1) * SP, TOP, 0.0));
+    vec3 sn = n;
+    sn.yz = rot(-TILT) * sn.yz;
+
+    if (mi == M_WOOD) {
+        alb = d2l(woodColor(p, n));
+        rough = 0.45;
+    } else if (mi == M_PAPER) {
+        vec2 u = vec2(sl.x / (2.0 * PHALF.x) + 0.5, 0.5 - (sl.y - PY) / (2.0 * PHALF.y));
+        vec4 rect = stand == 0 ? ${glslRect(POSTERS[0])} : stand == 1 ? ${glslRect(POSTERS[1])} : ${glslRect(POSTERS[2])};
+        vec4 t = atlas(rect, u, lodAt(h.x, facing, 680.0));
+        alb = t.a > 0.0 ? pow(t.rgb, vec3(2.2)) : vec3(0.9);
+        rough = 0.6;
+        wrap = 0.15;
+    } else if (mi == M_SIGN) {
+        alb = d2l(vec3(0.2, 0.4, 0.82));
+        rough = 0.4;
+        if (sn.z > 0.7) {
+            vec2 u = vec2(sl.x / (2.0 * SHALF.x) + 0.5, 0.5 - (sl.y - 2.16 - SHALF.y) / (2.0 * SHALF.y));
+            vec4 rect = stand == 0 ? ${glslRect(SIGNS[0])} : stand == 1 ? ${glslRect(SIGNS[1])} : ${glslRect(SIGNS[2])};
+            vec4 t = atlas(rect, u, lodAt(h.x, facing, 680.0));
+            alb = mix(alb, pow(t.rgb, vec3(2.2)), t.a);
+        }
+    } else if (mi == M_TAG) {
+        alb = vec3(0.9);
+        rough = 0.35;
+        wrap = 0.3;
+        vec3 t = p - tagPos();
+        if (n.z > 0.7) {
+            vec2 u = vec2(t.x / (2.0 * THALF.x) + 0.5, 0.5 - t.y / (2.0 * THALF.y));
+            vec4 tx = atlas(${glslRect(TAG)}, u, lodAt(h.x, facing, 680.0));
+            alb = mix(alb, pow(tx.rgb, vec3(2.2)), tx.a);
+        }
+    } else if (mi == M_CARPET) {
+        vec3 base = d2l(vec3(0.15, 0.33, 0.78));
+        // short woven pile, tile seams every unit and a pale border on the top
+        float pile = noise3(vec3(p.x * 70.0, p.z * 70.0, 1.0)) * 0.5 + noise3(vec3(p.x * 160.0, 0.0, p.z * 160.0)) * 0.5;
+        alb = base * (0.9 + 0.2 * pile);
+        rough = 0.95;
+        if (n.y > 0.5) {
+            vec2 g = abs(fract(p.xz + vec2(0.5)) - 0.5);
+            float seam = smoothstep(0.012, 0.0, min(g.x, g.y));
+            alb *= 1.0 - 0.18 * seam;
+            // a paler aisle lane down the front of the row
+            alb = mix(alb, d2l(vec3(0.24, 0.45, 0.88)), 0.5 * smoothstep(0.3, 0.38, p.z) * smoothstep(1.85, 1.77, p.z));
+            // the heat pool in front of the most viewed poster, in bands
+            vec2 hd = (p.xz - vec2(0.0, 0.5)) / vec2(1.25, 0.85);
+            float heat = exp(-dot(hd, hd) * 1.7) * (0.9 + 0.1 * sin(2.0 * PI * uPh));
+            vec3 hot = mix(d2l(vec3(1.0, 0.45, 0.35)), d2l(vec3(1.0, 0.8, 0.3)), smoothstep(0.45, 0.8, heat));
+            alb = mix(alb, hot, smoothstep(0.1, 0.5, heat) * 0.8);
+            glow += hot * 0.5 * smoothstep(0.3, 0.9, heat);
+            // tracking rings under each visitor
+            vec3 ringCol = vec3(0.35, 1.5, 1.75);
+            float ph = uPh;
+            float rg = ringGlow(p.xz - visPos(0).xz, ph + 0.15, 0.0) + ringGlow(p.xz - visPos(1).xz, ph + 0.55, 1.0) + ringGlow(p.xz - visPos(2).xz, ph + 0.85, 0.0);
+            glow += ringCol * clamp(rg, 0.0, 1.4);
+            alb = mix(alb, d2l(vec3(0.75, 0.95, 1.0)), clamp(rg, 0.0, 1.0) * 0.4);
+        }
+    } else if (mi == M_BODY) {
+        vec3 c[3] = vec3[3](vec3(1.0, 0.54, 0.26), vec3(0.98, 0.36, 0.55), vec3(0.3, 0.78, 0.5));
+        alb = d2l(c[idx]);
+        rough = 0.55;
+        wrap = 0.25;
+    } else if (mi == M_HAIR) {
+        vec3 c[3] = vec3[3](vec3(0.22, 0.15, 0.12), vec3(0.18, 0.14, 0.2), vec3(0.85, 0.6, 0.25));
+        alb = d2l(c[idx]);
+        rough = 0.6;
+    } else if (mi == M_SKIN) {
+        alb = d2l(vec3(0.96, 0.78, 0.66));
+        rough = 0.6;
+        wrap = 0.3;
+    } else if (mi == M_PACK) {
+        alb = d2l(vec3(0.98, 0.82, 0.3));
+        rough = 0.6;
+    }
+
+    // a warm key with soft shadows, a cool sky, a strip light behind on the
+    // right and a little bounce off the floor
+    float dif = clamp((dot(n, KEY) + wrap) / (1.0 + wrap), 0.0, 1.0) * sh;
+    float sky = (0.6 + 0.4 * n.y) * occ;
+    float rim = clamp(dot(n, RIM), 0.0, 1.0) * occ;
+    float bounce = clamp(-n.y, 0.0, 1.0) * occ;
+    vec3 light = vec3(2.7, 2.5, 2.25) * dif + vec3(0.56, 0.62, 0.7) * sky + vec3(0.55, 0.65, 0.75) * rim + vec3(0.3, 0.32, 0.34) * bounce;
+    vec3 col = alb * light;
+
+    vec3 r = reflect(rd, n);
+    float fres = pow(1.0 - clamp(dot(n, -rd), 0.0, 1.0), 5.0);
+    vec3 F = f0 + (1.0 - f0) * fres;
+    float gloss = 1.0 - rough;
+    col += F * env(r) * mix(0.25, 1.0, gloss * gloss) * mix(0.35, 1.0, sh) * occ * gloss * 0.9;
+    vec3 hv = normalize(KEY - rd);
+    float spec = pow(clamp(dot(n, hv), 0.0, 1.0), mix(8.0, 180.0, gloss * gloss)) * gloss * gloss;
+    col += F * spec * sh * vec3(2.4, 2.25, 2.0);
+    col += glow;
+
+    return toDisplay(col);
+}
+`;
+
+        // the title, in the studio's pill-and-two-lines layout but sized to
+        // fit the longer first line
+        function title(ctx) {
+            const label = 'WEBSITE', lines = ['Poster-Row', 'Tracker'];
+            const x = TALL ? W / 2 : 150, align = TALL ? 'center' : 'left';
+            const y0 = TALL ? 290 : 372;
+            ctx.font = '32px Rodin';
+            ctx.letterSpacing = '6px';
+            const lw = ctx.measureText(label).width + 52, lx = TALL ? x - lw / 2 : x;
+            ctx.fillStyle = '#2f6be0';
+            ctx.beginPath();
+            ctx.roundRect(lx, y0 - 50, lw, 64, 32);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, lx + 29, y0 - 6);
+            // the biggest type that keeps the first line inside its space
+            ctx.letterSpacing = '-3px';
+            let size = 200;
+            ctx.font = `${size}px Rodin`;
+            size *= (TALL ? 900 : 700) / ctx.measureText(lines[0]).width;
+            size = Math.min(size, TALL ? 168 : 158);
+            ctx.font = `${size}px Rodin`;
+            ctx.textAlign = align;
+            ctx.fillStyle = '#25304a';
+            lines.forEach((line, i) => ctx.fillText(line, x - (TALL ? 0 : 8), y0 + 30 + size * (0.92 + i * 1.06)));
+            ctx.letterSpacing = '0px';
+        }
+
+        runStudio({
+            frag: studioShader({ head: HEAD, geometry: GEOMETRY, materials: MATERIALS, atlasSize: ATLAS }),
+            view: VIEW,
+            frames: FRAMES,
+            delay: DELAY,
+            pose,
+            // the visitors, rings, heat pool and tag all live in front of the row
+            moving: [[[-2.5, 2.4], [0.0, 1.8], [-0.5, 2.0]]],
+            atlas: makeAtlas,
+            title,
+        });
+    </script>
+</body>
+</html>

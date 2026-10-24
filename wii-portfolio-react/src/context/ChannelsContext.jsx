@@ -22,6 +22,16 @@ const DEFAULT_CHANNELS = [
         mobileart: true
     },
     {
+        id: 'resume',
+        title: 'Resume',
+        assets: 'assets/channels/',
+        channelart: 'channelart/',
+        target: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/view?usp=sharing',
+        embed: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/preview',
+        videoformat: 'webp',
+        mobileart: true
+    },
+    {
         id: 'research-agent',
         title: 'Research Agent',
         assets: 'assets/channels/',
@@ -51,6 +61,16 @@ const DEFAULT_CHANNELS = [
         mobileart: true
     },
     {
+        id: 'poster-row-tracker',
+        title: 'Poster-Row Tracker',
+        assets: 'assets/channels/',
+        channelart: 'channelart/',
+        target: 'https://poster-row-tracker.web.app/',
+        embed: 'https://poster-row-tracker.web.app/',
+        videoformat: 'webp',
+        mobileart: true
+    },
+    {
         id: 'tuftes-razor',
         title: "Tufte's Razor",
         assets: 'assets/channels/',
@@ -75,16 +95,6 @@ const DEFAULT_CHANNELS = [
         assets: 'assets/channels/',
         channelart: 'channelart/',
         target: 'https://www.linkedin.com/in/akiraux/',
-        videoformat: 'webp',
-        mobileart: true
-    },
-    {
-        id: 'resume',
-        title: 'Resume',
-        assets: 'assets/channels/',
-        channelart: 'channelart/',
-        target: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/view?usp=sharing',
-        embed: 'https://drive.google.com/file/d/1A2NAL6VpgAhPHB5pHjMAZs85G7oZevuN/preview',
         videoformat: 'webp',
         mobileart: true
     },
