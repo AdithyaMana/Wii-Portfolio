@@ -512,10 +512,11 @@ button {
     --row-gap: 1vh;
     --page-w: calc(var(--tile-w) * var(--cols) + var(--col-gap) * (var(--cols) - 1));
     --page-pad: max(0px, (100vw - var(--page-w)) / 2);
+    --bar-h: 14vh;
     position: relative;
     display: flex;
-    height: calc(100vh - 14vh);
-    height: calc(100dvh - 14vh);
+    height: calc(100vh - var(--bar-h));
+    height: calc(100dvh - var(--bar-h));
     overflow-x: scroll;
     /* The pages only ever move sideways. Without this, overflow-x makes the
        y axis scrollable too, so anything a pixel too tall turns into a
@@ -537,92 +538,56 @@ button {
     height: 0;
 }
 
-.prev {
+/* Page arrows sit in the side gutter, centred between the page edge and
+   the screen edge, at the vertical middle of the grid (the middle row).
+   --bar-h is the bottom bar height each breakpoint gives the grid. */
+.prev,
+.next {
     position: fixed;
-    top: 30.5%;
-    left: 5vw;
-    transform: translateY(-25%);
-    display: none;
-    justify-content: left;
+    top: calc((100dvh - var(--bar-h)) / 2);
+    display: flex;
+    justify-content: center;
     align-items: center;
     z-index: 2000;
 }
 
-.prev .def {
-    height: 7vh;
-}
-
-.prev:hover .def {
-    animation: pdef-hover 100ms linear forwards;
-}
-
-@keyframes pdef-hover {
-    0% {
-        width: 20%;
-    }
-
-    50% {
-        width: 35%;
-    }
-
-    100% {
-        width: 100%;
-    }
-}
-
-.prev .hover {
-    transform: translateX(-1.4vh) scale(0);
-    transform-origin: left;
-    height: 12vh;
-    transition: 100ms;
-}
-
-.prev:hover .hover {
-    transform: translateX(-1.4vh) scale(1);
+.prev {
+    left: calc(var(--page-pad) / 2);
+    transform: translate(-50%, -50%);
+    display: none;
 }
 
 .next {
-    position: fixed;
-    top: 30.5%;
-    right: 5vw;
-    transform: translateY(-25%);
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    z-index: 2000;
+    right: calc(var(--page-pad) / 2);
+    transform: translate(50%, -50%);
 }
 
+.prev .def,
 .next .def {
     height: 7vh;
+    transition: opacity 100ms, transform 100ms;
 }
 
-.next:hover .def {
-    animation: ndef-hover 100ms linear forwards;
-}
-
-@keyframes ndef-hover {
-    0% {
-        width: 20%;
-    }
-
-    50% {
-        width: 35%;
-    }
-
-    100% {
-        width: 100%;
-    }
-}
-
+/* On hover the arrow turns into the round +/- button, in the same spot */
+.prev .hover,
 .next .hover {
-    transform: translateX(1.4vh) scale(0);
-    transform-origin: right;
+    position: absolute;
+    top: 50%;
+    left: 50%;
     height: 12vh;
-    transition: 100ms;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 120ms cubic-bezier(.3, 1.6, .6, 1);
 }
 
+.prev:hover .def,
+.next:hover .def {
+    opacity: 0;
+    transform: scale(.4);
+}
+
+.prev:hover .hover,
 .next:hover .hover {
-    transform: translateX(1.4vh) scale(1);
+    transform: translate(-50%, -50%) scale(1);
 }
 
 .ch-c {
@@ -1208,19 +1173,35 @@ body:has(.main-menu.ch-trans-on) .ch-selection {
 .wii-tab-bar {
     display: flex;
     align-items: center;
-    gap: 1.5vh;
-    padding: 1vh 2vh;
-    min-height: 5.5vh;
-    background: linear-gradient(to bottom, #ffffff, #dfe3e6);
-    border-bottom: 0.2vh solid #c0c0c0;
+    gap: 1.6vh;
+    padding: 1.1vh 1.6vh 1.1vh 1.4vh;
+    min-height: 6vh;
+    background: linear-gradient(to bottom, #ffffff 0%, #f1f3f5 60%, #e3e7ea 100%);
+    /* the Wii's blue rule under the title bar */
+    border-bottom: 0.35vh solid var(--blue);
+    box-shadow: 0 0.3vh 1vh rgba(55, 190, 244, 0.25);
+    position: relative;
+    z-index: 1;
     flex-shrink: 0;
 }
 
-.wii-tab-logo {
-    height: 2.6vh;
-    /* The logo art is white — darken it so it reads on the light bar */
-    filter: brightness(0);
-    opacity: 0.45;
+/* the channel's own tile, as a small rounded thumbnail */
+.wii-tab-thumb {
+    height: 4.6vh;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 0.9vh;
+    border: 0.25vh solid #ffffff;
+    box-shadow: 0 0 0 0.15vh #c3c9ce, 0 0.3vh 0.6vh rgba(0, 0, 0, 0.18);
+    flex-shrink: 0;
+}
+
+.wii-tab-heading {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
 }
 
 /* While a Wii tab is open, use the normal OS cursor everywhere and
@@ -1236,9 +1217,18 @@ body.wii-tab-open .wii-cursor {
 }
 
 .wii-tab-title {
-    flex: 1;
-    font-size: 2.6vh;
-    color: #6b6e73;
+    font-family: 'Bold', sans-serif;
+    font-size: 2.4vh;
+    color: #4d5156;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wii-tab-host {
+    font-size: 1.6vh;
+    color: #9aa1a8;
+    letter-spacing: 0.03em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1246,35 +1236,51 @@ body.wii-tab-open .wii-cursor {
 
 .wii-tab-actions {
     display: flex;
-    gap: 1vh;
+    gap: 1.2vh;
 }
 
+/* Round glossy Wii buttons with line icons */
 .wii-tab-btn {
-    width: 4.5vh;
-    height: 4.5vh;
+    width: 4.8vh;
+    height: 4.8vh;
+    padding: 0;
     border-radius: 50%;
-    background: linear-gradient(to bottom, #ffffff, #e2e6e9);
-    border: 0.2vh solid #b8bcbf;
-    box-shadow: 0 0.3vh 0.6vh rgba(0, 0, 0, 0.15);
-    color: #6b6e73;
-    font-size: 2.2vh;
-    line-height: 1;
+    background: radial-gradient(circle at 50% 30%, #ffffff 0%, #f3f5f7 55%, #dde2e6 100%);
+    border: 0.25vh solid #bfc5ca;
+    box-shadow: inset 0 0.25vh 0 #ffffff, 0 0.35vh 0.7vh rgba(0, 0, 0, 0.16);
+    color: #6f757b;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: inherit;
-    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms;
+    transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 150ms, border-color 150ms, color 150ms;
+}
+
+.wii-tab-btn svg {
+    width: 52%;
+    height: 52%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .wii-tab-btn:hover {
-    transform: scale(1.12);
-    box-shadow: 0 0.4vh 0.9vh rgba(55, 190, 244, 0.45);
+    transform: scale(1.1);
     border-color: var(--blue);
     color: var(--blue);
+    box-shadow: inset 0 0.25vh 0 #ffffff, 0 0 0 0.35vh rgba(55, 190, 244, 0.25), 0 0.4vh 1vh rgba(55, 190, 244, 0.4);
+}
+
+.wii-tab-close:hover {
+    border-color: #f06a5f;
+    color: #e5483c;
+    box-shadow: inset 0 0.25vh 0 #ffffff, 0 0 0 0.35vh rgba(240, 106, 95, 0.22), 0 0.4vh 1vh rgba(240, 106, 95, 0.35);
 }
 
 .wii-tab-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.94);
 }
 
 .wii-tab-body {
@@ -1296,9 +1302,32 @@ body.wii-tab-open .wii-cursor {
     background: #f4f4f4;
 }
 
-.wii-tab-loading img {
-    width: 8vh;
-    height: 8vh;
+/* Wii "please wait" ring (WiiSpinner) */
+.wii-spinner {
+    display: block;
+    overflow: visible;
+    filter: drop-shadow(0 0 0.8vh rgba(55, 190, 244, 0.55));
+}
+
+.wii-spinner rect {
+    fill: #37bef4;
+    opacity: 0.18;
+    animation: wii-spinner-dot 0.9s linear infinite;
+}
+
+@keyframes wii-spinner-dot {
+    0% {
+        opacity: 1;
+        fill: #bfeeff;
+    }
+
+    15% {
+        fill: #37bef4;
+    }
+
+    100% {
+        opacity: 0.18;
+    }
 }
 
 .wii-tab-frame {
@@ -1330,7 +1359,10 @@ body.wii-tab-open .wii-cursor {
     .wii-tab-btn {
         width: 5.5vh;
         height: 5.5vh;
-        font-size: 2.6vh;
+    }
+
+    .wii-tab-thumb {
+        display: none;
     }
 }
 
@@ -1350,8 +1382,9 @@ body.wii-tab-open .wii-cursor {
     background: #fafaf7;
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.2);
-    width: min(600px, 92vw);
-    max-height: 90vh;
+    width: min(720px, 94vw);
+    max-height: 92vh;
+    max-height: 92dvh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1365,109 +1398,266 @@ body.wii-tab-open .wii-cursor {
 .mii-paper-header {
     display: flex;
     align-items: center;
-    gap: 2vw;
-    padding: 2.5vh 4vw;
-    background: linear-gradient(145deg, #2db8f0 0%, #1a8ec8 100%);
+    gap: clamp(14px, 3vw, 28px);
+    padding: clamp(18px, 3.5vh, 30px) clamp(18px, 4vw, 36px);
+    background:
+        radial-gradient(circle at 18% 120%, rgba(255, 255, 255, 0.28) 0 38%, transparent 39%),
+        linear-gradient(145deg, #3cc4f5 0%, #1a8ec8 100%);
     border-radius: 12px 12px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* the Mii stands on a little round plinth, like the Mii Plaza */
+.mii-paper-stage {
+    flex-shrink: 0;
+    width: clamp(86px, 13vw, 128px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #ffffff 0%, #e4f5fd 60%, #bfe6f7 100%);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.5), 0 6px 14px rgba(0, 40, 80, 0.25);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
 }
 
 .mii-paper-mii {
-    width: clamp(80px, 12vw, 130px);
+    width: 82%;
     height: auto;
-    flex-shrink: 0;
     display: block;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.15);
-    padding: 0.5vh;
+    animation: mii-bob 3s ease-in-out infinite;
+}
+
+@keyframes mii-bob {
+    0%, 100% { transform: translateY(4%); }
+    50% { transform: translateY(1%); }
 }
 
 .mii-paper-greeting {
     color: #fff;
     flex: 1;
+    min-width: 0;
+}
+
+.mii-paper-hi {
+    margin: 0;
+    font-family: 'TitleMed', sans-serif;
+    font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+    opacity: 0.9;
 }
 
 .mii-paper-name {
     font-family: 'TitleBold', sans-serif;
-    font-size: clamp(1.8rem, 3.5vw, 2.8rem);
-    margin: 0 0 0.25em 0;
+    font-size: clamp(2.6rem, 6vw, 3.6rem);
+    line-height: 1;
+    margin: 0 0 0.2em;
     color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    text-shadow: 0 2px 0 rgba(0, 60, 110, 0.25);
 }
 
-.mii-paper-tagline {
-    font-family: 'Regular', sans-serif;
-    font-size: clamp(0.8rem, 1.4vw, 1rem);
+.mii-paper-roles {
+    list-style: none;
     margin: 0;
-    opacity: 0.82;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.mii-paper-roles li {
+    font-family: 'Bold', sans-serif;
+    font-size: clamp(0.72rem, 1.3vw, 0.85rem);
+    color: #1478ad;
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    padding: 0.3em 0.85em;
 }
 
 .mii-paper-content {
-    padding: 3vh 4vw 1vh;
+    padding: clamp(16px, 3vh, 26px) clamp(16px, 4vw, 32px) 6px;
     display: flex;
     flex-direction: column;
-    gap: 2.5vh;
+    gap: 14px;
 }
 
-.mii-paper-intro p {
-    font-family: 'Regular', sans-serif;
-    font-size: clamp(0.9rem, 1.5vw, 1.05rem);
-    line-height: 1.7;
+.mii-paper-motto {
     margin: 0;
-    color: #555;
-}
-
-.mii-paper-intro p + p {
-    margin-top: 0.6em;
-}
-
-.mii-paper-intro .mii-paper-hook {
+    text-align: center;
     font-family: 'Bold', sans-serif;
+    font-size: clamp(0.95rem, 1.7vw, 1.1rem);
     color: #1a8ec8;
 }
 
-/* Label/value plates, like the info rows on a Mii's profile */
-.mii-paper-facts {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.9vh;
+.mii-paper-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
 }
 
-.mii-paper-facts div {
-    display: flex;
-    align-items: baseline;
-    gap: 1em;
-    padding: 0.75em 1.1em;
+.mii-card {
     background: #eef6fb;
-    border: 1px solid #dcebf5;
-    border-radius: 10px;
+    border: 1px solid #d6e9f4;
+    border-radius: 14px;
+    padding: 14px 16px;
 }
 
-.mii-paper-facts dt {
-    flex: 0 0 8.5em;
+.mii-card h2 {
+    margin: 0 0 10px;
     font-family: 'TitleMed', sans-serif;
-    font-size: clamp(0.72rem, 1.2vw, 0.85rem);
+    font-weight: normal;
+    font-size: clamp(0.72rem, 1.2vw, 0.82rem);
     color: #37bef4;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
 }
 
-.mii-paper-facts dd {
-    margin: 0;
-    font-family: 'Regular', sans-serif;
-    font-size: clamp(0.88rem, 1.4vw, 1rem);
+.mii-card p {
+    margin: 8px 0 0;
+    font-size: clamp(0.88rem, 1.4vw, 0.98rem);
     line-height: 1.5;
-    color: #444;
+    color: #4a4f55;
 }
 
-@media (max-width: 480px) {
-    .mii-paper-facts div {
-        flex-direction: column;
-        gap: 0.2em;
+.mii-icon {
+    width: 1.35em;
+    height: 1.35em;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #1a8ec8;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.mii-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mii-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: clamp(0.88rem, 1.4vw, 0.98rem);
+    line-height: 1.35;
+    color: #555a60;
+}
+
+.mii-list b,
+.mii-tags li {
+    font-family: 'Bold', sans-serif;
+    font-weight: normal;
+    color: #3a3f45;
+}
+
+.mii-tags {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.mii-tags li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #fff;
+    border: 1px solid #d6e9f4;
+    border-radius: 999px;
+    padding: 0.45em 0.95em 0.45em 0.7em;
+    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+}
+
+/* Altitude chart: how far up the mountain I've got */
+.mii-alt-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    background: linear-gradient(#cdeefc, #f3fbff);
+}
+
+.mii-alt-far { fill: #b3d9ec; }
+.mii-alt-peak { fill: #6aa7c7; }
+.mii-alt-snow { fill: #ffffff; }
+.mii-alt-ground { fill: #4d8bab; }
+
+.mii-alt-trail {
+    stroke: #ffffff;
+    stroke-width: 3;
+    stroke-linecap: round;
+    fill: none;
+}
+
+.mii-alt-todo {
+    stroke: #ffffff;
+    stroke-width: 2;
+    stroke-dasharray: 2 5;
+    stroke-linecap: round;
+    fill: none;
+    animation: mii-alt-march 1.2s linear infinite;
+}
+
+@keyframes mii-alt-march {
+    to { stroke-dashoffset: -14; }
+}
+
+.mii-alt-pole { stroke: #3a3f45; stroke-width: 1.6; }
+
+.mii-alt-flag {
+    fill: #ff5a4f;
+    transform-origin: 0 -15px;
+    animation: mii-alt-wave 1.4s ease-in-out infinite;
+}
+
+@keyframes mii-alt-wave {
+    50% { transform: scaleX(0.75) skewY(-6deg); }
+}
+
+.mii-alt-goal {
+    fill: none;
+    stroke: #ffb020;
+    stroke-width: 2;
+}
+
+.mii-alt-label {
+    font-family: 'Bold', sans-serif;
+    font-size: 11px;
+    fill: #ffffff;
+    paint-order: stroke;
+    stroke: #2c6f92;
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}
+
+.mii-alt-label-goal {
+    fill: #2c6f92;
+    stroke: #ffffff;
+}
+
+@media (max-width: 520px) {
+    .mii-paper-pair {
+        grid-template-columns: 1fr;
     }
 
-    .mii-paper-facts dt {
-        flex-basis: auto;
+    .mii-paper-header {
+        position: static;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mii-paper-mii,
+    .mii-alt-todo,
+    .mii-alt-flag {
+        animation: none;
     }
 }
 
@@ -2397,8 +2587,9 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     }
 
     .grid {
-        height: calc(100vh - 25vh);
-        height: calc(100dvh - 25vh);
+        --bar-h: 25vh;
+        height: calc(100vh - var(--bar-h));
+        height: calc(100dvh - var(--bar-h));
     }
 
     .bottom-bar .lateral .left-btn,
@@ -2419,16 +2610,9 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         --tile-w: 20vw;
         --col-gap: 10px;
         --row-gap: 0px;
-        height: calc(100vh - 13vh);
-        height: calc(100dvh - 13vh);
-    }
-
-    .prev {
-        left: 2vw;
-    }
-
-    .next {
-        right: 2vw;
+        --bar-h: 13vh;
+        height: calc(100vh - var(--bar-h));
+        height: calc(100dvh - var(--bar-h));
     }
 
     /* Bottom bar — same scaled Wii artwork treatment as phones,
@@ -2524,8 +2708,9 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     .grid {
         --tile-w: 22vw;
-        height: calc(100vh - 25vh);
-        height: calc(100dvh - 25vh);
+        --bar-h: 25vh;
+        height: calc(100vh - var(--bar-h));
+        height: calc(100dvh - var(--bar-h));
     }
 
     .bottom-bar {
@@ -2573,25 +2758,12 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         --row-gap: 10px;
         gap: 10px;
         /* Mobile bottom bar is 12vh tall — keep channels above it */
-        height: calc(100vh - 12vh);
-        height: calc(100dvh - 12vh);
+        --bar-h: 12vh;
+        height: calc(100vh - var(--bar-h));
+        height: calc(100dvh - var(--bar-h));
     }
 
     /* Navigation arrows */
-    .prev,
-    .next {
-        top: 50%;
-        transform: translateY(-50%);
-    }
-
-    .prev {
-        left: 1vw;
-    }
-
-    .next {
-        right: 1vw;
-    }
-
     .prev .def,
     .next .def {
         height: 5vh;
@@ -3025,8 +3197,9 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     .grid {
         --col-gap: 8px;
         --row-gap: 8px;
-        height: calc(100vh - 12vh);
-        height: calc(100dvh - 12vh);
+        --bar-h: 12vh;
+        height: calc(100vh - var(--bar-h));
+        height: calc(100dvh - var(--bar-h));
     }
 
     /* Bottom bar inherits the Wii artwork styling from the 768px block;
@@ -3175,8 +3348,9 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
         --tile-w: 20vw;
         --col-gap: 8px;
         --row-gap: 5px;
-        height: calc(100vh - 22vh);
-        height: calc(100dvh - 22vh);
+        --bar-h: 22vh;
+        height: calc(100vh - var(--bar-h));
+        height: calc(100dvh - var(--bar-h));
     }
 
     .bottom-bar {
@@ -3525,5 +3699,152 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
 
     .ch-c .ch.occupied {
         page-break-inside: avoid;
+    }
+}
+/* Message boxes on phones (return dialog, report request). The desktop
+   buttons are nudged with translateX and capped with end images sized in
+   vw, which on a narrow screen pushes them off centre. Here the box grows
+   to fit its text and the buttons are plain Wii pills side by side. */
+@media (max-width: 768px) {
+    .returndialog .msgbox {
+        width: 90vw;
+        height: auto;
+        min-height: 40vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4vh;
+        padding: 5vh 5vw 4vh;
+        box-sizing: border-box;
+    }
+
+    .returndialog .msgbox .text,
+    .returndialog.report-request .msgbox .text {
+        margin: 0;
+        font-size: clamp(1.05rem, 5vw, 1.4rem);
+        letter-spacing: 0.02em;
+        line-height: 1.5;
+    }
+
+    .returndialog.report-request .contact-email {
+        display: block;
+        margin-top: 0.6em;
+        font-size: 0.95em;
+    }
+
+    .returndialog.report-request .contact-hint {
+        font-size: 0.7em;
+        letter-spacing: 0.04em;
+    }
+
+    .returndialog .msgbox .actions {
+        position: static;
+        display: flex;
+        justify-content: center;
+        gap: 4vw;
+    }
+
+    .returndialog .msgbox .actions a,
+    .returndialog .msgbox .actions a:hover {
+        transform: none;
+    }
+
+    .returndialog .msgbox .actions a {
+        flex: 1 1 0;
+        max-width: 40vw;
+        width: auto;
+        height: auto;
+        padding: 0.7em 0;
+        font-size: clamp(0.95rem, 4.4vw, 1.15rem);
+        background: linear-gradient(#ffffff, #e9eaec);
+        border: 3px solid #5fc6ee;
+        border-radius: 999px;
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.05);
+        text-decoration: none;
+    }
+
+    .returndialog .msgbox .actions a:active {
+        transform: scale(0.96);
+    }
+
+    .returndialog .msgbox .actions a::before,
+    .returndialog .msgbox .actions a::after {
+        display: none;
+    }
+}
+
+/* Intro screen: a short hello before the menu */
+.splash .intro {
+    width: min(620px, 88vw);
+    margin: 0 auto 4vh;
+    color: #fff;
+    font-family: 'Regular', sans-serif;
+    animation: fadeIn 0.5s;
+}
+
+.splash .intro-mii {
+    width: clamp(72px, 11vh, 110px);
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #ffffff 0%, #d9f2fd 70%, #9fdcf6 100%);
+    box-shadow: 0 0 0 4px rgba(55, 190, 244, 0.45), 0 0 30px rgba(55, 190, 244, 0.35);
+    padding: 6px 6px 0;
+    box-sizing: border-box;
+}
+
+.splash .intro-title {
+    margin: 2.2vh 0 1.4vh;
+    font-family: 'Bold', sans-serif;
+    font-weight: normal;
+    font-size: clamp(1.9rem, 5vh, 3rem);
+    letter-spacing: 0.01em;
+}
+
+.splash .intro-lead {
+    margin: 0 auto;
+    max-width: 34em;
+    font-size: clamp(1rem, 2.3vh, 1.25rem);
+    line-height: 1.55;
+    color: #d9dde2;
+}
+
+.splash .intro-hints {
+    list-style: none;
+    margin: 3vh 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.splash .intro-hints li {
+    font-size: clamp(0.85rem, 1.9vh, 1rem);
+    color: #c3c9cf;
+    border: 1px solid rgba(55, 190, 244, 0.45);
+    border-radius: 999px;
+    padding: 0.45em 1em;
+}
+
+.splash .intro-hints b {
+    font-family: 'Bold', sans-serif;
+    font-weight: normal;
+    color: #37bef4;
+}
+
+.splash .intro-note {
+    margin: 2.4vh 0 0;
+    font-size: clamp(0.78rem, 1.7vh, 0.9rem);
+    color: #80878f;
+}
+
+.splash .warning .warning-container > span {
+    font-size: clamp(1rem, 2.6vh, 1.4rem);
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .splash .intro-desktop-only {
+        display: none;
     }
 }

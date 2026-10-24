@@ -28,12 +28,12 @@
             horizon: 262, sun: [108, 196, 34], rock: [22, 46, 170, 194, 236], temple: [108, 236, 84],
             clouds: [[-10, 150, 90, 5], [118, 138, 110, 6], [20, 178, 56, 3], [150, 178, 70, 4], [60, 112, 70, 4]],
             birds: [[48, 172, 0], [62, 164, 2], [170, 162, 1]], trees: [[34, 250, 14], [184, 250, 16], [52, 242, 9]],
-            ship: [150, 332, 1], title: [108, 34, 30], report: [108, 76], meander: [108, 94, 132], tagline: [108, 104], start: [108, 132], stars: 26,
+            ship: [118, 342, 1], title: [108, 34, 30], report: [108, 76], meander: [108, 94, 132], tagline: [108, 104], start: [108, 132], stars: 26,
         } : {
             horizon: 142, sun: [278, 76, 36], rock: [188, 212, SW + 4, SW + 4, 114], temple: [278, 114, 88],
             clouds: [[146, 20, 120, 6], [300, 32, 100, 5], [178, 56, 60, 3], [-10, 70, 86, 4], [338, 64, 60, 3]],
             birds: [[200, 52, 0], [214, 44, 2], [352, 50, 1]], trees: [[198, 130, 16], [364, 118, 14], [206, 126, 10]],
-            ship: [74, 184, 1], title: [96, 28, 34], report: [96, 74], meander: [96, 92, 140], tagline: [96, 102], start: [96, 128], stars: 34,
+            ship: [84, 192, 1], title: [96, 28, 34], report: [96, 74], meander: [96, 92, 140], tagline: [96, 102], start: [96, 128], stars: 34,
         };
 
         // ---- sky: a dithered dusk gradient, brightening round the sun,
@@ -206,34 +206,213 @@
             p.rect(x, base, 1, 3, SHADOW[0]);
         }
 
-        // a trireme under sail, bobbing on the swell with its oars dipping
-        function ship(p, f, x, y, dir) {
-            const bob = [0, 0, 1, 1][f % 4], row = Math.floor(f / 2) % 2, c = SHADOW[1], lit = RIM[1];
-            const X = i => x + dir * i, Y = y + bob;
-            // hull: long and low, the ram at the bow, the stern curling up
-            for (let i = -22; i <= 22; i++) {
-                const t = (i + 22) / 44, depth = 3 + Math.round(2 * Math.sin(t * Math.PI));
-                const rise = i < -14 ? Math.round((-14 - i) * 0.7) : 0;
-                for (let j = -rise; j < depth; j++) p.set(X(i), Y + j, c);
-                p.set(X(i), Y - rise - 1, i < -18 ? c : lit);
+        // A trireme under a crimson sail, drawn into its own buffer (so the
+        // sea can mirror it) in local coordinates: i runs from the stern
+        // (negative) to the bow (positive), j is up (negative) from the
+        // waterline at 0. The whole 12-frame loop is one oar stroke.
+        const QW = 130, QH = 100, QX = 60, QY = 74;
+        const TAU = Math.PI * 2;
+        const sheer = i => -11 - (i < -12 ? Math.round(10 * ((-12 - i) / 18) ** 2) : i > 14 ? Math.round(5 * ((i - 14) / 18) ** 1.5) : 0);
+        const keel = i => (i < 0 ? -Math.round(9 * (-i / 32) ** 2) : -Math.floor(1.6 * (i / 32) ** 6));
+        const WOOD = ['#1f1028', '#2a1430', '#3a1d3a', '#52294a'];
+
+        function trireme(q, f) {
+            const phi = (f / 12) * TAU;
+            const s = (i, j, c) => q.set(QX + i, QY + j, c);
+            const line = (i0, j0, i1, j1, c) => q.line(QX + i0, QY + j0, QX + i1, QY + j1, c);
+
+            // rigging, behind the sail: forestay, backstay, shrouds
+            line(0, -52, 32, -16, WOOD[1]);
+            line(0, -52, -29, -21, WOOD[1]);
+            line(1, -51, -9, -11, WOOD[1]);
+            line(1, -51, 11, -11, WOOD[1]);
+            // mast, lit on its sunward edge
+            for (let j = -53; j <= sheer(0); j++) { s(0, j, WOOD[1]); s(1, j, '#a23a6e'); }
+            s(0, -54, GOLD[3]); s(1, -54, GOLD[5]); s(0, -53, GOLD[2]); s(1, -53, GOLD[4]);
+
+            // yard, bending up at the tips
+            for (let i = -23; i <= 23; i++) {
+                const j = -44 - Math.round(2 * (Math.abs(i) / 23) ** 3);
+                s(i, j, WOOD[2]); s(i, j + 1, WOOD[0]);
+                if (i > 0) s(i, j - 1, RIM[0]);
             }
-            for (let k = 0; k < 4; k++) p.set(X(-22 - k), Y - 8 - k, c);
-            [[24, 1], [25, 2], [26, 2]].forEach(([i, j]) => p.set(X(i), Y + j, c));
-            // oars
-            for (let k = 0; k < 7; k++) {
-                const ox = -12 + k * 5, lean = row ? 2 : -1;
-                p.line(X(ox), Y + 4, X(ox + lean), Y + 9, c);
+            for (const i of [-23, -22, 22, 23]) s(i, -46, GOLD[3]);
+
+            // the sail, bellying towards the bow, with a gold owl in a laurel wreath
+            const b = 3.2 + 0.8 * Math.sin(phi), top = -42, rows = 26;
+            const SAIL = ['#43224e', '#5a206a', '#7c2a70', '#a23a6e'];
+            const sailBox = [];
+            for (let jj = 0; jj < rows; jj++) {
+                const v = jj / (rows - 1), bulge = b * Math.sin(Math.PI * v);
+                const left = -17 + Math.round(0.3 * bulge), right = 17 + Math.round(bulge), j = top + jj;
+                sailBox.push([left, right]);
+                for (let i = left; i <= right; i++) {
+                    const u = (i - left) / (right - left);
+                    if (jj > rows - 1 - Math.round(3 * (1 - Math.sin(Math.PI * u)))) continue;
+                    // cloth folds slide across the sail, and the sail is darker on the shaded (left) side
+                    let t = 1.6 + 0.9 * Math.sin(u * 9 + v * 2.2 - phi) + 0.9 * u - 0.2 * (1 - v);
+                    t = Math.max(0, Math.min(3, t));
+                    const k = Math.min(2, Math.floor(t));
+                    let c = t - k > bayer(i, j) ? SAIL[k + 1] : SAIL[k];
+                    if (jj === 0) c = GOLD[3];
+                    else if (jj === 1) c = GOLD[1];
+                    else if (jj === 6 && i % 2 === 0) c = SAIL[0];
+                    if (i === right) c = RIM[1];
+                    else if (i === right - 1) c = '#d8705e';
+                    else if (i === left) c = SAIL[0];
+                    s(i, j, c);
+                }
             }
-            // mast and a square sail, its edge catching the sun
-            p.rect(X(0), Y - 26, 1, 26, c);
-            for (let j = 0; j < 17; j++) {
-                const belly = Math.round(2 * Math.sin((j / 16) * Math.PI));
-                for (let i = -9; i <= 9; i++) p.set(X(i) + dir * belly, Y - 24 + j, c);
-                p.set(X(9) + dir * belly, Y - 24 + j, lit);
+            // sail's hem
+            for (let i = -17; i <= 20; i++) {
+                const u = (i + 17) / 37, jj = rows - 1 - Math.round(3 * (1 - Math.sin(Math.PI * u)));
+                const [l, r] = sailBox[jj];
+                if (i >= l && i <= r) s(i, top + jj, i % 2 ? GOLD[2] : GOLD[1]);
             }
-            p.rect(Math.min(X(-10), X(10)), Y - 25, 21, 1, c);
-            // wake
-            for (let k = 1; k < 6; k++) p.rect(X(-24 - k * 4), Y + 5 + (k % 2), 2, 1, (f + k) % 3 ? '#ffd8a0' : SEA[2]);
+            const [lm, rm] = sailBox[13], ec = Math.round((lm + rm) / 2), ey = top + 13;
+            for (const side of [-1, 1]) {
+                for (let n = 0; n <= 13; n++) {
+                    const a = (n / 13) * (160 * Math.PI / 180), px = Math.round(ec + side * 9 * Math.sin(a)), py = Math.round(ey + 1 + 10 * Math.cos(a));
+                    s(px, py, GOLD[3]);
+                    s(px + side, py - 1, n % 2 ? GOLD[5] : GOLD[4]); s(px + side, py, GOLD[4]); if (n % 2) s(px - side, py + 1, GOLD[2]);
+                }
+            }
+            q.sprite([
+                '##.....##',
+                '###...###',
+                '#########',
+                '#ooo#ooo#',
+                '#owo#owo#',
+                '#ooo#ooo#',
+                '####b####',
+                '#########',
+                '.#######.',
+                '..##.##..',
+            ], { '#': GOLD[4], o: '#3a1a06', w: GOLD[5], b: GOLD[2] }, QX + ec - 4, QY + ey - 4);
+            // sheets from the clew to the deck
+            line(-16, top + rows - 4, -22, -13, WOOD[1]);
+            line(sailBox[rows - 4][1], top + rows - 4, 20, -13, WOOD[1]);
+
+            // hull: curved, with the sheer rising to the stern
+            for (let i = -31; i <= 33; i++) {
+                const t = sheer(i), bot = Math.min(0, keel(i));
+                for (let j = t; j <= bot; j++) {
+                    let c;
+                    if (j === t) c = i > 8 ? RIM[2] : RIM[1];
+                    else if (j === t + 1) c = WOOD[0];
+                    else if (j === t + 7) c = i % 3 ? GOLD[3] : GOLD[2];
+                    else if (j === t + 6) c = WOOD[0];
+                    else if (j > t + 7) c = (j & 1) ? WOOD[1] : WOOD[2];
+                    else c = WOOD[1];
+                    if (j === bot && bot < 0) c = '#8a4468';   // warm light bounced up from the sea
+                    s(i, j, c);
+                }
+            }
+            // bronze ram at the waterline
+            [[-3, 31, 33], [-2, 31, 36], [-1, 31, 39], [0, 31, 41], [1, 31, 37]].forEach(([j, i0, i1]) => {
+                for (let i = i0; i <= i1; i++) s(i, j, j <= -2 ? GOLD[5] : j === -1 ? GOLD[4] : j === 0 ? (i === i1 ? GOLD[5] : GOLD[3]) : GOLD[1]);
+            });
+            s(34, -1, GOLD[2]); s(32, -3, GOLD[5]); s(36, 0, GOLD[2]); s(38, 0, GOLD[2]);
+            // the bow's little curled beak
+            [[33, -16], [34, -17], [35, -17], [35, -18]].forEach(([i, j]) => s(i, j, RIM[1]));
+            // a row of round shields along the rail
+            for (let n = 0, i0 = -22; i0 <= 13; i0 += 5, n++) {
+                const gold = n % 2 === 0, A = gold ? GOLD[3] : '#a23a6e', B = gold ? GOLD[5] : '#ffb870', E = gold ? GOLD[4] : '#c85266';
+                q.sprite(['.EE.', 'ABBA', 'ABBA', '.AA.'], { A, B, E }, QX + i0, QY + sheer(i0 + 1) + 2);
+            }
+            // the painted eye on the bow
+            q.sprite(['.ggggg.', 'gwwkkwg', '.ggggg.'], { g: GOLD[4], w: '#fff0c0', k: '#1f1028' }, QX + 21, QY + sheer(24) + 2);
+            // oar ports
+            for (let k = 0; k < 11; k++) s(-18 + k * 4, -1, WOOD[0]);
+
+            // the curving stern post and its fan-shaped aphlaston
+            const post = [[-30, -21], [-33, -26], [-35, -31], [-35, -35], [-33, -38]];
+            for (let n = 0; n < post.length - 1; n++) q.thick(QX + post[n][0], QY + post[n][1], QX + post[n + 1][0], QY + post[n + 1][1], 3, WOOD[2]);
+            for (let n = 0; n < post.length - 1; n++) line(post[n][0] + 1, post[n][1], post[n + 1][0] + 1, post[n + 1][1], RIM[0]);
+            for (let dy = -6; dy <= 0; dy++) {
+                for (let dx = -5; dx <= 5; dx++) {
+                    const d = Math.hypot(dx, dy * 1.1);
+                    if (d > 5.6) continue;
+                    let c = dx % 2 === 0 ? GOLD[4] : GOLD[3];
+                    if (d > 4.6) c = dx > 0 || dy < -4 ? GOLD[5] : GOLD[2];
+                    else if (d < 1.8) c = GOLD[1];
+                    s(-33 + dx, -38 + dy, c);
+                }
+            }
+            // lantern on a short post at the stern
+            for (let j = -21; j <= sheer(-24); j++) s(-24, j, WOOD[1]);
+            q.rect(QX - 25, QY - 26, 3, 1, WOOD[1]);
+            q.rect(QX - 25, QY - 25, 3, 3, GOLD[4]);
+            s(-24, -24, '#fff8dc');
+            s(-24, -22, GOLD[2]);
+
+            // pennant streaming forward from the masthead
+            for (let n = 0; n < 19; n++) {
+                const amp = n / 18, wave = Math.round(2.6 * amp * Math.sin(n * 0.6 - 2 * phi));
+                const th = Math.round(4 - 3 * amp) + (n > 14 && n % 2 ? -1 : 0);
+                for (let k = 0; k < th; k++) s(2 + n, -53 + wave + k, k === 0 ? GOLD[5] : k === th - 1 ? '#7c2a70' : '#5a206a');
+            }
+        }
+
+        function ship(p, f, x, y) {
+            const phi = (f / 12) * TAU, bob = Math.round(0.9 * Math.sin(phi + 0.5)), wy = y + bob;
+            const q = new Pix(QW, QH);
+            trireme(q, f);
+
+            // V-shaped wake spreading from the ram, drifting astern
+            for (let i = 44; i >= -90; i--) {
+                const n = 40 - i, on = (((n - f) % 6) + 6) % 6 < 3;
+                if (!on || n < 0) continue;
+                const c = n < 26 ? '#fff0c0' : n < 60 ? '#ffd8a0' : '#ffd8a0aa', c2 = n < 26 ? '#ffd8a0' : n < 60 ? '#f59a5a' : '#f59a5a99';
+                p.set(x + i, y + 1 - Math.round(n * 0.09), c2);
+                p.set(x + i, y + 3 + Math.round(n * 0.12), c);
+                if (n < 70 && n > 24 && (n + f) % 12 < 3) p.set(x + i, y + 2, c2);   // churned water down the middle
+            }
+
+            // reflection: the ship upside down in the swell, rows rippling sideways
+            for (let r = 1; r <= 34; r++) {
+                if (r % 4 === 3) continue;
+                const shift = Math.round(1.4 * Math.sin(r * 0.9 + 2 * phi));
+                for (let xi = 0; xi < QW; xi++) {
+                    const si = ((QY - r) * QW + xi) * 4, d = q.d;
+                    if (d[si + 3] < 255 || bayer(xi, r) > 0.95 - r * 0.024) continue;
+                    p.set(x - QX + xi + shift, wy + r, shade('#' + [d[si], d[si + 1], d[si + 2]].map(v => v.toString(16).padStart(2, '0')).join(''), 0.62));
+                }
+            }
+
+            // the ship itself
+            for (let j = 0; j < QH; j++) for (let i = 0; i < QW; i++) {
+                const si = (j * QW + i) * 4, d = q.d;
+                if (d[si + 3] === 255) p.set(x - QX + i, wy - QY + j, [d[si], d[si + 1], d[si + 2], 255]);
+            }
+            // foam skirt where the hull meets the water, bow wave at the ram
+            for (let i = -26; i <= 34; i++) if ((i + f) % 5 < 3) p.set(x + i, wy + 1, '#ffd8a0');
+            [[42, 0], [43, -1], [41, 2], [44, 1], [40, 3]].forEach(([i, j], n) => { if ((f + n) % 3) p.set(x + i, wy + j, '#fff0c0'); });
+
+            // oars sweeping in unison: catch, drive back, lift clear, swing forward
+            const surface = 4;
+            for (let k = 0; k < 11; k++) {
+                const ox = -18 + k * 4, px = x + ox, py = wy - 1;
+                const tx = px - 2 + Math.round(9 * Math.cos(phi)), ty = py + 6 + Math.round(3 * Math.sin(phi));
+                const n = Math.max(Math.abs(tx - px), Math.abs(ty - py));
+                for (let s = 0; s <= n; s++) {
+                    const ix = Math.round(px + (tx - px) * s / n), iy = Math.round(py + (ty - py) * s / n);
+                    const blade = s > n - 4;
+                    p.set(ix, iy, iy >= wy + surface ? (blade ? '#b87a78' : '#8a5a78') : blade ? '#e0a860' : '#9a6a42');
+                    if (blade) p.set(ix + 1, iy, iy >= wy + surface ? '#8a5a80' : '#b8781c');
+                }
+                const deep = ty >= wy + surface;
+                if (deep) p.rect(tx - 2, ty + 1, 5, 1, (k + f) % 2 ? '#fff0c0' : '#ffd8a0');
+                if (f === 11 || f === 0 || f === 1) [[2, -2], [3, -1 - (k % 2)], [4, 0]].forEach(([dx, dy], m) => { if ((k + m) % 2) p.set(tx + dx, ty + dy - 1, '#fff0c0'); });
+                if (f === 5 || f === 6 || f === 7) [[-2, -3], [-3, -1], [-1, -4]].forEach(([dx, dy], m) => { if ((k + m + f) % 2) p.set(tx + dx, ty + dy, '#fff0c0'); });
+                if (f === 8 || f === 9) p.set(tx, ty + 2 + (f - 8), '#ffd8a0');
+            }
+
+            // lantern glow
+            const lx = x - 24, ly = wy - 24, pulse = f % 3 === 0 ? 1 : 0;
+            p.disc(lx, ly, 8 + pulse, '#ffd07022');
+            p.disc(lx, ly, 5, '#ffe0a033');
+            p.disc(lx, ly, 3, '#fff0b044');
         }
 
         // gulls wheeling near the sun, flapping in turn

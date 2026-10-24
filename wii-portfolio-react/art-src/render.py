@@ -52,14 +52,15 @@ SCENES = {
     'tuftes-razor': ('tile', 'expanded', 'mobile'),
     'overtone': ('tile', 'expanded', 'mobile'),
     'betterposter': ('tile', 'expanded', 'mobile'),
+    'poster-row-tracker': ('tile', 'expanded', 'mobile'),
     'icca-report': ('tile', 'expanded', 'mobile'),
     'github': ('expanded', 'mobile'),
     'linkedin': ('expanded', 'mobile'),
 }
 # scenes painted at full size rather than as pixel art
-SMOOTH = {'overtone', 'research-agent', 'resume', 'betterposter'}
+SMOOTH = {'overtone', 'research-agent', 'resume', 'betterposter', 'poster-row-tracker'}
 # scenes drawn with WebGL, which headless Edge only offers through SwiftShader
-GL_SCENES = {'research-agent', 'resume', 'betterposter'}
+GL_SCENES = {'research-agent', 'resume', 'betterposter', 'poster-row-tracker'}
 # minimum output width and path for each kind of image
 OUTPUTS = {
     'tile': (1280, lambda s: PUBLIC / 'channelart' / s / 'channel.webp'),

@@ -4,10 +4,13 @@
 export const MOBILE_ART_QUERY = '(max-aspect-ratio: 3/4)';
 
 // Channel art is served with a year-long immutable cache (vercel.json), so
-// every art URL carries this version. Bump it whenever the art is
+// every art URL carries this version. Bump it whenever the art or music is
 // republished, or returning visitors keep seeing the old art.
-export const ART_VERSION = '2026-10-18';
+export const ART_VERSION = '2026-10-24';
 export const artUrl = (path) => `${path}?v=${ART_VERSION}`;
+
+// Channel music sits under the same cache, so it carries the version too
+export const audioSrc = (channel) => artUrl(`/${channel.assets}${channel.id}/audio.${channel.audioformat || 'mp3'}`);
 
 export const mobileArtSrc = (channel) => artUrl(`/${channel.assets}${channel.id}/video-mobile.webp`);
 
