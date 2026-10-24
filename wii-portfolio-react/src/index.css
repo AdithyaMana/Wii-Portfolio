@@ -3773,74 +3773,114 @@ https://codepen.io/nelledejones/pen/gOOPWrK */
     }
 }
 
-/* Intro screen: a short hello before the menu */
-.splash .intro {
-    width: min(620px, 88vw);
-    margin: 0 auto 4vh;
+/* Startup screen, laid out like the Wii health and safety screen.
+   --u scales everything with the screen so the spacing stays put. */
+.splash .hs {
+    --u: min(0.82vh, 0.46vw);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6vw;
+    box-sizing: border-box;
     color: #fff;
     font-family: 'Regular', sans-serif;
+    text-align: center;
     animation: fadeIn 0.5s;
 }
 
-.splash .intro-mii {
-    width: clamp(72px, 11vh, 110px);
-    aspect-ratio: 1;
-    object-fit: contain;
-    border-radius: 50%;
-    background: radial-gradient(circle at 50% 35%, #ffffff 0%, #d9f2fd 70%, #9fdcf6 100%);
-    box-shadow: 0 0 0 4px rgba(55, 190, 244, 0.45), 0 0 30px rgba(55, 190, 244, 0.35);
-    padding: 6px 6px 0;
-    box-sizing: border-box;
-}
-
-.splash .intro-title {
-    margin: 2.2vh 0 1.4vh;
-    font-family: 'Bold', sans-serif;
-    font-weight: normal;
-    font-size: clamp(1.9rem, 5vh, 3rem);
-    letter-spacing: 0.01em;
-}
-
-.splash .intro-lead {
-    margin: 0 auto;
-    max-width: 34em;
-    font-size: clamp(1rem, 2.3vh, 1.25rem);
-    line-height: 1.55;
-    color: #d9dde2;
-}
-
-.splash .intro-hints {
-    list-style: none;
-    margin: 3vh 0 0;
-    padding: 0;
+.splash .hs-title {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
-    gap: 10px;
-}
-
-.splash .intro-hints li {
-    font-size: clamp(0.85rem, 1.9vh, 1rem);
-    color: #c3c9cf;
-    border: 1px solid rgba(55, 190, 244, 0.45);
-    border-radius: 999px;
-    padding: 0.45em 1em;
-}
-
-.splash .intro-hints b {
+    gap: calc(var(--u) * 0.8);
+    margin: 0 0 calc(var(--u) * 7);
     font-family: 'Bold', sans-serif;
     font-weight: normal;
-    color: #37bef4;
+    font-size: calc(var(--u) * 6);
+    white-space: nowrap;
 }
 
-.splash .intro-note {
-    margin: 2.4vh 0 0;
-    font-size: clamp(0.78rem, 1.7vh, 0.9rem);
-    color: #80878f;
+.splash .hs-icon {
+    height: 1.05em;
 }
 
-.splash .warning .warning-container > span {
-    font-size: clamp(1rem, 2.6vh, 1.4rem);
+.splash .hs-caps {
+    margin: 0 0 calc(var(--u) * 7);
+    max-width: 25em;
+    text-transform: uppercase;
+    font-size: calc(var(--u) * 4.4);
+    line-height: 1.75;
+}
+
+.splash .hs-caps p {
+    margin: 0 0 calc(var(--u) * 3);
+    text-wrap: balance;
+}
+
+.splash .hs-caps p:last-child {
+    margin-bottom: 0;
+}
+
+.splash .hs-small {
+    margin: 0 0 calc(var(--u) * 6);
+    font-size: calc(var(--u) * 3.4);
+    line-height: 1.7;
+}
+
+.splash .hs-small p {
+    margin: 0;
+}
+
+.splash .hs .hs-press {
+    display: block;
+    padding: 0;
+    opacity: 1;
+    color: #fff;
+    font-size: calc(var(--u) * 5);
+    animation: fadeInandOut 1.6s infinite;
+}
+
+.splash .hs .hs-loading {
+    animation: none;
+    opacity: 0.5;
+}
+
+.splash .hs-note {
+    margin: calc(var(--u) * 5) 0 0;
+    font-size: calc(var(--u) * 2.6);
+    color: #9a9a9a;
+}
+
+@media (max-width: 768px) {
+    .splash .hs {
+        --u: 1.2vw;
+    }
+
+    .splash .hs-title {
+        white-space: normal;
+        font-size: calc(var(--u) * 4.4);
+        margin-bottom: calc(var(--u) * 7);
+    }
+
+    .splash .hs-caps {
+        font-size: calc(var(--u) * 3.6);
+        margin-bottom: calc(var(--u) * 7);
+    }
+
+    .splash .hs-small {
+        font-size: calc(var(--u) * 3);
+    }
+
+    .splash .hs .hs-press {
+        font-size: calc(var(--u) * 4);
+    }
+
+    .splash .hs-note {
+        font-size: calc(var(--u) * 2.6);
+    }
 }
 
 @media (hover: none) and (pointer: coarse) {
