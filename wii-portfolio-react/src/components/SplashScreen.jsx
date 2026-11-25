@@ -178,34 +178,24 @@ export function SplashScreen({ onComplete }) {
         <div className="splash">
             {showWarning && (
                 <div className="warning" onClick={handleClick}>
-                    {/* Laid out like the Wii's health and safety screen */}
-                    <div className="hs">
-                        <h1 className="hs-title">
-                            <svg className="hs-icon" viewBox="0 0 64 56" aria-hidden="true">
-                                <path d="M32 3 L62 53 H2 Z" fill="#fff" strokeLinejoin="round" />
-                                <rect x="29" y="18" width="6" height="19" rx="3" fill="#000" />
-                                <circle cx="32" cy="45" r="3.6" fill="#000" />
-                            </svg>
-                            WARNING-HEALTH AND SAFETY
-                        </h1>
-
-                        <div className="hs-caps">
-                            <p>Hi, I&apos;m Adi. I research, design, make games and write code.</p>
-                            <p>This portfolio is a Wii menu, and every channel is something I made.</p>
-                        </div>
-
-                        <div className="hs-small">
-                            <p>Click a channel to open it.</p>
-                            <p className="intro-desktop-only">Right-click for the Home menu.</p>
+                    <div className="warning-container">
+                        <div className="text">
+                            <h2>
+                                <div className="warn-icon">⚠&nbsp;</div>
+                                WARNING - DEVICE COMPATIBILITY
+                            </h2>
+                            <p className="desc">
+                                FOR THE BEST EXPERIENCE, PLEASE VIEW THIS WEBSITE
+                                ON A DESKTOP OR LAPTOP COMPUTER. MOBILE DEVICES
+                                MAY NOT DISPLAY CONTENT CORRECTLY.
+                            </p>
                         </div>
 
                         {canClick ? (
-                            <span className="hs-press">{isTouch ? 'Tap' : 'Click'} anywhere to start.</span>
+                            <span className="press">{isTouch ? 'Tap the screen' : 'Press left click'} to continue.</span>
                         ) : (
-                            <span className="hs-press hs-loading">Loading...</span>
+                            <span className="press" style={{ animation: 'none', opacity: 0.5 }}>Loading assets...</span>
                         )}
-
-                        <p className="hs-note">Best on a computer. Phones work too, just a bit squished.</p>
                     </div>
                 </div>
             )}
