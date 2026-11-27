@@ -22,7 +22,7 @@ Right-click anywhere to open the Home menu.
 
 <p align="center">
   <img src="docs/warning.png" alt="Warning screen" width="49%" />
-  <img src="docs/channel.png" alt="Channel screen for Tufte's Razor" width="49%" />
+  <img src="docs/channel.png" alt="Channel screen for Overtone" width="49%" />
 </p>
 
 ---
