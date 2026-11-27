@@ -1,88 +1,65 @@
 <div align="center">
   <img src="wii-portfolio-react/public/assets/wii-logo.svg" alt="Wii" width="100" />
   <h1>Adi's Portfolio</h1>
-  <p>A personal portfolio built to look and feel like the Wii Menu.</p>
-  <a href="https://akiraux.vercel.app"><strong>akiraux.vercel.app →</strong></a>
+  <p>My design portfolio. It looks and works like the Wii Menu.</p>
+  <a href="https://akiraux.web.app"><strong>akiraux.web.app</strong></a>
   <br /><br />
-  <img src="docs/preview.png" alt="Wii Menu Portfolio Preview" width="100%" />
+  <img src="docs/menu.png" alt="The Wii Menu with portfolio channels" width="100%" />
 </div>
 
 ---
 
 ## What it is
 
-The Wii Menu UI is recreated in React. Each channel slot holds something: a case study, a link to GitHub or LinkedIn, a resume, or the Mii channel which opens an about-me card. Clicking a channel takes you to a preview screen with channel art, audio, and a Start button. Right-clicking opens the Wii home menu overlay.
+This site is a copy of the Wii Menu, made in React. Each channel holds one item: a case study, a project, a link or my resume.
 
-Everything from the cursor to the startup sound to the warning screen is faithful to the original.
+1. The site starts with a warning screen. Click to continue.
+2. The menu shows a grid of channels. Click a channel to open it.
+3. The channel screen shows the channel art and plays its music.
+4. Click **Start** to open the project. Click **Wii Menu** to go back.
+
+Right-click anywhere to open the Home menu.
+
+<p align="center">
+  <img src="docs/warning.png" alt="Warning screen" width="49%" />
+  <img src="docs/channel.png" alt="Channel screen for Tufte's Razor" width="49%" />
+</p>
 
 ---
 
 ## Channels
 
-| Channel | What it does |
+| Channel | Start does this |
 |---|---|
-| Disc Channel | Decorative — plays disc audio and animation |
-| Mii Channel | Opens an about-me paper with bio and personal info |
-| Research Agent | Case study — opens Figma deck |
-| Credit Survey | Case study — opens Figma deck |
-| Credit Website | Opens Medium article |
-| Tufte's Razor | Opens the live app |
-| Github | Links to GitHub profile |
-| LinkedIn | Links to LinkedIn profile |
-| Resume | Opens resume PDF |
-| Overtone | Opens the game |
-| BetterPoster | Opens the poster templates site |
-| ICCA Report | Not public: Start opens a box to email for the PDF |
+| Disc Channel | Nothing. It plays the disc sound and animation. |
+| Mii Channel | Opens a card with information about me. |
+| Resume | Opens my resume. |
+| Poster-Row Tracker | Opens the Poster-Row Tracker site. |
+| Research Agent | Opens the case study in Figma. |
+| Credit Survey | Opens the case study in Figma. |
+| Credit Website | Opens the article on Medium. |
+| Tufte's Razor | Opens the app. |
+| GitHub | Opens my GitHub profile. |
+| LinkedIn | Opens my LinkedIn profile. |
+| Overtone | Opens the game. |
+| BetterPoster | Opens the poster templates site. |
+| ICCA Report | Opens a form. The report is not public, so you send an email to get the PDF. |
 
 ---
 
 ## Stack
 
-- **React 19** + **Vite 7**
-- **Howler.js** for all audio (SFX, channel previews, background music)
-- **CSS** only — no UI library
-- Custom Wii fonts (FOT-Rodin, Continuum)
-- Deployed on **Vercel** and on **Firebase Hosting** (the `akiraux` site), both with aggressive caching for assets, audio, and fonts and none for the page itself
+- React 19 and Vite 7
+- Howler.js for all sound: effects, channel music and menu music
+- Plain CSS. No UI library.
+- Wii fonts: FOT-Rodin and Continuum
+- Hosting: Firebase Hosting (`akiraux` site) and Vercel
 
 ---
 
-## Project structure
+## Run it on your computer
 
-```
-wii-portfolio-react/
-├── public/
-│   ├── assets/          # UI images, cursor, buttons
-│   ├── audio/           # SFX and background music
-│   ├── channelart/      # Per-channel HTML + art (rendered in iframes)
-│   │   ├── disc/
-│   │   ├── mii/
-│   │   ├── tuftes-razor/
-│   │   └── ...
-│   ├── channels/        # Per-channel preview video + audio
-│   └── fonts/           # FOT-Rodin, Continuum, Digital-7
-└── src/
-    ├── components/
-    │   ├── SplashScreen.jsx     # Warning screen + asset preloader
-    │   ├── MainMenu.jsx         # Channel grid with pagination
-    │   ├── Channel.jsx          # Individual channel tile
-    │   ├── ChannelSelection.jsx # Full-screen channel preview
-    │   ├── MiiPaper.jsx         # About-me overlay
-    │   ├── BottomBar.jsx        # Bottom nav bar
-    │   ├── HomeMenu.jsx         # Right-click home overlay
-    │   ├── MessageBoard.jsx     # Message board screen
-    │   ├── Settings.jsx         # Settings panel
-    │   └── ReturnDialog.jsx     # "Return to Wii Menu?" dialog
-    ├── context/
-    │   ├── AudioContext.jsx     # Howler wrappers, SFX, bg music
-    │   ├── ChannelsContext.jsx  # Channel list + localStorage persistence
-    │   └── ConfigContext.jsx    # Volume settings + localStorage
-    └── hooks/
-        └── useDateTime.js       # Wii-style date/time hook
-```
-
----
-
-## Running locally
+You must have Node.js installed.
 
 ```bash
 cd wii-portfolio-react
@@ -90,40 +67,72 @@ npm install
 npm run dev
 ```
 
-Then open `http://localhost:5173`.
+Open `http://localhost:5173`.
+
+Other commands:
 
 ```bash
-npm run build    # production build
-npm run lint     # ESLint check
-npm run preview  # preview the production build locally
+npm run build    # make the production build
+npm run lint     # run ESLint
+npm run preview  # show the production build
 ```
 
 ---
 
-## How channels work
+## Folders
 
-Each channel is an object in `ChannelsContext.jsx`:
+```
+wii-portfolio-react/
+├── art-src/             # Scenes for the channel art, and render.py
+├── public/
+│   ├── assets/          # Menu images, cursor, buttons, channel art
+│   ├── audio/           # Sound effects and music
+│   ├── channelart/      # HTML for each channel tile
+│   └── fonts/           # FOT-Rodin, Continuum, Digital-7
+└── src/
+    ├── components/      # Screens: warning, menu, channel, Home menu, settings
+    ├── context/         # Sound, channel list, settings
+    └── hooks/           # Date and time
+```
+
+---
+
+## Add or change a channel
+
+Each channel is one object in `src/context/ChannelsContext.jsx`:
 
 ```js
 {
   id: 'tuftes-razor',
   title: "Tufte's Razor",
-  assets: 'assets/channels/',   // preview video + audio path
-  channelart: 'channelart/',    // iframe art path
-  target: 'https://...',        // URL opened on Start
-  action: 'open-paper',         // optional: 'open-paper' for Mii overlay
-  mobileart: true               // optional: has a tall version for phones
+  assets: 'assets/channels/',   // folder for the channel art and music
+  channelart: 'channelart/',    // folder for the tile HTML
+  target: 'https://...',        // Start opens this URL
+  action: 'open-paper',         // optional: opens the Mii card
+  mobileart: true               // optional: has tall art for phones
 }
 ```
 
-Channel art (`/channelart/{id}/channel.html`) is rendered inside an iframe in the grid tile. The preview screen loads `/assets/channels/{id}/video.{format}` and `/assets/channels/{id}/audio.{format}`; on phones and other portrait screens, channels with `mobileart` show `/assets/channels/{id}/video-mobile.webp` full screen instead. The art is drawn by the scenes in `wii-portfolio-react/art-src/` and rendered with `art-src/render.py`. Art is served with a year-long cache, so every art URL carries `ART_VERSION` from `src/channelArt.js`: bump it whenever you republish art.
+How the art works:
 
-Channel state is persisted to `localStorage` under the key `adifolio-channels-v17`. Bumping the version resets to defaults on next load.
+- The menu tile shows `/channelart/{id}/channel.html` in an iframe.
+- The channel screen shows the `video` image in `/assets/channels/{id}/`.
+- On phones, channels with `mobileart` show `video-mobile.webp`.
+- The scenes in `art-src/` make the art. Run `art-src/render.py` to render it.
+
+The browser keeps art files for one year. Each art URL has `ART_VERSION` from `src/channelArt.js`. When you change the art, increase `ART_VERSION`. If you do not, visitors see the old art.
+
+The site keeps the channel list in `localStorage`. When you change the default list, increase the version in the key (now `adifolio-channels-v17`). This resets the list for all visitors.
 
 ---
 
-## CI
+## Deploy
 
-GitHub Actions runs ESLint on every push and PR to `main` via `.github/workflows/lint.yml`. Vercel deploys automatically on merge to `main`.
+Each push to `main` starts two GitHub Actions:
 
-`.github/workflows/firebase-hosting.yml` builds the site and deploys it to Firebase Hosting on every push to `main` (it can also be run by hand from the Actions tab). It needs a repository secret named `FIREBASE_SERVICE_ACCOUNT` holding the JSON key of a service account that can deploy to the `wii-portfolio-adi` project; without it the deploy is skipped.
+- `lint.yml` runs ESLint.
+- `firebase-hosting.yml` builds the site and deploys it to Firebase Hosting. You can also start it by hand from the Actions tab.
+
+The Firebase deploy needs the repository secret `FIREBASE_SERVICE_ACCOUNT`. This secret is the JSON key of a service account for the `wii-portfolio-adi` project. If the secret is missing, the deploy does not run.
+
+Vercel deploys each push to `main` without more setup.
